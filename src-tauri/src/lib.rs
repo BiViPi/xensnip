@@ -9,7 +9,7 @@ mod settings;
 use std::sync::Arc;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-use tauri::{AppHandle, Manager, Emitter};
+use tauri::{AppHandle, Manager};
 use tauri_plugin_log::{Target, TargetKind};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -32,8 +32,10 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::app_ping,
             commands::settings_load,
-            commands::capture_active_window,
-            commands::finish_region_capture
+            commands::capture_start_window,
+            commands::capture_start_region,
+            commands::capture_region_confirm,
+            commands::capture_cancel
         ])
         .setup(|app| {
             // Initialize CaptureSession and AssetRegistry
@@ -78,22 +80,11 @@ pub fn run() {
                     }
                     "region" => {
                         log::info!(target: "tray", "Region capture clicked");
-                        if let Err(e) = session_clone_tray.start(capture::CaptureIntent::Region) {
-                            log::warn!(target: "tray", "Region capture rejected: {:?}", e);
-                            let _ = app.emit("capture.failure", e);
-                        } else {
-                            let _ = capture::region::capture_region(app);
-                        }
+                        hotkeys::run_region_intent(app, &session_clone_tray);
                     }
                     "window" => {
                         log::info!(target: "tray", "Window capture clicked");
-                        if let Err(e) = session_clone_tray.start(capture::CaptureIntent::ActiveWindow) {
-                            log::warn!(target: "tray", "Active window capture rejected: {:?}", e);
-                            let _ = app.emit("capture.failure", e);
-                        } else {
-                            let _ = capture::window::capture_active_window(app);
-                            session_clone_tray.finish();
-                        }
+                        hotkeys::run_window_intent(app, &session_clone_tray);
                     }
                     "editor" => {
                         log::info!(target: "tray", "Open editor clicked");
