@@ -24,3 +24,6 @@ dist-ssr
 *.sln
 *.sw?
 .gitnexus/
+AGENTS.md 
+CLAUDE.md
+.claude/

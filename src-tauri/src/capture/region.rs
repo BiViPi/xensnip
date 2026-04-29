@@ -44,26 +44,34 @@ pub fn finish_region_capture(
         return Err(err);
     }
 
-    let monitors = Monitor::all().unwrap_or_default();
+    let monitors = Monitor::all().map_err(|e| {
+        log::error!(target: "capture", "Monitor::all() failed: {:?}", e);
+        let err = CaptureError::WgcFailure();
+        emit_failure(app, &err, &start_time, crate::diagnostics::CaptureMethod::WgcMonitor);
+        cleanup();
+        err
+    })?;
+
     let target_monitor = if !monitor_id.is_empty() {
         monitors.iter().find(|m| m.name().unwrap_or_default() == monitor_id)
     } else {
         monitors.first()
-    };
+    }.ok_or_else(|| {
+        let err = CaptureError::InvalidTarget();
+        emit_failure(app, &err, &start_time, crate::diagnostics::CaptureMethod::WgcMonitor);
+        cleanup();
+        err
+    })?;
 
-    let actual_monitor_id = target_monitor.map(|m| m.name().unwrap_or_default()).unwrap_or_else(|| "unknown".into());
-    let actual_dpi = target_monitor.map(|m| m.scale_factor().unwrap_or(1.0)).unwrap_or(1.0);
+    let actual_monitor_id = target_monitor.name().unwrap_or_default();
+    let actual_dpi = target_monitor.scale_factor().unwrap_or(1.0);
     let dpi_pct = (actual_dpi * 100.0).round() as u32;
 
     let mut capture_method = crate::diagnostics::CaptureMethod::WgcMonitor;
 
     // Path 1: Try WGC Monitor Capture
-    let image_res = if let Some(m) = target_monitor {
-        log::info!(target: "capture", "Attempting WGC capture on monitor: {}", actual_monitor_id);
-        m.capture_image()
-    } else {
-        Err(xcap::XCapError::new("No monitor found for WGC"))
-    };
+    log::info!(target: "capture", "Attempting WGC capture on monitor: {}", actual_monitor_id);
+    let image_res = target_monitor.capture_image();
 
     // Path 2: Fallback to GDI BitBlt if WGC fails or times out
     let final_image = match image_res {
@@ -105,7 +113,13 @@ pub fn finish_region_capture(
     let final_h = final_image.height();
     let mut bytes: Vec<u8> = Vec::new();
     let mut cursor = std::io::Cursor::new(&mut bytes);
-    final_image.write_to(&mut cursor, image::ImageFormat::Png).ok();
+    final_image.write_to(&mut cursor, image::ImageFormat::Png).map_err(|e| {
+        log::error!(target: "capture", "Failed to encode region capture as PNG: {:?}", e);
+        let err = CaptureError::WgcFailure();
+        emit_failure(app, &err, &start_time, capture_method.clone());
+        cleanup();
+        err
+    })?;
 
     let id = format!("reg_{}", chrono::Utc::now().timestamp_millis());
     if let Some(registry) = app.try_state::<crate::asset::AssetRegistry>() {
@@ -137,44 +151,80 @@ pub fn finish_region_capture(
 }
 
 fn capture_region_gdi(x: i32, y: i32, w: u32, h: u32) -> Result<image::RgbaImage, String> {
+    if w == 0 || h == 0 {
+        return Err("Region dimensions must be non-zero".into());
+    }
+
     unsafe {
         let hwnd = GetDesktopWindow();
         let hdc_screen = GetDC(Some(hwnd));
-        let hdc_mem = CreateCompatibleDC(Some(hdc_screen));
-        let hbm = CreateCompatibleBitmap(hdc_screen, w as i32, h as i32);
-        
-        let hgdiobj = HGDIOBJ(hbm.0);
-        SelectObject(hdc_mem, hgdiobj);
-
-        BitBlt(hdc_mem, 0, 0, w as i32, h as i32, Some(hdc_screen), x, y, SRCCOPY).map_err(|e| e.to_string())?;
-
-        let mut bmi = BITMAPINFOHEADER {
-            biSize: std::mem::size_of::<BITMAPINFOHEADER>() as u32,
-            biWidth: w as i32,
-            biHeight: -(h as i32), // Top-down
-            biPlanes: 1,
-            biBitCount: 32,
-            biCompression: BI_RGB.0,
-            ..Default::default()
-        };
-
-        let mut buf = vec![0u8; (w * h * 4) as usize];
-        let mut bmi_header = bmi;
-        GetDIBits(hdc_screen, hbm, 0, h, Some(buf.as_mut_ptr() as *mut _), (&mut bmi_header) as *mut _ as *mut _, DIB_RGB_COLORS);
-
-        // Convert BGRA (GDI) to RGBA
-        for i in (0..buf.len()).step_by(4) {
-            let b = buf[i];
-            let r = buf[i+2];
-            buf[i] = r;
-            buf[i+2] = b;
+        if hdc_screen.0.is_null() {
+            return Err("GetDC failed".into());
         }
 
-        DeleteObject(hgdiobj);
-        DeleteDC(hdc_mem);
-        ReleaseDC(Some(hwnd), hdc_screen);
+        let hdc_mem = CreateCompatibleDC(Some(hdc_screen));
+        if hdc_mem.0.is_null() {
+            let _ = ReleaseDC(Some(hwnd), hdc_screen);
+            return Err("CreateCompatibleDC failed".into());
+        }
 
-        image::RgbaImage::from_raw(w, h, buf).ok_or_else(|| "Failed to create image from GDI buffer".into())
+        let hbm = CreateCompatibleBitmap(hdc_screen, w as i32, h as i32);
+        if hbm.0.is_null() {
+            let _ = DeleteDC(hdc_mem);
+            let _ = ReleaseDC(Some(hwnd), hdc_screen);
+            return Err("CreateCompatibleBitmap failed".into());
+        }
+
+        let hgdiobj = HGDIOBJ(hbm.0);
+        let old_obj = SelectObject(hdc_mem, hgdiobj);
+
+        let result = (|| -> Result<image::RgbaImage, String> {
+            BitBlt(hdc_mem, 0, 0, w as i32, h as i32, Some(hdc_screen), x, y, SRCCOPY)
+                .map_err(|e| e.to_string())?;
+
+            let bmi = BITMAPINFOHEADER {
+                biSize: std::mem::size_of::<BITMAPINFOHEADER>() as u32,
+                biWidth: w as i32,
+                biHeight: -(h as i32), // Top-down
+                biPlanes: 1,
+                biBitCount: 32,
+                biCompression: BI_RGB.0,
+                ..Default::default()
+            };
+
+            let mut buf = vec![0u8; (w * h * 4) as usize];
+            let mut bmi_header = bmi;
+            let copied = GetDIBits(
+                hdc_mem,
+                hbm,
+                0,
+                h,
+                Some(buf.as_mut_ptr() as *mut _),
+                (&mut bmi_header) as *mut _ as *mut _,
+                DIB_RGB_COLORS,
+            );
+
+            if copied == 0 {
+                return Err("GetDIBits failed".into());
+            }
+
+            for i in (0..buf.len()).step_by(4) {
+                let b = buf[i];
+                let r = buf[i + 2];
+                buf[i] = r;
+                buf[i + 2] = b;
+            }
+
+            image::RgbaImage::from_raw(w, h, buf)
+                .ok_or_else(|| "Failed to create image from GDI buffer".into())
+        })();
+
+        let _ = SelectObject(hdc_mem, old_obj);
+        let _ = DeleteObject(hgdiobj);
+        let _ = DeleteDC(hdc_mem);
+        let _ = ReleaseDC(Some(hwnd), hdc_screen);
+
+        result
     }
 }
 

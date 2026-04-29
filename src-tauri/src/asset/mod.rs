@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
+#[allow(dead_code)] // Sprint 02 only emits assets; consumer reads start in Sprint 03.
 #[derive(Debug, Clone)]
 pub struct Asset {
     pub id: String,
@@ -30,10 +31,5 @@ impl AssetRegistry {
     pub fn insert(&self, asset: Asset) {
         let mut map = self.assets.lock().unwrap();
         map.insert(asset.id.clone(), asset);
-    }
-
-    pub fn get(&self, id: &str) -> Option<Asset> {
-        let map = self.assets.lock().unwrap();
-        map.get(id).cloned()
     }
 }

@@ -25,10 +25,9 @@ pub fn settings_load(app_handle: AppHandle) -> Settings {
 #[tauri::command]
 pub fn capture_start_region(app_handle: AppHandle) -> Result<(), String> {
     let session = app_handle.state::<CaptureSession>();
-    let _guard = session.start(crate::capture::CaptureIntent::Region).map_err(|e| format!("{:?}", e))?;
-    
-    // Forget the guard to persist lock during overlay interaction
-    std::mem::forget(_guard);
+    session
+        .start_persistent(crate::capture::CaptureIntent::Region)
+        .map_err(|e| format!("{:?}", e))?;
 
     match crate::capture::region::capture_region(&app_handle) {
         Ok(()) => Ok(()),

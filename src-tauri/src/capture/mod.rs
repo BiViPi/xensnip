@@ -33,7 +33,7 @@ impl CaptureSession {
         }
     }
 
-    pub fn start(&self, intent: CaptureIntent) -> Result<CaptureSessionGuard, CaptureError> {
+    fn begin(&self, intent: CaptureIntent) -> Result<(), CaptureError> {
         let mut current = self.intent.lock().unwrap();
         if *current != CaptureIntent::None {
             log::warn!(target: "capture", "Session start rejected: Busy with {:?}", *current);
@@ -41,7 +41,16 @@ impl CaptureSession {
         }
         *current = intent.clone();
         log::info!(target: "capture", "Session started: {:?}", intent);
+        Ok(())
+    }
+
+    pub fn start(&self, intent: CaptureIntent) -> Result<CaptureSessionGuard<'_>, CaptureError> {
+        self.begin(intent)?;
         Ok(CaptureSessionGuard { session: self })
+    }
+
+    pub fn start_persistent(&self, intent: CaptureIntent) -> Result<(), CaptureError> {
+        self.begin(intent)
     }
 
     pub fn finish(&self) {

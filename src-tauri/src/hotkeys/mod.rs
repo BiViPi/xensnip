@@ -5,12 +5,10 @@ use crate::capture::{CaptureSession, CaptureIntent};
 
 pub fn run_region_intent(app: &AppHandle) {
     let session = app.state::<CaptureSession>();
-    let start_res = session.start(CaptureIntent::Region);
+    let start_res = session.start_persistent(CaptureIntent::Region);
     
     match start_res {
-        Ok(_guard) => {
-            // Keep the lock for the overlay flow
-            std::mem::forget(_guard);
+        Ok(()) => {
             if let Err(e) = crate::capture::region::capture_region(app) {
                 log::error!(target: "hotkey", "Region overlay creation failed: {:?}", e);
                 session.finish();
@@ -49,27 +47,35 @@ pub fn register_hotkeys(app: &AppHandle, settings: &Settings) {
 
     match region_shortcut {
         Ok(shortcut) => {
-            app.global_shortcut()
+            if let Err(err) = app.global_shortcut()
                 .on_shortcut(shortcut, move |app, _shortcut, event| {
                     if event.state() == ShortcutState::Pressed {
                         run_region_intent(app);
                     }
                 })
-                .ok();
+            {
+                log::error!(target: "hotkey", "Failed to register region hotkey '{}': {:?}", settings.hotkeys.region, err);
+            }
         }
-        Err(_) => {}
+        Err(err) => {
+            log::error!(target: "hotkey", "Invalid region hotkey '{}': {:?}", settings.hotkeys.region, err);
+        }
     }
 
     match window_shortcut {
         Ok(shortcut) => {
-            app.global_shortcut()
+            if let Err(err) = app.global_shortcut()
                 .on_shortcut(shortcut, move |app, _shortcut, event| {
                     if event.state() == ShortcutState::Pressed {
                         run_window_intent(app);
                     }
                 })
-                .ok();
+            {
+                log::error!(target: "hotkey", "Failed to register active-window hotkey '{}': {:?}", settings.hotkeys.active_window, err);
+            }
         }
-        Err(_) => {}
+        Err(err) => {
+            log::error!(target: "hotkey", "Invalid active-window hotkey '{}': {:?}", settings.hotkeys.active_window, err);
+        }
     }
 }

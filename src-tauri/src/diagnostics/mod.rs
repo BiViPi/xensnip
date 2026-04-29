@@ -12,7 +12,6 @@ pub enum CaptureMethod {
     WgcWindow,
     WgcMonitor,
     GdiBitblt,
-    Other(String),
 }
 
 #[derive(Debug, Serialize, Clone)]

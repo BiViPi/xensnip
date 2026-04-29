@@ -1,5 +1,6 @@
 use serde::Serialize;
 
+#[allow(dead_code)] // Some edge-case classes are reserved for later Sprint 02/03 handling.
 #[derive(Debug, Serialize, Clone)]
 pub enum CaptureErrorClass {
     Busy,

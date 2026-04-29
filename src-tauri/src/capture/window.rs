@@ -2,7 +2,6 @@ use crate::capture::errors::CaptureError;
 use tauri::{AppHandle, Manager, Emitter};
 use xcap::Window;
 use windows::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, GetWindowTextW, GetClassNameW};
-use windows::core::HSTRING;
 
 pub fn capture_active_window(app: &AppHandle) -> Result<(), CaptureError> {
     let start_time = std::time::Instant::now();
