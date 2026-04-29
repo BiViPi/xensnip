@@ -1,5 +1,5 @@
-mod settings;
 mod commands;
+mod settings;
 
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
@@ -17,6 +17,7 @@ pub fn run() {
                     Target::new(TargetKind::LogDir {
                         file_name: Some("xensnip".to_string()),
                     }),
+                    Target::new(TargetKind::Webview),
                 ])
                 .level(log::LevelFilter::Info)
                 .build(),

@@ -28,11 +28,14 @@ function App() {
   }
 
   return (
-    <main className="container">
-      <header>
-        <h1>XenSnip <span className="version">v{pingData?.version}</span></h1>
-        <p className="subtitle">Sprint 0 — Foundation Baseline</p>
-      </header>
+    <div className="container">
+      <div className="header">
+        <div className="title-row">
+          <h1>XenSnip</h1>
+          <div className="status-badge">Sprint 00 Baseline</div>
+        </div>
+        <p className="subtitle">Production Repo Foundation Verified</p>
+      </div>
 
       <section className="smoke-test">
         <div className="card">
@@ -49,7 +52,7 @@ function App() {
       <footer>
         <p>Tray resident mode active. Check logs in %APPDATA%/XenSnip/logs/</p>
       </footer>
-    </main>
+    </div>
   );
 }
 
