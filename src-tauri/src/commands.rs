@@ -19,3 +19,13 @@ pub fn app_ping() -> PingResponse {
 pub fn settings_load(app_handle: AppHandle) -> Settings {
     load_or_create_default(&app_handle)
 }
+
+#[tauri::command]
+pub fn capture_active_window(app_handle: AppHandle) -> Result<(), String> {
+    crate::capture::window::capture_active_window(&app_handle).map_err(|e| format!("{:?}", e))
+}
+
+#[tauri::command]
+pub fn finish_region_capture(app_handle: AppHandle, x: i32, y: i32, w: u32, h: u32) -> Result<(), String> {
+    crate::capture::region::finish_region_capture(&app_handle, x, y, w, h).map_err(|e| format!("{:?}", e))
+}
