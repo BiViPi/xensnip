@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "app",
+  "productName": "XenSnip",
   "version": "0.1.0",
-  "identifier": "com.xensnip.app",
+  "identifier": "com.bivipi.xensnip",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "app",
+        "title": "XenSnip",
         "width": 800,
         "height": 600
       }

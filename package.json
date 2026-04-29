@@ -1,11 +1,13 @@
 {
-  "name": "app",
+  "name": "xensnip",
   "private": true,
   "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "lint": "tsc --noEmit",
+    "test": "echo \"No tests configured for Sprint 0\"",
     "preview": "vite preview",
     "tauri": "tauri"
   },
