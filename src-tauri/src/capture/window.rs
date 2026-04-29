@@ -1,18 +1,32 @@
 use crate::capture::errors::CaptureError;
 use tauri::{AppHandle, Manager, Emitter};
 use xcap::Window;
-use windows::Win32::UI::WindowsAndMessaging::GetForegroundWindow;
+use windows::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, GetWindowTextW, GetClassNameW};
+use windows::core::HSTRING;
 
 pub fn capture_active_window(app: &AppHandle) -> Result<(), CaptureError> {
     let start_time = std::time::Instant::now();
 
     let foreground_hwnd = unsafe { GetForegroundWindow() };
+    let hwnd_isize = foreground_hwnd.0 as isize;
+    
     if foreground_hwnd.0.is_null() {
         let err = CaptureError::WindowUnavailable();
         emit_failure(app, &err, &start_time);
         return Err(err);
     }
 
+    // Get Title and ClassName directly from Windows API for debugging
+    let mut title_buf = [0u16; 512];
+    let title_len = unsafe { GetWindowTextW(foreground_hwnd, &mut title_buf) };
+    let title = String::from_utf16_lossy(&title_buf[..title_len as usize]);
+
+    let mut class_buf = [0u16; 256];
+    let class_len = unsafe { GetClassNameW(foreground_hwnd, &mut class_buf) };
+    let class_name = String::from_utf16_lossy(&class_buf[..class_len as usize]);
+
+    log::info!(target: "capture", "Foreground Window: HWND={:?} (isize: {}), Class='{}', Title='{}'", foreground_hwnd, hwnd_isize, class_name, title);
+    
     let windows = Window::all().map_err(|e| {
         let err = CaptureError::WgcFailure();
         log::warn!(target: "capture", "Window::all() failed: {:?}", e);
@@ -20,25 +34,30 @@ pub fn capture_active_window(app: &AppHandle) -> Result<(), CaptureError> {
         err
     })?;
 
-    let hwnd_isize = foreground_hwnd.0 as isize;
+    // Try matching both full isize and truncated u32 (some libraries truncate HWNDs)
     let target_window = windows
         .into_iter()
-        .find(|w| w.id().unwrap_or(0) as isize == hwnd_isize);
+        .find(|w| {
+            let wid = w.id().unwrap_or(0) as isize;
+            wid == hwnd_isize || (wid & 0xFFFFFFFF) == (hwnd_isize & 0xFFFFFFFF)
+        });
 
     let target = match target_window {
         Some(w) => w,
         None => {
+            log::warn!(target: "capture", "Could not find window with HWND {} in xcap window list. This happens if the window is a system menu, taskbar, or hidden/tool window.", hwnd_isize);
             let err = CaptureError::InvalidTarget();
             emit_failure(app, &err, &start_time);
             return Err(err);
         }
     };
 
-    // Collect window metadata before capture (moved before capture in case capture consumes target)
     let process_name = target.app_name().ok().map(|s| s.to_string());
     let window_title = target.title().ok().map(|s| s.to_string());
     let win_x = target.x().unwrap_or(0);
     let win_y = target.y().unwrap_or(0);
+
+    log::info!(target: "capture", "Capturing window: '{}' (process: {:?})", window_title.as_deref().unwrap_or("?"), process_name);
 
     let image = target.capture_image().map_err(|e| {
         let err = CaptureError::WgcFailure();
@@ -73,15 +92,13 @@ pub fn capture_active_window(app: &AppHandle) -> Result<(), CaptureError> {
     }
 
     let id = format!("win_{}", chrono::Utc::now().timestamp_millis());
-    let asset = crate::asset::Asset {
-        id: id.clone(),
-        data: bytes,
-        width,
-        height,
-    };
-
     if let Some(registry) = app.try_state::<crate::asset::AssetRegistry>() {
-        registry.insert(asset);
+        registry.insert(crate::asset::Asset {
+            id: id.clone(),
+            data: bytes,
+            width,
+            height,
+        });
     }
 
     app.emit("capture.result", serde_json::json!({ "asset_id": id }))
@@ -90,22 +107,12 @@ pub fn capture_active_window(app: &AppHandle) -> Result<(), CaptureError> {
     let meta = crate::diagnostics::CaptureMetadata {
         capture_mode: crate::diagnostics::CaptureMode::Window,
         capture_method: crate::diagnostics::CaptureMethod::WgcWindow,
-        output_size: crate::diagnostics::PhysicalSize {
-            w_px: width,
-            h_px: height,
-        },
-        // monitor_id for a window: not trivially available from xcap — logged as empty with a note.
+        output_size: crate::diagnostics::PhysicalSize { w_px: width, h_px: height },
         monitor_id: String::new(),
-        // DPI: xcap does not expose per-window DPI; logged as 0 to distinguish from the legacy 96 hardcode.
         dpi: 0,
         process_name,
         window_title,
-        bounds_physical: crate::diagnostics::PhysicalBounds {
-            x: win_x,
-            y: win_y,
-            w: width,
-            h: height,
-        },
+        bounds_physical: crate::diagnostics::PhysicalBounds { x: win_x, y: win_y, w: width, h: height },
         asset_id: Some(id.clone()),
         error_class: None,
         error_code: None,
@@ -116,7 +123,6 @@ pub fn capture_active_window(app: &AppHandle) -> Result<(), CaptureError> {
     Ok(())
 }
 
-/// Emit a structured capture.failure event and log diagnostics for any error path.
 fn emit_failure(app: &AppHandle, err: &CaptureError, start_time: &std::time::Instant) {
     let meta = crate::diagnostics::CaptureMetadata {
         capture_mode: crate::diagnostics::CaptureMode::Window,

@@ -1,4 +1,5 @@
 use std::sync::Mutex;
+use crate::capture::errors::CaptureError;
 
 pub mod errors;
 pub mod region;
@@ -15,6 +16,16 @@ pub struct CaptureSession {
     pub intent: Mutex<CaptureIntent>,
 }
 
+pub struct CaptureSessionGuard<'a> {
+    session: &'a CaptureSession,
+}
+
+impl<'a> Drop for CaptureSessionGuard<'a> {
+    fn drop(&mut self) {
+        self.session.finish();
+    }
+}
+
 impl CaptureSession {
     pub fn new() -> Self {
         Self {
@@ -22,17 +33,22 @@ impl CaptureSession {
         }
     }
 
-    pub fn start(&self, intent: CaptureIntent) -> Result<(), errors::CaptureError> {
+    pub fn start(&self, intent: CaptureIntent) -> Result<CaptureSessionGuard, CaptureError> {
         let mut current = self.intent.lock().unwrap();
         if *current != CaptureIntent::None {
-            return Err(errors::CaptureError::Busy());
+            log::warn!(target: "capture", "Session start rejected: Busy with {:?}", *current);
+            return Err(CaptureError::Busy());
         }
-        *current = intent;
-        Ok(())
+        *current = intent.clone();
+        log::info!(target: "capture", "Session started: {:?}", intent);
+        Ok(CaptureSessionGuard { session: self })
     }
 
     pub fn finish(&self) {
         let mut current = self.intent.lock().unwrap();
-        *current = CaptureIntent::None;
+        if *current != CaptureIntent::None {
+            log::info!(target: "capture", "Session finished: {:?}", *current);
+            *current = CaptureIntent::None;
+        }
     }
 }

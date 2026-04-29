@@ -6,7 +6,6 @@ mod hotkeys;
 mod overlay;
 mod settings;
 
-use std::sync::Arc;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Manager};
@@ -38,18 +37,18 @@ pub fn run() {
             commands::capture_cancel
         ])
         .setup(|app| {
-            // Initialize CaptureSession and AssetRegistry
-            let session = Arc::new(capture::CaptureSession::new());
-            let asset_registry = Arc::new(asset::AssetRegistry::new());
-            app.manage(session.clone());
-            app.manage(asset_registry);
+            // Initialize CaptureSession and AssetRegistry as direct managed state
+            app.manage(capture::CaptureSession::new());
+            app.manage(asset::AssetRegistry::new());
 
-            // Workstream E: Settings schema v0 with load_or_create_default
-            let settings = settings::load_or_create_default(app.handle());
+            let app_handle = app.handle();
+            
+            // Workstream E: Settings
+            let settings = settings::load_or_create_default(app_handle);
             log::info!(target: "app", "Settings initialized: {:?}", settings);
 
-            // Register global hotkeys
-            hotkeys::register_hotkeys(app.handle(), &settings, session.clone());
+            // Register global hotkeys (now gets state from AppHandle internally)
+            hotkeys::register_hotkeys(app_handle, &settings);
 
             // Workstream B: Tray baseline
             let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
@@ -68,8 +67,6 @@ pub fn run() {
                 &quit_i,
             ])?;
 
-            let session_clone_tray = session.clone();
-
             let _tray = TrayIconBuilder::new()
                 .icon(app.default_window_icon().unwrap().clone())
                 .menu(&menu)
@@ -80,11 +77,11 @@ pub fn run() {
                     }
                     "region" => {
                         log::info!(target: "tray", "Region capture clicked");
-                        hotkeys::run_region_intent(app, &session_clone_tray);
+                        hotkeys::run_region_intent(app);
                     }
                     "window" => {
                         log::info!(target: "tray", "Window capture clicked");
-                        hotkeys::run_window_intent(app, &session_clone_tray);
+                        hotkeys::run_window_intent(app);
                     }
                     "editor" => {
                         log::info!(target: "tray", "Open editor clicked");

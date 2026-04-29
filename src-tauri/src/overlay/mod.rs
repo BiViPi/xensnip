@@ -16,7 +16,7 @@ pub fn show(app: &AppHandle) -> Result<(), CaptureError> {
         .fullscreen(true)
         .always_on_top(true)
         .skip_taskbar(true)
-        .focused(false) // No focus stealing
+        .focused(true) // Set focus to enable keyboard events (ESC key)
         .disable_drag_drop_handler();
         
     let window = builder.build().map_err(|e| {
@@ -24,9 +24,8 @@ pub fn show(app: &AppHandle) -> Result<(), CaptureError> {
         CaptureError::new(crate::capture::errors::CaptureErrorClass::Other, "overlay_create_failed", "Failed to create overlay window.")
     })?;
     
-    // Ignore cursor events until the user starts interacting? Wait, if we ignore, how do they click?
-    // TDR-003 says: `set_ignore_cursor_events(false)` while selecting. So we must not ignore them.
     let _ = window.set_ignore_cursor_events(false);
+    let _ = window.set_focus(); // Explicitly request focus
     
     Ok(())
 }

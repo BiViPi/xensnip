@@ -1,5 +1,6 @@
 use crate::settings::{load_or_create_default, Settings};
 use tauri::{AppHandle, Manager};
+use crate::capture::CaptureSession;
 
 #[derive(serde::Serialize)]
 pub struct PingResponse {
@@ -21,38 +22,35 @@ pub fn settings_load(app_handle: AppHandle) -> Settings {
 }
 
 /// Start region capture: acquire session lock, then show the overlay.
-/// If overlay creation fails, the lock is released before returning the error.
 #[tauri::command]
 pub fn capture_start_region(app_handle: AppHandle) -> Result<(), String> {
-    let session = app_handle.state::<crate::capture::CaptureSession>();
-    if let Err(e) = session.start(crate::capture::CaptureIntent::Region) {
-        return Err(format!("{:?}", e));
-    }
+    let session = app_handle.state::<CaptureSession>();
+    let _guard = session.start(crate::capture::CaptureIntent::Region).map_err(|e| format!("{:?}", e))?;
+    
+    // Forget the guard to persist lock during overlay interaction
+    std::mem::forget(_guard);
+
     match crate::capture::region::capture_region(&app_handle) {
         Ok(()) => Ok(()),
         Err(e) => {
-            // overlay creation failed — release lock so next intent can proceed
             session.finish();
             Err(format!("{:?}", e))
         }
     }
 }
 
-/// Start active-window capture: acquire session lock, run capture, release lock.
+/// Start active-window capture.
 #[tauri::command]
 pub fn capture_start_window(app_handle: AppHandle) -> Result<(), String> {
-    let session = app_handle.state::<crate::capture::CaptureSession>();
-    if let Err(e) = session.start(crate::capture::CaptureIntent::ActiveWindow) {
-        return Err(format!("{:?}", e));
-    }
+    let session = app_handle.state::<CaptureSession>();
+    let _guard = session.start(crate::capture::CaptureIntent::ActiveWindow).map_err(|e| format!("{:?}", e))?;
+    
     let res = crate::capture::window::capture_active_window(&app_handle);
-    // Always release the session lock — success or failure.
-    session.finish();
+    // RAII: _guard drops and finishes session here
     res.map_err(|e| format!("{:?}", e))
 }
 
-/// Confirm region selection from the overlay.
-/// The session lock was held since capture_start_region; finish() is called inside finish_region_capture.
+/// Confirm region selection.
 #[tauri::command]
 pub fn capture_region_confirm(
     app_handle: AppHandle,
@@ -66,11 +64,11 @@ pub fn capture_region_confirm(
         .map_err(|e| format!("{:?}", e))
 }
 
-/// Cancel any in-progress capture: close overlay (if open) and release the session lock.
+/// Cancel capture.
 #[tauri::command]
 pub fn capture_cancel(app_handle: AppHandle) -> Result<(), String> {
     crate::overlay::close(&app_handle);
-    if let Some(session) = app_handle.try_state::<crate::capture::CaptureSession>() {
+    if let Some(session) = app_handle.try_state::<CaptureSession>() {
         session.finish();
     }
     Ok(())
