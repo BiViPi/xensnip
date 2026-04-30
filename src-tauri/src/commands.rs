@@ -156,3 +156,23 @@ pub fn quick_access_dismiss(app_handle: AppHandle, asset_id: String) -> Result<(
     crate::quick_access::dismiss(&app_handle, &asset_id);
     Ok(())
 }
+
+#[tauri::command]
+pub fn debug_webview_probe(
+    label: String,
+    stage: String,
+    href: String,
+    root_children: i32,
+    scripts: i32,
+) -> Result<(), String> {
+    log::info!(
+        target: "webview_probe",
+        "label={} stage={} href={} root_children={} scripts={}",
+        label,
+        stage,
+        href,
+        root_children,
+        scripts
+    );
+    Ok(())
+}

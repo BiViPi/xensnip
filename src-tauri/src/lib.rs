@@ -89,6 +89,7 @@ pub fn run() {
             commands::asset_read_png,
             commands::editor_open,
             commands::quick_access_dismiss,
+            commands::debug_webview_probe,
             commands::clipboard_write_image,
             commands::export_save_png,
         ])

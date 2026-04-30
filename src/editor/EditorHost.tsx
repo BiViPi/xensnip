@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react";
-import { assetReadPng } from "../ipc";
+import { assetReadPng } from "../ipc/index";
 
 export function EditorHost() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    console.info("[editor] host mount", window.location.href);
     let objectUrl: string | null = null;
     const params = new URLSearchParams(window.location.search);
     const assetId = params.get("asset_id");
     if (!assetId) {
+      console.error("[editor] missing asset_id");
       setError("No asset_id provided.");
       return;
     }
@@ -17,9 +19,11 @@ export function EditorHost() {
     void (async () => {
       try {
         const pngBytes = await assetReadPng(assetId);
+        console.info("[editor] asset_read_png bytes", pngBytes.length);
         objectUrl = URL.createObjectURL(new Blob([pngBytes], { type: "image/png" }));
         setPreviewUrl(objectUrl);
       } catch {
+        console.error("[editor] asset_read_png failed");
         setError("Could not load captured screenshot.");
       }
     })();

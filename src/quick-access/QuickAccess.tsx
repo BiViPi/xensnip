@@ -14,6 +14,8 @@ import { composeDefaultPreset } from "./compose";
 const AUTO_DISMISS_MS = 8000;
 
 export function QuickAccess() {
+  const searchParams = new URLSearchParams(window.location.search);
+  const mode = searchParams.get("mode") === "editor" ? "editor" : "quick-access";
   const [assetId, setAssetId] = useState<string | null>(null);
   const [assetUri, setAssetUri] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -50,12 +52,16 @@ export function QuickAccess() {
     const targetId = id ?? assetIdRef.current;
     if (!targetId) return;
     pauseDismissTimer();
+    if (mode === "editor") {
+      window.close();
+      return;
+    }
     try {
       await quickAccessDismiss(targetId);
     } catch {
       // Rust close hook owns final cleanup.
     }
-  }, [pauseDismissTimer]);
+  }, [mode, pauseDismissTimer]);
 
   const resetDismissTimer = useCallback((id: string) => {
     if (dismissTimerRef.current) {
@@ -86,7 +92,9 @@ export function QuickAccess() {
     setAssetUri(null);
 
     try {
-      await assetResolve(nextAssetId, "quick_access_ui");
+      if (mode === "quick-access") {
+        await assetResolve(nextAssetId, "quick_access_ui");
+      }
       const pngBytes = await assetReadPng(nextAssetId);
       const objectUrl = URL.createObjectURL(new Blob([pngBytes], { type: "image/png" }));
       if (previewObjectUrlRef.current) {
@@ -101,11 +109,17 @@ export function QuickAccess() {
       showToast("Capture is no longer available. Please capture again.");
     } finally {
       setIsLoading(false);
-      resetDismissTimer(nextAssetId);
+      if (mode === "quick-access") {
+        resetDismissTimer(nextAssetId);
+      }
     }
-  }, [resetDismissTimer]);
+  }, [mode, resetDismissTimer]);
 
   useEffect(() => {
+    if (mode === "editor") {
+      return;
+    }
+
     let unlisten: (() => void) | null = null;
 
     listen<QuickAccessShowPayload>("quick_access.show", (event) => {
@@ -117,11 +131,10 @@ export function QuickAccess() {
     return () => {
       unlisten?.();
     };
-  }, [bootstrapAsset]);
+  }, [bootstrapAsset, mode]);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const initialAssetId = params.get("asset_id");
+    const initialAssetId = searchParams.get("asset_id");
     if (initialAssetId) {
       void bootstrapAsset(initialAssetId);
     }
@@ -136,7 +149,7 @@ export function QuickAccess() {
         URL.revokeObjectURL(previewObjectUrlRef.current);
       }
     };
-  }, []);
+  }, [mode]);
 
   async function withFlight<T>(fn: () => Promise<T>): Promise<T | null> {
     if (isActionInFlightRef.current || !assetIdRef.current || !assetUriRef.current) {
@@ -216,8 +229,8 @@ export function QuickAccess() {
   return (
     <div
       className="qa-container"
-      onMouseEnter={pauseDismissTimer}
-      onMouseLeave={resumeDismissTimer}
+      onMouseEnter={mode === "quick-access" ? pauseDismissTimer : undefined}
+      onMouseLeave={mode === "quick-access" ? resumeDismissTimer : undefined}
     >
       <div className="qa-preview">
         {isLoading && <div className="qa-loading">Loading...</div>}
@@ -237,36 +250,40 @@ export function QuickAccess() {
         )}
       </div>
 
-      <div className="qa-actions">
-        <button
-          className="qa-btn qa-btn-primary"
-          onClick={handleCopy}
-          disabled={isActionInFlight || isLoading}
-        >
-          Copy
-        </button>
-        <button
-          className="qa-btn"
-          onClick={handleExport}
-          disabled={isActionInFlight || isLoading}
-        >
-          Export
-        </button>
-        <button
-          className="qa-btn"
-          onClick={handleOpenEditor}
-          disabled={isActionInFlight || isLoading}
-        >
-          Open Editor
-        </button>
-        <button
-          className="qa-btn qa-btn-dismiss"
-          onClick={() => void handleDismiss()}
-          disabled={isActionInFlight}
-        >
-          Dismiss
-        </button>
-      </div>
+      {mode === "quick-access" ? (
+        <div className="qa-actions">
+          <button
+            className="qa-btn qa-btn-primary"
+            onClick={handleCopy}
+            disabled={isActionInFlight || isLoading}
+          >
+            Copy
+          </button>
+          <button
+            className="qa-btn"
+            onClick={handleExport}
+            disabled={isActionInFlight || isLoading}
+          >
+            Export
+          </button>
+          <button
+            className="qa-btn"
+            onClick={handleOpenEditor}
+            disabled={isActionInFlight || isLoading}
+          >
+            Open Editor
+          </button>
+          <button
+            className="qa-btn qa-btn-dismiss"
+            onClick={() => void handleDismiss()}
+            disabled={isActionInFlight}
+          >
+            Dismiss
+          </button>
+        </div>
+      ) : (
+        <div className="qa-editor-footer">Editor preview only. Full tools arrive in Sprint 04.</div>
+      )}
 
       {toast && <div className="qa-toast">{toast}</div>}
     </div>

@@ -84,3 +84,12 @@ body {
   text-align: center;
   border-top: 1px solid rgba(255,255,255,0.06);
 }
+
+.qa-editor-footer {
+  padding: 10px 12px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.5);
+  text-align: center;
+  background: rgba(255,255,255,0.04);
+  border-top: 1px solid rgba(255,255,255,0.06);
+}

@@ -25,7 +25,7 @@ pub fn open(app: &AppHandle, asset_id: &str) -> Result<EditorOpenResult, String>
         .resolve_internal(asset_id, &window_label)
         .map_err(|e| e.to_string())?;
 
-    match spawn_editor_window(app, &window_label, asset_id, &asset_uri) {
+    match spawn_editor_window(app, &window_label, asset_id) {
         Ok(()) => {
             let count = count_open_editors(app);
             app.emit(
@@ -57,17 +57,12 @@ fn spawn_editor_window(
     app: &AppHandle,
     window_label: &str,
     asset_id: &str,
-    asset_uri: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let window = WebviewWindowBuilder::new(
         app,
         window_label,
         WebviewUrl::App(
-            format!(
-                "editor.html?asset_id={}&asset_uri={}",
-                url_encode(asset_id),
-                url_encode(asset_uri)
-            )
+            format!("quick-access.html?asset_id={}&mode=editor", url_encode(asset_id))
             .into(),
         ),
     )
