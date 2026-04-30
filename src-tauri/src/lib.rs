@@ -1,4 +1,5 @@
 mod asset;
+mod autostart;
 mod capture;
 mod commands;
 mod diagnostics;
@@ -92,6 +93,7 @@ pub fn run() {
             commands::quick_access_set_busy,
             commands::clipboard_write_image,
             commands::export_save_png,
+            commands::settings_save,
         ])
         .setup(|app| {
             app.manage(capture::CaptureSession::new());
@@ -104,13 +106,18 @@ pub fn run() {
             let settings = settings::load_or_create_default(app_handle);
             log::info!(target: "app", "Settings initialized: {:?}", settings);
 
-            hotkeys::register_hotkeys(app_handle, &settings);
+            let warnings = hotkeys::register_hotkeys(app_handle, &settings);
+            if !warnings.is_empty() {
+                log::warn!(target: "app", "Some hotkeys failed to register at startup: {:?}", warnings);
+            }
+
+            autostart::sync(app_handle, settings.launch_at_startup);
 
             // Tray menu
             let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
             let region_i = MenuItem::with_id(app, "region", "Region capture", true, None::<&str>)?;
             let window_i = MenuItem::with_id(app, "window", "Window capture", true, None::<&str>)?;
-            let settings_i = MenuItem::with_id(app, "settings", "Open settings (stub)", true, None::<&str>)?;
+            let settings_i = MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
 
             let menu = Menu::with_items(app, &[
                 &region_i,
@@ -138,7 +145,8 @@ pub fn run() {
                         hotkeys::run_window_intent(app);
                     }
                     "settings" => {
-                        log::info!(target: "tray", "Open settings clicked (stub)");
+                        log::info!(target: "tray", "Open settings clicked");
+                        let _ = open_settings_window(app);
                     }
                     _ => {}
                 })
@@ -159,6 +167,28 @@ pub fn run() {
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+pub fn open_settings_window(app: &AppHandle) -> tauri::Result<()> {
+    if let Some(window) = app.get_webview_window("settings") {
+        window.set_focus()?;
+        return Ok(());
+    }
+
+    let _window = tauri::WebviewWindowBuilder::new(
+        app,
+        "settings",
+        tauri::WebviewUrl::App("settings.html".into()),
+    )
+    .title("XenSnip Settings")
+    .inner_size(480.0, 420.0) // Slightly taller to fit content comfortably
+    .resizable(false)
+    .decorations(true)
+    .focused(true)
+    .build()?;
+
+    log::info!(target: "app", "settings window opened");
+    Ok(())
 }
 
 #[cfg(test)]

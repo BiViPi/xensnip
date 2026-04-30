@@ -41,7 +41,9 @@ pub fn run_window_intent(app: &AppHandle) {
     }
 }
 
-pub fn register_hotkeys(app: &AppHandle, settings: &Settings) {
+pub fn register_hotkeys(app: &AppHandle, settings: &Settings) -> Vec<crate::settings::HotkeyWarning> {
+    let mut warnings = Vec::new();
+
     let region_shortcut: Result<Shortcut, _> = settings.hotkeys.region.parse();
     let window_shortcut: Result<Shortcut, _> = settings.hotkeys.active_window.parse();
 
@@ -55,11 +57,16 @@ pub fn register_hotkeys(app: &AppHandle, settings: &Settings) {
                         }
                     })
             {
-                log::error!(target: "hotkey", "Failed to register region hotkey '{}': {:?}", settings.hotkeys.region, err);
+                log::warn!(target: "hotkeys", "hotkeys.register_failed {{ field: \"region\", shortcut: \"{}\", error: \"{:?}\" }}", settings.hotkeys.region, err);
+                warnings.push(crate::settings::HotkeyWarning {
+                    field: "region".to_string(),
+                    shortcut: settings.hotkeys.region.clone(),
+                });
             }
         }
         Err(err) => {
-            log::error!(target: "hotkey", "Invalid region hotkey '{}': {:?}", settings.hotkeys.region, err);
+            log::error!(target: "hotkeys", "Invalid region hotkey '{}': {:?}", settings.hotkeys.region, err);
+            // Validation should catch this before calling register_hotkeys, but we log anyway.
         }
     }
 
@@ -73,11 +80,24 @@ pub fn register_hotkeys(app: &AppHandle, settings: &Settings) {
                         }
                     })
             {
-                log::error!(target: "hotkey", "Failed to register active-window hotkey '{}': {:?}", settings.hotkeys.active_window, err);
+                log::warn!(target: "hotkeys", "hotkeys.register_failed {{ field: \"active_window\", shortcut: \"{}\", error: \"{:?}\" }}", settings.hotkeys.active_window, err);
+                warnings.push(crate::settings::HotkeyWarning {
+                    field: "active_window".to_string(),
+                    shortcut: settings.hotkeys.active_window.clone(),
+                });
             }
         }
         Err(err) => {
-            log::error!(target: "hotkey", "Invalid active-window hotkey '{}': {:?}", settings.hotkeys.active_window, err);
+            log::error!(target: "hotkeys", "Invalid active-window hotkey '{}': {:?}", settings.hotkeys.active_window, err);
         }
     }
+
+    warnings
+}
+
+pub fn re_register(app: &AppHandle, settings: &Settings) -> Vec<crate::settings::HotkeyWarning> {
+    if let Err(e) = app.global_shortcut().unregister_all() {
+        log::error!(target: "hotkeys", "Failed to unregister all shortcuts: {:?}", e);
+    }
+    register_hotkeys(app, settings)
 }

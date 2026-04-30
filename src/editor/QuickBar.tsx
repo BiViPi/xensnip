@@ -41,10 +41,10 @@ export function QuickBar({
     try {
       const blobBytes = await composeToBlob(image, preset);
       await clipboardWriteImage(blobBytes);
-      showToast("Copied to clipboard!");
+      showToast("Copied to clipboard");
     } catch (err) {
       console.error("Copy failed", err);
-      showToast("Failed to copy image.", "error");
+      showToast("Failed to copy. Please try again.", "error");
     } finally {
       setIsActionInFlight(false);
       void quickAccessSetBusy(assetId, false).catch(() => {});
@@ -58,13 +58,14 @@ export function QuickBar({
     try {
       const blobBytes = await composeToBlob(image, preset);
       const ts = new Date().toISOString().replace(/[:.]/g, "-");
-      const saved = await exportSavePng(blobBytes, `xensnip-${ts}.png`);
+      const filename = `xensnip-${ts}.png`;
+      const saved = await exportSavePng(blobBytes, filename);
       if (saved) {
-        showToast("Image exported!");
+        showToast("Saved");
       }
     } catch (err) {
       console.error("Export failed", err);
-      showToast("Failed to export image.", "error");
+      showToast("Failed to save. Please try again.", "error");
     } finally {
       setIsActionInFlight(false);
       void quickAccessSetBusy(assetId, false).catch(() => {});

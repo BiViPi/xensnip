@@ -56,6 +56,26 @@ pub fn get_settings_path(app_handle: &AppHandle) -> PathBuf {
     path
 }
 
+#[derive(Debug, thiserror::Error, serde::Serialize)]
+#[serde(tag = "code", content = "data")]
+pub enum SettingsSaveError {
+    #[error("invalid hotkey '{value}' for field '{field}'")]
+    InvalidHotkey { field: String, value: String },
+    #[error("failed to write settings: {message}")]
+    WriteError { message: String },
+}
+
+#[derive(Debug, serde::Serialize)]
+pub struct HotkeyWarning {
+    pub field: String,
+    pub shortcut: String,
+}
+
+#[derive(Debug, serde::Serialize)]
+pub struct SettingsSaveResult {
+    pub warnings: Vec<HotkeyWarning>,
+}
+
 pub fn load_or_create_default(app_handle: &AppHandle) -> Settings {
     let path = get_settings_path(app_handle);
 
@@ -64,25 +84,32 @@ pub fn load_or_create_default(app_handle: &AppHandle) -> Settings {
         match serde_json::from_str::<Settings>(&content) {
             Ok(mut settings) => {
                 if migrate_settings_if_needed(&mut settings) {
-                    save_settings(app_handle, &settings);
+                    let _ = save_settings(app_handle, &settings).map_err(|e| {
+                        log::error!(target: "settings", "failed to save migrated settings: {}", e);
+                    });
                 }
                 settings
             }
             Err(_) => {
                 let defaults = Settings::default();
-                save_settings(app_handle, &defaults);
+                let _ = save_settings(app_handle, &defaults).map_err(|e| {
+                    log::error!(target: "settings", "failed to save default settings after parse error: {}", e);
+                });
                 defaults
             }
         }
     } else {
         let defaults = Settings::default();
-        save_settings(app_handle, &defaults);
+        let _ = save_settings(app_handle, &defaults).map_err(|e| {
+            log::error!(target: "settings", "failed to save initial default settings: {}", e);
+        });
         defaults
     }
 }
 
-pub fn save_settings(app_handle: &AppHandle, settings: &Settings) {
+pub fn save_settings(app_handle: &AppHandle, settings: &Settings) -> Result<(), std::io::Error> {
     let path = get_settings_path(app_handle);
     let content = serde_json::to_string_pretty(settings).expect("Failed to serialize settings");
-    fs::write(path, content).expect("Failed to write settings file");
+    fs::write(path, content)?;
+    Ok(())
 }

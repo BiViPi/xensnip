@@ -6,6 +6,7 @@ import {
   CaptureFailure,
   RegionConfirmPayload,
   AssetResolveResult,
+  SettingsSaveResult,
 } from "./types";
 
 // ─── Smoke / settings ─────────────────────────────────────────────────────────
@@ -16,6 +17,10 @@ export async function appPing(): Promise<PingResponse> {
 
 export async function settingsLoad(): Promise<Settings> {
   return await invoke<Settings>("settings_load");
+}
+
+export async function settingsSave(settings: Settings): Promise<SettingsSaveResult> {
+  return await invoke<SettingsSaveResult>("settings_save", { settings });
 }
 
 // ─── Capture commands (Sprint 02 contract — do not change) ───────────────────
@@ -67,7 +72,7 @@ export async function assetReadPng(assetId: string): Promise<Uint8Array> {
 
 export async function clipboardWriteImage(pngBytes: Uint8Array): Promise<void> {
   return await invoke<void>("clipboard_write_image", {
-    pngBytes: Array.from(pngBytes),
+    pngBytes,
   });
 }
 
@@ -76,7 +81,7 @@ export async function exportSavePng(
   defaultFilename: string,
 ): Promise<boolean> {
   return await invoke<boolean>("export_save_png", {
-    pngBytes: Array.from(pngBytes),
+    pngBytes,
     defaultFilename,
   });
 }

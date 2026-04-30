@@ -83,6 +83,15 @@ export interface QuickAccessShowPayload {
 /** Payload of the "editor.count_changed" event */
 // ─── Sprint 04: Editor types ──────────────────────────────────────────────────
 
-export type EditorOpenError =
-  | { code: "SpawnFailed"; data: { message: string } }
-  | { code: "SoftLimitReached"; data: { focused_label: string } };
+export type SettingsSaveError =
+  | { code: "InvalidHotkey"; data: { field: string; value: string } }
+  | { code: "WriteError"; data: { message: string } };
+
+export interface HotkeyWarning {
+  field: string;
+  shortcut: string;
+}
+
+export interface SettingsSaveResult {
+  warnings: HotkeyWarning[];
+}
