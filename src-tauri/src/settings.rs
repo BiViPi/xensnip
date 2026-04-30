@@ -31,7 +31,10 @@ impl Default for Settings {
 }
 
 pub fn get_settings_path(app_handle: &AppHandle) -> PathBuf {
-    let mut path = app_handle.path().app_config_dir().expect("Failed to get app config dir");
+    let mut path = app_handle
+        .path()
+        .app_config_dir()
+        .expect("Failed to get app config dir");
     if !path.exists() {
         fs::create_dir_all(&path).expect("Failed to create app config dir");
     }
@@ -41,7 +44,7 @@ pub fn get_settings_path(app_handle: &AppHandle) -> PathBuf {
 
 pub fn load_or_create_default(app_handle: &AppHandle) -> Settings {
     let path = get_settings_path(app_handle);
-    
+
     if path.exists() {
         let content = fs::read_to_string(&path).expect("Failed to read settings file");
         match serde_json::from_str::<Settings>(&content) {

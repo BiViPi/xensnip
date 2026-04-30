@@ -1,12 +1,12 @@
-use tauri::{AppHandle, Emitter, Manager};
-use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState, Shortcut};
+use crate::capture::{CaptureIntent, CaptureSession};
 use crate::settings::Settings;
-use crate::capture::{CaptureSession, CaptureIntent};
+use tauri::{AppHandle, Emitter, Manager};
+use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 
 pub fn run_region_intent(app: &AppHandle) {
     let session = app.state::<CaptureSession>();
     let start_res = session.start_persistent(CaptureIntent::Region);
-    
+
     match start_res {
         Ok(()) => {
             if let Err(e) = crate::capture::region::capture_region(app) {
@@ -25,7 +25,7 @@ pub fn run_region_intent(app: &AppHandle) {
 pub fn run_window_intent(app: &AppHandle) {
     let session = app.state::<CaptureSession>();
     let start_res = session.start(CaptureIntent::ActiveWindow);
-    
+
     match start_res {
         Ok(_guard) => {
             let res = crate::capture::window::capture_active_window(app);
@@ -47,12 +47,13 @@ pub fn register_hotkeys(app: &AppHandle, settings: &Settings) {
 
     match region_shortcut {
         Ok(shortcut) => {
-            if let Err(err) = app.global_shortcut()
-                .on_shortcut(shortcut, move |app, _shortcut, event| {
-                    if event.state() == ShortcutState::Pressed {
-                        run_region_intent(app);
-                    }
-                })
+            if let Err(err) =
+                app.global_shortcut()
+                    .on_shortcut(shortcut, move |app, _shortcut, event| {
+                        if event.state() == ShortcutState::Pressed {
+                            run_region_intent(app);
+                        }
+                    })
             {
                 log::error!(target: "hotkey", "Failed to register region hotkey '{}': {:?}", settings.hotkeys.region, err);
             }
@@ -64,12 +65,13 @@ pub fn register_hotkeys(app: &AppHandle, settings: &Settings) {
 
     match window_shortcut {
         Ok(shortcut) => {
-            if let Err(err) = app.global_shortcut()
-                .on_shortcut(shortcut, move |app, _shortcut, event| {
-                    if event.state() == ShortcutState::Pressed {
-                        run_window_intent(app);
-                    }
-                })
+            if let Err(err) =
+                app.global_shortcut()
+                    .on_shortcut(shortcut, move |app, _shortcut, event| {
+                        if event.state() == ShortcutState::Pressed {
+                            run_window_intent(app);
+                        }
+                    })
             {
                 log::error!(target: "hotkey", "Failed to register active-window hotkey '{}': {:?}", settings.hotkeys.active_window, err);
             }

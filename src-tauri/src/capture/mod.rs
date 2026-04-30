@@ -1,5 +1,5 @@
-use std::sync::Mutex;
 use crate::capture::errors::CaptureError;
+use std::sync::Mutex;
 
 pub mod errors;
 pub mod region;

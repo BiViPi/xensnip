@@ -2,8 +2,10 @@ mod asset;
 mod capture;
 mod commands;
 mod diagnostics;
+mod editor;
 mod hotkeys;
 mod overlay;
+mod quick_access;
 mod settings;
 
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
@@ -16,6 +18,9 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
         .plugin(
             tauri_plugin_log::Builder::new()
                 .targets([
@@ -28,35 +33,74 @@ pub fn run() {
                 .level(log::LevelFilter::Info)
                 .build(),
         )
+        // xensnip-asset:// URI scheme — serves raw PNG bytes from the in-memory registry.
+        // No ref-count change: read-only transport. Registered before setup().
+        .register_uri_scheme_protocol("xensnip-asset", |ctx, request| {
+            let asset_id = request
+                .uri()
+                .host()
+                .filter(|host| !host.ends_with(".localhost"))
+                .map(str::to_string)
+                .or_else(|| {
+                    let path = request.uri().path().trim_matches('/');
+                    (!path.is_empty()).then(|| path.to_string())
+                })
+                .unwrap_or_default();
+
+            if let Some(data) = ctx.app_handle().state::<asset::AssetRegistry>().get_data(&asset_id) {
+                tauri::http::Response::builder()
+                    .status(200)
+                    .header("Content-Type", "image/png")
+                    .header("Access-Control-Allow-Origin", "*")
+                    .header("Cache-Control", "no-store")
+                    .body(data)
+                    .unwrap_or_else(|_| {
+                        tauri::http::Response::builder()
+                            .status(500)
+                            .body(vec![])
+                            .unwrap()
+                    })
+            } else {
+                log::warn!(target: "asset", "xensnip-asset:// request for missing asset: {}", asset_id);
+                tauri::http::Response::builder()
+                    .status(404)
+                    .body(vec![])
+                    .unwrap()
+            }
+        })
         .invoke_handler(tauri::generate_handler![
+            // Sprint 00 / 02
             commands::app_ping,
             commands::settings_load,
             commands::capture_start_window,
             commands::capture_start_region,
             commands::capture_region_confirm,
-            commands::capture_cancel
+            commands::capture_cancel,
+            // Sprint 03
+            commands::asset_resolve,
+            commands::asset_release,
+            commands::editor_open,
+            commands::quick_access_dismiss,
+            commands::clipboard_write_image,
+            commands::export_save_png,
         ])
         .setup(|app| {
-            // Initialize CaptureSession and AssetRegistry as direct managed state
             app.manage(capture::CaptureSession::new());
             app.manage(asset::AssetRegistry::new());
 
             let app_handle = app.handle();
-            
-            // Workstream E: Settings
             let settings = settings::load_or_create_default(app_handle);
             log::info!(target: "app", "Settings initialized: {:?}", settings);
 
-            // Register global hotkeys (now gets state from AppHandle internally)
             hotkeys::register_hotkeys(app_handle, &settings);
 
-            // Workstream B: Tray baseline
+            // Tray menu
             let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
             let region_i = MenuItem::with_id(app, "region", "Region capture", true, None::<&str>)?;
             let window_i = MenuItem::with_id(app, "window", "Window capture", true, None::<&str>)?;
             let editor_i = MenuItem::with_id(app, "editor", "Open editor (stub)", true, None::<&str>)?;
             let settings_i = MenuItem::with_id(app, "settings", "Open settings (stub)", true, None::<&str>)?;
-            
+
             let menu = Menu::with_items(app, &[
                 &region_i,
                 &window_i,
@@ -84,10 +128,10 @@ pub fn run() {
                         hotkeys::run_window_intent(app);
                     }
                     "editor" => {
-                        log::info!(target: "tray", "Open editor clicked");
+                        log::info!(target: "tray", "Open editor clicked (stub)");
                     }
                     "settings" => {
-                        log::info!(target: "tray", "Open settings clicked");
+                        log::info!(target: "tray", "Open settings clicked (stub)");
                     }
                     _ => {}
                 })
@@ -98,12 +142,12 @@ pub fn run() {
                         ..
                     } = event
                     {
-                        // Potential toggle behavior in later sprints
+                        // Future: toggle window
                     }
                 })
                 .build(app)?;
 
-            log::info!(target: "app", "XenSnip baseline initialized");
+            log::info!(target: "app", "XenSnip initialized (Sprint 03)");
             Ok(())
         })
         .run(tauri::generate_context!())

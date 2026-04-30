@@ -1,45 +1,35 @@
 import { invoke } from "@tauri-apps/api/core";
-import { PingResponse, Settings, CaptureResult, CaptureFailure, RegionConfirmPayload } from "./types";
+import {
+  PingResponse,
+  Settings,
+  CaptureResult,
+  CaptureFailure,
+  RegionConfirmPayload,
+  AssetResolveResult,
+  EditorOpenResult,
+} from "./types";
 
-/**
- * Smoke command: Ping the Rust core
- */
+// ─── Smoke / settings ─────────────────────────────────────────────────────────
+
 export async function appPing(): Promise<PingResponse> {
   return await invoke<PingResponse>("app_ping");
 }
 
-/**
- * Smoke command: Load settings from Rust core
- */
 export async function settingsLoad(): Promise<Settings> {
   return await invoke<Settings>("settings_load");
 }
 
-// --- Capture commands (Sprint 02 contract) ---
+// ─── Capture commands (Sprint 02 contract — do not change) ───────────────────
 
-/**
- * Start region capture: acquires session lock and opens the region overlay.
- * The overlay calls capture_region_confirm or capture_cancel when done.
- */
 export async function captureStartRegion(): Promise<void> {
   return await invoke<void>("capture_start_region");
 }
 
-/**
- * Start active-window capture. Synchronous — capture is done when the promise resolves.
- * Listen to "capture.result" event for the asset_id.
- */
 export async function captureStartWindow(): Promise<void> {
   return await invoke<void>("capture_start_window");
 }
 
-/**
- * Confirm region selection from the overlay.
- * Coordinates must be physical pixels relative to the target monitor.
- */
-export async function captureRegionConfirm(
-  payload: RegionConfirmPayload
-): Promise<void> {
+export async function captureRegionConfirm(payload: RegionConfirmPayload): Promise<void> {
   return await invoke<void>("capture_region_confirm", {
     x: payload.x,
     y: payload.y,
@@ -49,12 +39,59 @@ export async function captureRegionConfirm(
   });
 }
 
-/**
- * Cancel any in-progress capture. Closes overlay and releases session lock.
- */
 export async function captureCancel(): Promise<void> {
   return await invoke<void>("capture_cancel");
 }
 
-// Re-export event payload types for consumers.
+// ─── Asset commands (Sprint 03) ───────────────────────────────────────────────
+
+/**
+ * Increment ref-count for this consumer and return the xensnip-asset:// URI.
+ * Call once per consumer window before reading bytes.
+ */
+export async function assetResolve(assetId: string, consumer: string): Promise<AssetResolveResult> {
+  return await invoke<AssetResolveResult>("asset_resolve", { assetId, consumer });
+}
+
+/**
+ * Decrement ref-count. When it reaches 0 the registry drops the bytes.
+ * Idempotent — safe to call on an already-dropped asset.
+ */
+export async function assetRelease(assetId: string, consumer: string): Promise<void> {
+  return await invoke<void>("asset_release", { assetId, consumer });
+}
+
+export async function clipboardWriteImage(pngBytes: Uint8Array): Promise<void> {
+  return await invoke<void>("clipboard_write_image", {
+    pngBytes: Array.from(pngBytes),
+  });
+}
+
+export async function exportSavePng(
+  pngBytes: Uint8Array,
+  defaultFilename: string,
+): Promise<boolean> {
+  return await invoke<boolean>("export_save_png", {
+    pngBytes: Array.from(pngBytes),
+    defaultFilename,
+  });
+}
+
+// ─── Editor commands (Sprint 03) ─────────────────────────────────────────────
+
+/** Open a new editor host window. Rust acquires an internal ref before spawning. */
+export async function editorOpen(assetId: string): Promise<EditorOpenResult> {
+  return await invoke<EditorOpenResult>("editor_open", { assetId });
+}
+
+// ─── Quick Access commands (Sprint 03) ───────────────────────────────────────
+
+/** Dismiss the Quick Access window and release the QA ref-counts. */
+export async function quickAccessDismiss(assetId: string): Promise<void> {
+  return await invoke<void>("quick_access_dismiss", { assetId });
+}
+
+// ─── Re-export event payload types ───────────────────────────────────────────
+
 export type { CaptureResult, CaptureFailure };
+export * from "./types";

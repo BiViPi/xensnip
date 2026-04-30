@@ -1,10 +1,17 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Capability for the main window",
-  "windows": ["main"],
+  "description": "Capability for all XenSnip windows",
+  "windows": ["main", "region-overlay", "quick-access", "editor-*"],
   "permissions": [
     "core:default",
-    "opener:default"
+    "opener:default",
+    "clipboard-manager:allow-write-image",
+    "clipboard-manager:allow-read-text",
+    "dialog:allow-save",
+    "fs:allow-write-text-file",
+    "fs:allow-write",
+    "fs:allow-read",
+    "fs:scope-download"
   ]
 }

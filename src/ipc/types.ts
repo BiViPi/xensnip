@@ -1,3 +1,5 @@
+// ─── Sprint 00 / settings types ───────────────────────────────────────────────
+
 export interface Hotkeys {
   region: string;
   active_window: string;
@@ -14,7 +16,7 @@ export interface PingResponse {
   name: string;
 }
 
-// --- Capture IPC contract (Sprint 02) ---
+// ─── Sprint 02: Capture IPC contract ─────────────────────────────────────────
 
 /** Emitted by Rust on successful capture (event: "capture.result") */
 export interface CaptureResult {
@@ -37,3 +39,55 @@ export interface RegionConfirmPayload {
   monitor_id: string;
 }
 
+// ─── Sprint 03: Asset registry ────────────────────────────────────────────────
+
+/** Returned by asset_resolve — the URI frontend uses to load the asset. */
+export interface AssetResolveResult {
+  uri: string;
+}
+
+export interface AssetError {
+  code: string;
+  message: string;
+}
+
+// ─── Sprint 03: Quick Access positioning ─────────────────────────────────────
+
+export interface MonitorWorkAreaLogical {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+export interface CaptureRectLogical {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+export interface CapturePositionMeta {
+  monitor_work_area_logical: MonitorWorkAreaLogical;
+  monitor_dpi: number;
+  capture_kind: string;
+  capture_rect_logical: CaptureRectLogical | null;
+}
+
+/** Payload of the "quick_access.show" event */
+export interface QuickAccessShowPayload {
+  asset_id: string;
+  capture_meta: CapturePositionMeta;
+}
+
+/** Payload of the "editor.count_changed" event */
+export interface EditorCountChangedPayload {
+  open_count: number;
+}
+
+// ─── Sprint 03: Editor open result ───────────────────────────────────────────
+
+export interface EditorOpenResult {
+  window_label: string;
+  asset_uri: string;
+}

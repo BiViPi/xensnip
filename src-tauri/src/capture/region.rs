@@ -1,13 +1,17 @@
 use crate::capture::errors::CaptureError;
-use tauri::{AppHandle, Manager, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
+use windows::Win32::Foundation::POINT;
+use windows::Win32::Graphics::Gdi::{
+    GetMonitorInfoW, MonitorFromPoint, MONITORINFO, MONITOR_DEFAULTTONEAREST,
+};
 use xcap::Monitor;
 
 // GDI Imports for fallback
-use windows::Win32::UI::WindowsAndMessaging::GetDesktopWindow;
 use windows::Win32::Graphics::Gdi::{
-    CreateCompatibleDC, CreateCompatibleBitmap, SelectObject, BitBlt, DeleteDC, DeleteObject, 
-    SRCCOPY, GetDIBits, DIB_RGB_COLORS, BITMAPINFOHEADER, BI_RGB, HGDIOBJ, GetDC, ReleaseDC
+    BitBlt, CreateCompatibleBitmap, CreateCompatibleDC, DeleteDC, DeleteObject, GetDC, GetDIBits,
+    ReleaseDC, SelectObject, BITMAPINFOHEADER, BI_RGB, DIB_RGB_COLORS, HGDIOBJ, SRCCOPY,
 };
+use windows::Win32::UI::WindowsAndMessaging::GetDesktopWindow;
 
 pub fn capture_region(app: &AppHandle) -> Result<(), CaptureError> {
     crate::overlay::show(app)
@@ -25,7 +29,7 @@ pub fn finish_region_capture(
 ) -> Result<(), CaptureError> {
     let start_time = std::time::Instant::now();
     log::info!(target: "capture", "finish_region_capture: rect={}x{} at {},{}", w, h, x, y);
-    
+
     crate::overlay::close(app);
 
     // Settle delay
@@ -38,8 +42,17 @@ pub fn finish_region_capture(
     };
 
     if w < 10 || h < 10 {
-        let err = CaptureError::new(crate::capture::errors::CaptureErrorClass::InvalidTarget, "rect_too_small", "Selected region is too small.");
-        emit_failure(app, &err, &start_time, crate::diagnostics::CaptureMethod::WgcMonitor);
+        let err = CaptureError::new(
+            crate::capture::errors::CaptureErrorClass::InvalidTarget,
+            "rect_too_small",
+            "Selected region is too small.",
+        );
+        emit_failure(
+            app,
+            &err,
+            &start_time,
+            crate::diagnostics::CaptureMethod::WgcMonitor,
+        );
         cleanup();
         return Err(err);
     }
@@ -47,18 +60,31 @@ pub fn finish_region_capture(
     let monitors = Monitor::all().map_err(|e| {
         log::error!(target: "capture", "Monitor::all() failed: {:?}", e);
         let err = CaptureError::WgcFailure();
-        emit_failure(app, &err, &start_time, crate::diagnostics::CaptureMethod::WgcMonitor);
+        emit_failure(
+            app,
+            &err,
+            &start_time,
+            crate::diagnostics::CaptureMethod::WgcMonitor,
+        );
         cleanup();
         err
     })?;
 
     let target_monitor = if !monitor_id.is_empty() {
-        monitors.iter().find(|m| m.name().unwrap_or_default() == monitor_id)
+        monitors
+            .iter()
+            .find(|m| m.name().unwrap_or_default() == monitor_id)
     } else {
         monitors.first()
-    }.ok_or_else(|| {
+    }
+    .ok_or_else(|| {
         let err = CaptureError::InvalidTarget();
-        emit_failure(app, &err, &start_time, crate::diagnostics::CaptureMethod::WgcMonitor);
+        emit_failure(
+            app,
+            &err,
+            &start_time,
+            crate::diagnostics::CaptureMethod::WgcMonitor,
+        );
         cleanup();
         err
     })?;
@@ -77,7 +103,7 @@ pub fn finish_region_capture(
     let final_image = match image_res {
         Ok(img) => {
             log::info!(target: "capture", "Region capture via WGC success.");
-            
+
             let img_w = img.width();
             let img_h = img.height();
             let x_offset = (x.max(0) as u32).min(img_w);
@@ -94,11 +120,11 @@ pub fn finish_region_capture(
                 cleanup();
                 return Err(err);
             }
-        },
+        }
         Err(e) => {
             log::warn!(target: "capture", "WGC Monitor capture failed ({:?}), falling back to GDI BitBlt...", e);
             capture_method = crate::diagnostics::CaptureMethod::GdiBitblt;
-            
+
             capture_region_gdi(x, y, w, h).map_err(|ge| {
                 log::error!(target: "capture", "GDI fallback failed: {}", ge);
                 let err = CaptureError::WgcFailure();
@@ -113,36 +139,97 @@ pub fn finish_region_capture(
     let final_h = final_image.height();
     let mut bytes: Vec<u8> = Vec::new();
     let mut cursor = std::io::Cursor::new(&mut bytes);
-    final_image.write_to(&mut cursor, image::ImageFormat::Png).map_err(|e| {
-        log::error!(target: "capture", "Failed to encode region capture as PNG: {:?}", e);
-        let err = CaptureError::WgcFailure();
-        emit_failure(app, &err, &start_time, capture_method.clone());
-        cleanup();
-        err
-    })?;
+    final_image
+        .write_to(&mut cursor, image::ImageFormat::Png)
+        .map_err(|e| {
+            log::error!(target: "capture", "Failed to encode region capture as PNG: {:?}", e);
+            let err = CaptureError::WgcFailure();
+            emit_failure(app, &err, &start_time, capture_method.clone());
+            cleanup();
+            err
+        })?;
 
     let id = format!("reg_{}", chrono::Utc::now().timestamp_millis());
     if let Some(registry) = app.try_state::<crate::asset::AssetRegistry>() {
-        registry.insert(crate::asset::Asset { 
-            id: id.clone(), 
-            data: bytes, 
-            width: final_w, 
-            height: final_h 
-        });
+        registry.insert(crate::asset::Asset::new(
+            id.clone(),
+            bytes,
+            final_w,
+            final_h,
+        ));
     }
 
     cleanup();
-    app.emit("capture.result", serde_json::json!({ "asset_id": id })).ok();
+    app.emit("capture.result", serde_json::json!({ "asset_id": id }))
+        .ok();
+
+    // Build CapturePositionMeta for quick_access.show using monitor work area.
+    let monitor_work_area_logical = unsafe {
+        // Use the center of the captured region to find the monitor.
+        let center = POINT {
+            x: x + (w as i32 / 2),
+            y: y + (h as i32 / 2),
+        };
+        let hmonitor = MonitorFromPoint(center, MONITOR_DEFAULTTONEAREST);
+        let mut mi = MONITORINFO {
+            cbSize: std::mem::size_of::<MONITORINFO>() as u32,
+            ..Default::default()
+        };
+        if GetMonitorInfoW(hmonitor, &mut mi).as_bool() {
+            let work = mi.rcWork;
+            crate::quick_access::MonitorWorkAreaLogical {
+                x: logical_i32(work.left, dpi_pct),
+                y: logical_i32(work.top, dpi_pct),
+                w: logical_u32((work.right - work.left) as u32, dpi_pct),
+                h: logical_u32((work.bottom - work.top) as u32, dpi_pct),
+            }
+        } else {
+            // Fallback to full monitor rect from xcap.
+            crate::quick_access::MonitorWorkAreaLogical {
+                x: logical_i32(target_monitor.x().unwrap_or(0), dpi_pct),
+                y: logical_i32(target_monitor.y().unwrap_or(0), dpi_pct),
+                w: logical_u32(target_monitor.width().unwrap_or(1920), dpi_pct),
+                h: logical_u32(target_monitor.height().unwrap_or(1080), dpi_pct),
+            }
+        }
+    };
+
+    crate::quick_access::emit_show(
+        app,
+        &id,
+        crate::quick_access::CapturePositionMeta {
+            monitor_work_area_logical,
+            monitor_dpi: dpi_pct,
+            capture_kind: "region".to_string(),
+            capture_rect_logical: Some(crate::quick_access::CaptureRectLogical {
+                x: logical_i32(x, dpi_pct),
+                y: logical_i32(y, dpi_pct),
+                w: logical_u32(final_w, dpi_pct),
+                h: logical_u32(final_h, dpi_pct),
+            }),
+        },
+    );
 
     let meta = crate::diagnostics::CaptureMetadata {
         capture_mode: crate::diagnostics::CaptureMode::Region,
         capture_method,
-        output_size: crate::diagnostics::PhysicalSize { w_px: final_w, h_px: final_h },
+        output_size: crate::diagnostics::PhysicalSize {
+            w_px: final_w,
+            h_px: final_h,
+        },
         monitor_id: actual_monitor_id,
         dpi: dpi_pct,
-        process_name: None, window_title: None,
-        bounds_physical: crate::diagnostics::PhysicalBounds { x, y, w: final_w, h: final_h },
-        asset_id: Some(id.clone()), error_class: None, error_code: None,
+        process_name: None,
+        window_title: None,
+        bounds_physical: crate::diagnostics::PhysicalBounds {
+            x,
+            y,
+            w: final_w,
+            h: final_h,
+        },
+        asset_id: Some(id.clone()),
+        error_class: None,
+        error_code: None,
         duration_ms: start_time.elapsed().as_millis() as u32,
     };
     crate::diagnostics::log_capture_event(app, &meta);
@@ -179,8 +266,18 @@ fn capture_region_gdi(x: i32, y: i32, w: u32, h: u32) -> Result<image::RgbaImage
         let old_obj = SelectObject(hdc_mem, hgdiobj);
 
         let result = (|| -> Result<image::RgbaImage, String> {
-            BitBlt(hdc_mem, 0, 0, w as i32, h as i32, Some(hdc_screen), x, y, SRCCOPY)
-                .map_err(|e| e.to_string())?;
+            BitBlt(
+                hdc_mem,
+                0,
+                0,
+                w as i32,
+                h as i32,
+                Some(hdc_screen),
+                x,
+                y,
+                SRCCOPY,
+            )
+            .map_err(|e| e.to_string())?;
 
             let bmi = BITMAPINFOHEADER {
                 biSize: std::mem::size_of::<BITMAPINFOHEADER>() as u32,
@@ -228,16 +325,45 @@ fn capture_region_gdi(x: i32, y: i32, w: u32, h: u32) -> Result<image::RgbaImage
     }
 }
 
-fn emit_failure(app: &AppHandle, err: &CaptureError, start_time: &std::time::Instant, method: crate::diagnostics::CaptureMethod) {
+fn emit_failure(
+    app: &AppHandle,
+    err: &CaptureError,
+    start_time: &std::time::Instant,
+    method: crate::diagnostics::CaptureMethod,
+) {
     let meta = crate::diagnostics::CaptureMetadata {
         capture_mode: crate::diagnostics::CaptureMode::Region,
         capture_method: method,
         output_size: crate::diagnostics::PhysicalSize { w_px: 0, h_px: 0 },
-        monitor_id: String::new(), dpi: 0, process_name: None, window_title: None,
-        bounds_physical: crate::diagnostics::PhysicalBounds { x: 0, y: 0, w: 0, h: 0 },
-        asset_id: None, error_class: Some(format!("{:?}", err.class)), error_code: Some(err.code.clone()),
+        monitor_id: String::new(),
+        dpi: 0,
+        process_name: None,
+        window_title: None,
+        bounds_physical: crate::diagnostics::PhysicalBounds {
+            x: 0,
+            y: 0,
+            w: 0,
+            h: 0,
+        },
+        asset_id: None,
+        error_class: Some(format!("{:?}", err.class)),
+        error_code: Some(err.code.clone()),
         duration_ms: start_time.elapsed().as_millis() as u32,
     };
     crate::diagnostics::log_capture_event(app, &meta);
     app.emit("capture.failure", err).ok();
+}
+
+fn logical_i32(value: i32, dpi_pct: u32) -> i32 {
+    if dpi_pct <= 100 {
+        return value;
+    }
+    ((value as f64) / (dpi_pct as f64 / 100.0)).round() as i32
+}
+
+fn logical_u32(value: u32, dpi_pct: u32) -> u32 {
+    if dpi_pct <= 100 {
+        return value;
+    }
+    ((value as f64) / (dpi_pct as f64 / 100.0)).round() as u32
 }
