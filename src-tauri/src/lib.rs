@@ -88,6 +88,7 @@ pub fn run() {
             commands::asset_release,
             commands::asset_read_png,
             commands::editor_open,
+            commands::editor_open_empty,
             commands::quick_access_dismiss,
             commands::debug_webview_probe,
             commands::clipboard_write_image,
@@ -96,6 +97,8 @@ pub fn run() {
         .setup(|app| {
             app.manage(capture::CaptureSession::new());
             app.manage(asset::AssetRegistry::new());
+            app.manage(editor::registry::EditorRegistry::new());
+            app.manage(editor::handoff::HandoffManager::new());
 
             let app_handle = app.handle();
             let settings = settings::load_or_create_default(app_handle);
@@ -103,11 +106,55 @@ pub fn run() {
 
             hotkeys::register_hotkeys(app_handle, &settings);
 
+            // editor.ready listener
+            let app_handle_ready = app.handle().clone();
+            app.listen("editor.ready", move |event| {
+                let payload: serde_json::Value = serde_json::from_str(event.payload()).unwrap();
+                let window_label = payload["window_label"].as_str().unwrap_or_default();
+                
+                let handoff = app_handle_ready.state::<editor::handoff::HandoffManager>();
+                if let Some(pending) = handoff.resolve(window_label) {
+                    if let Some(qa_window) = app_handle_ready.get_webview_window(&pending.qa_label) {
+                        let _ = qa_window.emit(
+                            "editor.handoff_result",
+                            editor::handoff::EditorHandoffResult {
+                                status: "succeeded".to_string(),
+                                reason: None,
+                            },
+                        );
+                        log::info!(target: "editor", "Handoff succeeded for window={}", window_label);
+                    }
+                }
+            });
+
+            // Watchdog for handoff timeouts
+            let app_handle_watchdog = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                let mut interval = tokio::time::interval(std::time::Duration::from_secs(1));
+                loop {
+                    interval.tick().await;
+                    let handoff = app_handle_watchdog.state::<editor::handoff::HandoffManager>();
+                    let expired = handoff.cleanup_expired();
+                    for pending in expired {
+                        if let Some(qa_window) = app_handle_watchdog.get_webview_window(&pending.qa_label) {
+                            let _ = qa_window.emit(
+                                "editor.handoff_result",
+                                editor::handoff::EditorHandoffResult {
+                                    status: "failed".to_string(),
+                                    reason: Some("timeout".to_string()),
+                                },
+                            );
+                            log::warn!(target: "editor", "Handoff timed out for window={}", pending.window_label);
+                        }
+                    }
+                }
+            });
+
             // Tray menu
             let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
             let region_i = MenuItem::with_id(app, "region", "Region capture", true, None::<&str>)?;
             let window_i = MenuItem::with_id(app, "window", "Window capture", true, None::<&str>)?;
-            let editor_i = MenuItem::with_id(app, "editor", "Open editor (stub)", true, None::<&str>)?;
+            let editor_i = MenuItem::with_id(app, "editor", "Open editor", true, None::<&str>)?;
             let settings_i = MenuItem::with_id(app, "settings", "Open settings (stub)", true, None::<&str>)?;
 
             let menu = Menu::with_items(app, &[
@@ -137,7 +184,8 @@ pub fn run() {
                         hotkeys::run_window_intent(app);
                     }
                     "editor" => {
-                        log::info!(target: "tray", "Open editor clicked (stub)");
+                        log::info!(target: "tray", "Open editor clicked");
+                        let _ = crate::editor::open_empty(app);
                     }
                     "settings" => {
                         log::info!(target: "tray", "Open settings clicked (stub)");

@@ -146,9 +146,17 @@ pub async fn export_save_png(
 #[tauri::command]
 pub fn editor_open(
     app_handle: AppHandle,
+    window: tauri::WebviewWindow,
     asset_id: String,
-) -> Result<crate::editor::EditorOpenResult, String> {
-    crate::editor::open(&app_handle, &asset_id)
+) -> Result<crate::editor::EditorOpenResult, crate::editor::errors::EditorOpenError> {
+    crate::editor::open(&app_handle, &asset_id, window.label())
+}
+
+#[tauri::command]
+pub fn editor_open_empty(
+    app_handle: AppHandle,
+) -> Result<String, crate::editor::errors::EditorOpenError> {
+    crate::editor::open_empty(&app_handle)
 }
 
 #[tauri::command]

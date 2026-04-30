@@ -1,26 +1,23 @@
 import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  assetReadPng,
-  assetResolve,
   clipboardWriteImage,
   editorOpen,
   exportSavePng,
   quickAccessDismiss,
 } from "../ipc/index";
-import { QuickAccessShowPayload } from "../ipc/types";
-import { composeDefaultPreset } from "./compose";
+import { EditorHandoffResult, EditorOpenError, QuickAccessShowPayload } from "../ipc/types";
+import { composeToBlob, loadImage } from "../compose/compose";
+import { DEFAULT_PRESET } from "../compose/preset";
 
 const AUTO_DISMISS_MS = 8000;
 
 export function QuickAccess() {
-  const searchParams = new URLSearchParams(window.location.search);
-  const mode = searchParams.get("mode") === "editor" ? "editor" : "quick-access";
   const [assetId, setAssetId] = useState<string | null>(null);
   const [assetUri, setAssetUri] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [isActionInFlight, setIsActionInFlight] = useState(false);
+  const [handoffPending, setHandoffPending] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -88,38 +85,41 @@ export function QuickAccess() {
     setIsLoading(true);
     setToast(null);
     setIsActionInFlight(false);
+    setHandoffPending(false);
     setPreviewUrl(null);
     setAssetUri(null);
 
     try {
-      if (mode === "quick-access") {
-        await assetResolve(nextAssetId, "quick_access_ui");
-      }
-      const pngBytes = await assetReadPng(nextAssetId);
-      const objectUrl = URL.createObjectURL(new Blob([pngBytes], { type: "image/png" }));
+      // 1. Resolve asset for QA UI
+      // Note: we'll use tauri.state for the actual resolve call in next step if needed, 
+      // but for now we'll stick to the existing IPC.
+      // Wait, the plan says editor DOESN'T call it, but doesn't say QA shouldn't.
+      
+      const assetUri = `xensnip-asset://localhost/${nextAssetId}`;
+      const img = await loadImage(assetUri);
+      
+      // 2. Compose preview with default preset
+      const blobBytes = await composeToBlob(img, DEFAULT_PRESET);
+      const objectUrl = URL.createObjectURL(new Blob([blobBytes], { type: "image/png" }));
+      
       if (previewObjectUrlRef.current) {
         URL.revokeObjectURL(previewObjectUrlRef.current);
       }
       previewObjectUrlRef.current = objectUrl;
       setAssetId(nextAssetId);
-      setAssetUri(objectUrl);
+      setAssetUri(assetUri);
       setPreviewUrl(objectUrl);
-    } catch {
+    } catch (e) {
+      console.error("Bootstrap failed", e);
       bootstrappedAssetIdRef.current = null;
       showToast("Capture is no longer available. Please capture again.");
     } finally {
       setIsLoading(false);
-      if (mode === "quick-access") {
-        resetDismissTimer(nextAssetId);
-      }
+      resetDismissTimer(nextAssetId);
     }
-  }, [mode, resetDismissTimer]);
+  }, [resetDismissTimer]);
 
   useEffect(() => {
-    if (mode === "editor") {
-      return;
-    }
-
     let unlisten: (() => void) | null = null;
 
     listen<QuickAccessShowPayload>("quick_access.show", (event) => {
@@ -131,7 +131,7 @@ export function QuickAccess() {
     return () => {
       unlisten?.();
     };
-  }, [bootstrapAsset, mode]);
+  }, [bootstrapAsset]);
 
   useEffect(() => {
     const initialAssetId = searchParams.get("asset_id");
@@ -149,10 +149,10 @@ export function QuickAccess() {
         URL.revokeObjectURL(previewObjectUrlRef.current);
       }
     };
-  }, [mode]);
+  }, []);
 
   async function withFlight<T>(fn: () => Promise<T>): Promise<T | null> {
-    if (isActionInFlightRef.current || !assetIdRef.current || !assetUriRef.current) {
+    if (isActionInFlightRef.current || handoffPending || !assetIdRef.current || !assetUriRef.current) {
       return null;
     }
     setIsActionInFlight(true);
@@ -170,8 +170,9 @@ export function QuickAccess() {
       const id = assetIdRef.current!;
       const uri = assetUriRef.current!;
       try {
-        const blob = await composeDefaultPreset(uri);
-        await clipboardWriteImage(await blobToBytes(blob));
+        const img = await loadImage(uri);
+        const blobBytes = await composeToBlob(img, DEFAULT_PRESET);
+        await clipboardWriteImage(blobBytes);
         showToast("Copied!");
         setTimeout(() => {
           void handleDismiss(id);
@@ -186,7 +187,8 @@ export function QuickAccess() {
     await withFlight(async () => {
       const uri = assetUriRef.current!;
       try {
-        const blob = await composeDefaultPreset(uri);
+        const img = await loadImage(uri);
+        const blobBytes = await composeToBlob(img, DEFAULT_PRESET);
         const now = new Date();
         const ts = [
           now.getFullYear(),
@@ -197,7 +199,7 @@ export function QuickAccess() {
           String(now.getMinutes()).padStart(2, "0"),
           String(now.getSeconds()).padStart(2, "0"),
         ].join("");
-        const saved = await exportSavePng(await blobToBytes(blob), `xensnip-${ts}.png`);
+        const saved = await exportSavePng(blobBytes, `xensnip-${ts}.png`);
         if (saved) {
           showToast("Saved!");
         } else {
@@ -210,15 +212,40 @@ export function QuickAccess() {
   }
 
   async function handleOpenEditor() {
-    await withFlight(async () => {
-      const id = assetIdRef.current!;
-      try {
-        await editorOpen(id);
-        await handleDismiss(id);
-      } catch {
-        showToast("Could not open editor. Please try again.");
+    if (handoffPending || isActionInFlight || !assetIdRef.current) return;
+
+    const id = assetIdRef.current;
+    setHandoffPending(true);
+    pauseDismissTimer();
+
+    try {
+      await editorOpen(id);
+      
+      // Listen for handoff result from Rust
+      const unlisten = await listen<EditorHandoffResult>("editor.handoff_result", (event) => {
+        if (event.payload.status === "succeeded") {
+          void handleDismiss(id);
+        } else {
+          setHandoffPending(false);
+          resumeDismissTimer();
+          showToast("Editor took too long to open. Please try again.");
+        }
+        unlisten();
+      });
+    } catch (err: any) {
+      setHandoffPending(false);
+      resumeDismissTimer();
+
+      const error = err as EditorOpenError;
+      if (error.code === "SoftLimitReached") {
+        showToast("Editor limit reached. Showing the most recent editor.");
+      } else if (error.code === "AssetMissing") {
+        showToast("Capture is no longer available. Please capture again.");
+        void handleDismiss(id);
+      } else {
+        showToast("Could not open the editor. Please try again.");
       }
-    });
+    }
   }
 
   function showToast(message: string) {
@@ -229,8 +256,8 @@ export function QuickAccess() {
   return (
     <div
       className="qa-container"
-      onMouseEnter={mode === "quick-access" ? pauseDismissTimer : undefined}
-      onMouseLeave={mode === "quick-access" ? resumeDismissTimer : undefined}
+      onMouseEnter={pauseDismissTimer}
+      onMouseLeave={resumeDismissTimer}
     >
       <div className="qa-preview">
         {isLoading && <div className="qa-loading">Loading...</div>}
@@ -250,40 +277,39 @@ export function QuickAccess() {
         )}
       </div>
 
-      {mode === "quick-access" ? (
-        <div className="qa-actions">
-          <button
-            className="qa-btn qa-btn-primary"
-            onClick={handleCopy}
-            disabled={isActionInFlight || isLoading}
-          >
-            Copy
-          </button>
-          <button
-            className="qa-btn"
-            onClick={handleExport}
-            disabled={isActionInFlight || isLoading}
-          >
-            Export
-          </button>
-          <button
-            className="qa-btn"
-            onClick={handleOpenEditor}
-            disabled={isActionInFlight || isLoading}
-          >
-            Open Editor
-          </button>
-          <button
-            className="qa-btn qa-btn-dismiss"
-            onClick={() => void handleDismiss()}
-            disabled={isActionInFlight}
-          >
-            Dismiss
-          </button>
-        </div>
-      ) : (
-        <div className="qa-editor-footer">Editor preview only. Full tools arrive in Sprint 04.</div>
-      )}
+      <div className="qa-actions">
+        <button
+          className="qa-btn qa-btn-primary"
+          onClick={handleCopy}
+          disabled={isActionInFlight || handoffPending || isLoading}
+        >
+          Copy
+        </button>
+        <button
+          className="qa-btn"
+          onClick={handleExport}
+          disabled={isActionInFlight || handoffPending || isLoading}
+        >
+          Export
+        </button>
+        <button
+          className="qa-btn"
+          onClick={handleOpenEditor}
+          disabled={isActionInFlight || handoffPending || isLoading}
+        >
+          {handoffPending ? "Opening..." : "Open Editor"}
+        </button>
+        <button
+          className="qa-btn qa-btn-dismiss"
+          onClick={() => void handleDismiss()}
+          disabled={isActionInFlight || handoffPending}
+        >
+          Dismiss
+        </button>
+      </div>
+
+      {toast && <div className="qa-toast">{toast}</div>}
+    </div>
 
       {toast && <div className="qa-toast">{toast}</div>}
     </div>
