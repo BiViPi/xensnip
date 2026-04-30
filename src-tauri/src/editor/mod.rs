@@ -10,7 +10,7 @@ pub struct EditorOpenResult {
 }
 
 pub fn open(app: &AppHandle, asset_id: &str) -> Result<EditorOpenResult, String> {
-    let asset_uri = format!("xensnip-asset://{}", asset_id);
+    let asset_uri = format!("xensnip-asset://localhost/{}", asset_id);
     let window_label = format!(
         "{}{}",
         EDITOR_LABEL_PREFIX,
@@ -62,7 +62,14 @@ fn spawn_editor_window(
     let window = WebviewWindowBuilder::new(
         app,
         window_label,
-        WebviewUrl::App(format!("/editor.html?asset_uri={}", url_encode(asset_uri)).into()),
+        WebviewUrl::App(
+            format!(
+                "editor.html?asset_id={}&asset_uri={}",
+                url_encode(asset_id),
+                url_encode(asset_uri)
+            )
+            .into(),
+        ),
     )
     .title("XenSnip Editor")
     .decorations(true)

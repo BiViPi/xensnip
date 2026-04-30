@@ -1,6 +1,7 @@
 import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  assetReadPng,
   assetResolve,
   clipboardWriteImage,
   editorOpen,
@@ -8,7 +9,7 @@ import {
   quickAccessDismiss,
 } from "../ipc/index";
 import { QuickAccessShowPayload } from "../ipc/types";
-import { composeDefaultPreset, composeDefaultPresetDataUrl } from "./compose";
+import { composeDefaultPreset } from "./compose";
 
 const AUTO_DISMISS_MS = 8000;
 
@@ -24,6 +25,8 @@ export function QuickAccess() {
   const assetIdRef = useRef<string | null>(null);
   const assetUriRef = useRef<string | null>(null);
   const isActionInFlightRef = useRef(false);
+  const bootstrappedAssetIdRef = useRef<string | null>(null);
+  const previewObjectUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
     assetIdRef.current = assetId;
@@ -72,6 +75,10 @@ export function QuickAccess() {
   }, [resetDismissTimer]);
 
   const bootstrapAsset = useCallback(async (nextAssetId: string) => {
+    if (bootstrappedAssetIdRef.current === nextAssetId) {
+      return;
+    }
+    bootstrappedAssetIdRef.current = nextAssetId;
     setIsLoading(true);
     setToast(null);
     setIsActionInFlight(false);
@@ -79,11 +86,18 @@ export function QuickAccess() {
     setAssetUri(null);
 
     try {
-      const result = await assetResolve(nextAssetId, "quick_access_ui");
+      await assetResolve(nextAssetId, "quick_access_ui");
+      const pngBytes = await assetReadPng(nextAssetId);
+      const objectUrl = URL.createObjectURL(new Blob([pngBytes], { type: "image/png" }));
+      if (previewObjectUrlRef.current) {
+        URL.revokeObjectURL(previewObjectUrlRef.current);
+      }
+      previewObjectUrlRef.current = objectUrl;
       setAssetId(nextAssetId);
-      setAssetUri(result.uri);
-      setPreviewUrl(await composeDefaultPresetDataUrl(result.uri));
+      setAssetUri(objectUrl);
+      setPreviewUrl(objectUrl);
     } catch {
+      bootstrappedAssetIdRef.current = null;
       showToast("Capture is no longer available. Please capture again.");
     } finally {
       setIsLoading(false);
@@ -117,6 +131,9 @@ export function QuickAccess() {
     return () => {
       if (dismissTimerRef.current) {
         clearTimeout(dismissTimerRef.current);
+      }
+      if (previewObjectUrlRef.current) {
+        URL.revokeObjectURL(previewObjectUrlRef.current);
       }
     };
   }, []);
@@ -170,6 +187,8 @@ export function QuickAccess() {
         const saved = await exportSavePng(await blobToBytes(blob), `xensnip-${ts}.png`);
         if (saved) {
           showToast("Saved!");
+        } else {
+          showToast("Save canceled.");
         }
       } catch {
         showToast("Could not save the file. Please try again.");
@@ -202,8 +221,19 @@ export function QuickAccess() {
     >
       <div className="qa-preview">
         {isLoading && <div className="qa-loading">Loading...</div>}
+        {!isLoading && !previewUrl && (
+          <div className="qa-loading">Preview unavailable.</div>
+        )}
         {previewUrl && !isLoading && (
-          <img src={previewUrl} alt="Captured screenshot" className="qa-preview-img" />
+          <img
+            src={previewUrl}
+            alt="Captured screenshot"
+            className="qa-preview-img"
+            onError={() => {
+              setPreviewUrl(null);
+              showToast("Could not load preview image.");
+            }}
+          />
         )}
       </div>
 

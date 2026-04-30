@@ -61,6 +61,11 @@ export async function assetRelease(assetId: string, consumer: string): Promise<v
   return await invoke<void>("asset_release", { assetId, consumer });
 }
 
+export async function assetReadPng(assetId: string): Promise<Uint8Array> {
+  const pngBytes = await invoke<number[]>("asset_read_png", { assetId });
+  return new Uint8Array(pngBytes);
+}
+
 export async function clipboardWriteImage(pngBytes: Uint8Array): Promise<void> {
   return await invoke<void>("clipboard_write_image", {
     pngBytes: Array.from(pngBytes),

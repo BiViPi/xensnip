@@ -86,7 +86,7 @@ impl AssetRegistry {
     ) -> Result<AssetResolveResult, AssetError> {
         self.acquire(asset_id, consumer)?;
         Ok(AssetResolveResult {
-            uri: format!("xensnip-asset://{}", asset_id),
+            uri: format!("xensnip-asset://localhost/{}", asset_id),
         })
     }
 
@@ -199,9 +199,10 @@ mod tests {
     fn resolve_increments_ref_count() {
         let registry = AssetRegistry::new();
         registry.insert(make_asset("a1"));
-        registry.resolve("a1", "qa_ui").unwrap();
+        let result = registry.resolve("a1", "qa_ui").unwrap();
         let map = registry.inner.lock().unwrap();
         assert_eq!(map["a1"].ref_count, 2);
+        assert_eq!(result.uri, "xensnip-asset://localhost/a1");
     }
 
     #[test]

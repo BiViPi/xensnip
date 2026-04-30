@@ -20,14 +20,28 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Self {
-            version: 1,
+            version: 2,
             hotkeys: Hotkeys {
                 region: "Ctrl+Shift+S".to_string(),
-                active_window: "Ctrl+Shift+W".to_string(),
+                active_window: "Ctrl+Alt+W".to_string(),
             },
             launch_at_startup: false,
         }
     }
+}
+
+fn migrate_settings_if_needed(settings: &mut Settings) -> bool {
+    let mut changed = false;
+
+    if settings.version < 2 {
+        if settings.hotkeys.active_window == "Ctrl+Shift+W" {
+            settings.hotkeys.active_window = "Ctrl+Alt+W".to_string();
+        }
+        settings.version = 2;
+        changed = true;
+    }
+
+    changed
 }
 
 pub fn get_settings_path(app_handle: &AppHandle) -> PathBuf {
@@ -48,8 +62,10 @@ pub fn load_or_create_default(app_handle: &AppHandle) -> Settings {
     if path.exists() {
         let content = fs::read_to_string(&path).expect("Failed to read settings file");
         match serde_json::from_str::<Settings>(&content) {
-            Ok(settings) => {
-                // Future migration logic here
+            Ok(mut settings) => {
+                if migrate_settings_if_needed(&mut settings) {
+                    save_settings(app_handle, &settings);
+                }
                 settings
             }
             Err(_) => {

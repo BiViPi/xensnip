@@ -97,6 +97,14 @@ pub fn asset_release(
 }
 
 #[tauri::command]
+pub fn asset_read_png(app_handle: AppHandle, asset_id: String) -> Result<Vec<u8>, String> {
+    let registry = app_handle.state::<AssetRegistry>();
+    registry
+        .get_data(&asset_id)
+        .ok_or_else(|| "Asset not found or already dropped.".to_string())
+}
+
+#[tauri::command]
 pub fn clipboard_write_image(app_handle: AppHandle, png_bytes: Vec<u8>) -> Result<(), String> {
     let decoded = image::load_from_memory(&png_bytes).map_err(|e| e.to_string())?;
     let rgba = decoded.to_rgba8();

@@ -31,8 +31,8 @@ pub struct QuickAccessShowPayload {
     pub capture_meta: CapturePositionMeta,
 }
 
-const QA_WIDTH: u32 = 380;
-const QA_HEIGHT: u32 = 240;
+const QA_WIDTH: u32 = 420;
+const QA_HEIGHT: u32 = 300;
 const QA_MARGIN: i32 = 16;
 const QA_LABEL: &str = "quick-access";
 
@@ -92,11 +92,11 @@ fn spawn_window(
     let window = WebviewWindowBuilder::new(
         app,
         QA_LABEL,
-        WebviewUrl::App(format!("/quick-access.html?asset_id={}", url_encode(asset_id)).into()),
+        WebviewUrl::App(format!("quick-access.html?asset_id={}", url_encode(asset_id)).into()),
     )
     .title("XenSnip Quick Access")
-    .decorations(false)
-    .resizable(false)
+    .decorations(true)
+    .resizable(true)
     .always_on_top(true)
     .skip_taskbar(true)
     .focused(false)
@@ -130,7 +130,7 @@ fn spawn_window(
 fn compute_position(meta: &CapturePositionMeta) -> (i32, i32) {
     let work = &meta.monitor_work_area_logical;
     let default_x = work.x + work.w as i32 - QA_WIDTH as i32 - QA_MARGIN;
-    let default_y = work.y + work.h as i32 - QA_HEIGHT as i32 - QA_MARGIN;
+    let default_y = work.y + QA_MARGIN;
 
     if let Some(capture_rect) = &meta.capture_rect_logical {
         let qa_rect = Rect {
@@ -149,14 +149,14 @@ fn compute_position(meta: &CapturePositionMeta) -> (i32, i32) {
         if rects_overlap(&qa_rect, &capture_rect) {
             let candidates = [
                 (
+                    work.x + work.w as i32 - QA_WIDTH as i32 - QA_MARGIN,
+                    work.y + work.h as i32 - QA_HEIGHT as i32 - QA_MARGIN,
+                ),
+                (work.x + QA_MARGIN, work.y + QA_MARGIN),
+                (
                     work.x + QA_MARGIN,
                     work.y + work.h as i32 - QA_HEIGHT as i32 - QA_MARGIN,
                 ),
-                (
-                    work.x + work.w as i32 - QA_WIDTH as i32 - QA_MARGIN,
-                    work.y + QA_MARGIN,
-                ),
-                (work.x + QA_MARGIN, work.y + QA_MARGIN),
             ];
 
             for (candidate_x, candidate_y) in candidates {

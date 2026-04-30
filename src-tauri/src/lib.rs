@@ -13,6 +13,22 @@ use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent}
 use tauri::{AppHandle, Manager};
 use tauri_plugin_log::{Target, TargetKind};
 
+fn parse_asset_id_from_uri(uri: &tauri::http::Uri) -> String {
+    if let Some(host) = uri.host() {
+        if let Some(stripped) = host.strip_suffix(".localhost") {
+            if !stripped.is_empty() {
+                return stripped.to_string();
+            }
+        }
+
+        if host != "localhost" && !host.is_empty() {
+            return host.to_string();
+        }
+    }
+
+    uri.path().trim_matches('/').to_string()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -36,16 +52,7 @@ pub fn run() {
         // xensnip-asset:// URI scheme — serves raw PNG bytes from the in-memory registry.
         // No ref-count change: read-only transport. Registered before setup().
         .register_uri_scheme_protocol("xensnip-asset", |ctx, request| {
-            let asset_id = request
-                .uri()
-                .host()
-                .filter(|host| !host.ends_with(".localhost"))
-                .map(str::to_string)
-                .or_else(|| {
-                    let path = request.uri().path().trim_matches('/');
-                    (!path.is_empty()).then(|| path.to_string())
-                })
-                .unwrap_or_default();
+            let asset_id = parse_asset_id_from_uri(request.uri());
 
             if let Some(data) = ctx.app_handle().state::<asset::AssetRegistry>().get_data(&asset_id) {
                 tauri::http::Response::builder()
@@ -79,6 +86,7 @@ pub fn run() {
             // Sprint 03
             commands::asset_resolve,
             commands::asset_release,
+            commands::asset_read_png,
             commands::editor_open,
             commands::quick_access_dismiss,
             commands::clipboard_write_image,
@@ -152,4 +160,27 @@ pub fn run() {
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_asset_id_from_uri;
+
+    #[test]
+    fn parses_asset_id_from_localhost_host_suffix() {
+        let uri: tauri::http::Uri = "xensnip-asset://win_123.localhost/".parse().unwrap();
+        assert_eq!(parse_asset_id_from_uri(&uri), "win_123");
+    }
+
+    #[test]
+    fn parses_asset_id_from_localhost_path() {
+        let uri: tauri::http::Uri = "xensnip-asset://localhost/win_123".parse().unwrap();
+        assert_eq!(parse_asset_id_from_uri(&uri), "win_123");
+    }
+
+    #[test]
+    fn parses_asset_id_from_plain_host() {
+        let uri: tauri::http::Uri = "xensnip-asset://win_123".parse().unwrap();
+        assert_eq!(parse_asset_id_from_uri(&uri), "win_123");
+    }
 }
