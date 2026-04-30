@@ -81,17 +81,8 @@ export interface QuickAccessShowPayload {
 }
 
 /** Payload of the "editor.count_changed" event */
-export interface EditorCountChangedPayload {
-  open_count: number;
-}
-
 // ─── Sprint 04: Editor types ──────────────────────────────────────────────────
 
 export type EditorOpenError =
   | { code: "SpawnFailed"; data: { message: string } }
   | { code: "SoftLimitReached"; data: { focused_label: string } };
-
-export interface EditorOpenResult {
-  window_label: string;
-  asset_uri: string;
-}

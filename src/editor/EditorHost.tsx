@@ -8,7 +8,10 @@ import { EmptyState } from "./EmptyState";
 import { Toast } from "./Toast";
 
 export function EditorHost() {
-  const [assetId, setAssetId] = useState<string | null>(null);
+  const [assetId] = useState<string | null>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("asset_id");
+  });
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [preset, setPreset] = useState<EditorPreset>(DEFAULT_PRESET);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
@@ -17,12 +20,11 @@ export function EditorHost() {
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafIdRef = useRef<number | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const id = params.get("asset_id");
+    const id = assetId;
     if (id) {
-      setAssetId(id);
       void (async () => {
         try {
           const assetUri = `xensnip-asset://localhost/${id}`;
@@ -38,10 +40,8 @@ export function EditorHost() {
           setError("Could not load captured screenshot.");
         }
       })();
-    } else {
-      setAssetId(null);
     }
-  }, []);
+  }, [assetId]);
 
   const draw = useCallback(() => {
     if (!canvasRef.current || !image) return;
@@ -58,22 +58,28 @@ export function EditorHost() {
 
   const showToast = (message: string, type: "success" | "error" = "success") => {
     setToast({ message, type });
-    setTimeout(() => setToast(null), 3000);
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+    }
+    toastTimerRef.current = setTimeout(() => setToast(null), 3000);
   };
-
-  if (error) {
-    return <div className="editor-error">{error}</div>;
-  }
-
-  if (!assetId && assetId !== null) {
-    return <div className="editor-loading">Loading...</div>;
-  }
 
   const dims = image ? getCompositionDimensions(image.width, image.height, preset) : { canvasW: 0, canvasH: 0 };
 
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) {
+        clearTimeout(toastTimerRef.current);
+        toastTimerRef.current = null;
+      }
+    };
+  }, []);
+
   return (
     <div className="editor-shell">
-      {assetId && image ? (
+      {error ? (
+        <div className="editor-error">{error}</div>
+      ) : assetId && image ? (
         <div className="editor-canvas-container">
           <canvas
             ref={canvasRef}
@@ -93,6 +99,7 @@ export function EditorHost() {
           preset={preset}
           setPreset={setPreset}
           image={image}
+          assetId={assetId}
           isActionInFlight={isActionInFlight}
           setIsActionInFlight={setIsActionInFlight}
           showToast={showToast}

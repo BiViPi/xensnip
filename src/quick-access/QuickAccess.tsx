@@ -28,22 +28,20 @@ export function QuickAccess() {
   const assetIdRef = useRef<string | null>(null);
   const bootstrappedAssetIdRef = useRef<string | null>(null);
   const blobUrlRef = useRef<string | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     assetIdRef.current = assetId;
   }, [assetId]);
 
   useEffect(() => {
-    if (assetId) {
-      void quickAccessSetBusy(assetId, isActionInFlight);
-    }
     return () => {
-      // Ensure we clear busy state if unmounting
+      // Ensure we clear busy state if unmounting or switching captures.
       if (assetId) {
-        void quickAccessSetBusy(assetId, false);
+        void quickAccessSetBusy(assetId, false).catch(() => {});
       }
     };
-  }, [assetId, isActionInFlight]);
+  }, [assetId]);
 
   const handleDismiss = useCallback(async (id?: string) => {
     const targetId = id ?? assetIdRef.current;
@@ -144,6 +142,10 @@ export function QuickAccess() {
 
   useEffect(() => {
     return () => {
+      if (toastTimerRef.current) {
+        clearTimeout(toastTimerRef.current);
+        toastTimerRef.current = null;
+      }
       if (blobUrlRef.current) {
         URL.revokeObjectURL(blobUrlRef.current);
         blobUrlRef.current = null;
@@ -153,7 +155,10 @@ export function QuickAccess() {
 
   const showToast = (message: string, type: "success" | "error" = "success") => {
     setToast({ message, type });
-    setTimeout(() => setToast(null), 3000);
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+    }
+    toastTimerRef.current = setTimeout(() => setToast(null), 3000);
   };
 
   const dims = image ? getCompositionDimensions(image.width, image.height, preset) : { canvasW: 0, canvasH: 0 };
@@ -180,13 +185,14 @@ export function QuickAccess() {
           preset={preset}
           setPreset={setPreset}
           image={image}
+          assetId={assetId}
           isActionInFlight={isActionInFlight}
           setIsActionInFlight={setIsActionInFlight}
           showToast={showToast}
         />
       )}
 
-      <button className="qa-pivot-dismiss" onClick={() => void handleDismiss()}>
+      <button className="qa-pivot-dismiss" onClick={() => void handleDismiss()} disabled={isActionInFlight}>
         Dismiss
       </button>
 

@@ -6,7 +6,6 @@ import {
   CaptureFailure,
   RegionConfirmPayload,
   AssetResolveResult,
-  EditorOpenResult,
 } from "./types";
 
 // ─── Smoke / settings ─────────────────────────────────────────────────────────
@@ -83,16 +82,6 @@ export async function exportSavePng(
 }
 
 // ─── Editor commands (Sprint 03) ─────────────────────────────────────────────
-
-/** Open a new editor host window. Rust acquires an internal ref before spawning. */
-export async function editorOpen(assetId: string): Promise<EditorOpenResult> {
-  return await invoke<EditorOpenResult>("editor_open", { assetId });
-}
-
-/** Open an empty editor launcher window. */
-export async function editorOpenEmpty(): Promise<string> {
-  return await invoke<string>("editor_open_empty");
-}
 
 // ─── Quick Access commands (Sprint 03) ───────────────────────────────────────
 

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { EditorPreset } from "../compose/preset";
 import { composeToBlob } from "../compose/compose";
-import { clipboardWriteImage, exportSavePng } from "../ipc/index";
+import { clipboardWriteImage, exportSavePng, quickAccessSetBusy } from "../ipc/index";
 import { BackgroundControl } from "./controls/Background";
 import { RatioControl } from "./controls/Ratio";
 import { SliderControl } from "./controls/Slider";
@@ -11,6 +11,7 @@ interface Props {
   preset: EditorPreset;
   setPreset: (p: EditorPreset | ((prev: EditorPreset) => EditorPreset)) => void;
   image: HTMLImageElement;
+  assetId: string;
   isActionInFlight: boolean;
   setIsActionInFlight: (v: boolean) => void;
   showToast: (m: string, t?: "success" | "error") => void;
@@ -22,6 +23,7 @@ export function QuickBar({
   preset,
   setPreset,
   image,
+  assetId,
   isActionInFlight,
   setIsActionInFlight,
   showToast,
@@ -34,6 +36,7 @@ export function QuickBar({
 
   const handleCopy = async () => {
     if (isActionInFlight) return;
+    void quickAccessSetBusy(assetId, true).catch(() => {});
     setIsActionInFlight(true);
     try {
       const blobBytes = await composeToBlob(image, preset);
@@ -44,11 +47,13 @@ export function QuickBar({
       showToast("Failed to copy image.", "error");
     } finally {
       setIsActionInFlight(false);
+      void quickAccessSetBusy(assetId, false).catch(() => {});
     }
   };
 
   const handleExport = async () => {
     if (isActionInFlight) return;
+    void quickAccessSetBusy(assetId, true).catch(() => {});
     setIsActionInFlight(true);
     try {
       const blobBytes = await composeToBlob(image, preset);
@@ -62,6 +67,7 @@ export function QuickBar({
       showToast("Failed to export image.", "error");
     } finally {
       setIsActionInFlight(false);
+      void quickAccessSetBusy(assetId, false).catch(() => {});
     }
   };
 
