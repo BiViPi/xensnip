@@ -1,5 +1,5 @@
 import { EditorPreset } from "./preset";
-import { drawComposition } from "./core";
+import { drawComposition, getCompositionDimensions } from "./core";
 
 export function composeToCanvas(
   canvas: HTMLCanvasElement,
@@ -9,22 +9,20 @@ export function composeToCanvas(
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
 
-  // Clear
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const { canvasW, canvasH } = getCompositionDimensions(image.width, image.height, preset);
   
-  drawComposition(ctx, image, preset, canvas.width, canvas.height);
+  // Sizing is usually reactive in EditorHost, but we sync here for safety
+  if (canvas.width !== canvasW) canvas.width = canvasW;
+  if (canvas.height !== canvasH) canvas.height = canvasH;
+
+  drawComposition(ctx, image, preset, canvasW, canvasH);
 }
 
 export async function composeToBlob(
   image: HTMLImageElement,
   preset: EditorPreset
 ): Promise<Uint8Array> {
-  const { padding } = preset;
-  
-  // Calculate output dimensions based on image + padding
-  // In the real app, we might need to handle ratio here too
-  const canvasW = image.width + padding * 2;
-  const canvasH = image.height + padding * 2;
+  const { canvasW, canvasH } = getCompositionDimensions(image.width, image.height, preset);
 
   const canvas = document.createElement("canvas");
   canvas.width = canvasW;

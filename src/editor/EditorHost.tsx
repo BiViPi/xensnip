@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { emit } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { loadImage, composeToCanvas } from "../compose/compose";
+import { getCompositionDimensions } from "../compose/core";
 import { DEFAULT_PRESET, EditorPreset } from "../compose/preset";
 import { autoBalance } from "./autoBalance";
 import { QuickBar } from "./QuickBar";
@@ -32,11 +33,8 @@ export function EditorHost() {
           setImage(img);
           
           // Initial auto-balance
-          if (containerRef.current) {
-            const { clientWidth: cw, clientHeight: ch } = containerRef.current;
-            const balancedPadding = autoBalance(img.width, img.height, DEFAULT_PRESET.ratio, cw, ch);
-            setPreset(prev => ({ ...prev, padding: balancedPadding }));
-          }
+          const balancedPadding = autoBalance(img.width, img.height, DEFAULT_PRESET.ratio);
+          setPreset(prev => ({ ...prev, padding: balancedPadding }));
 
           // Emit editor.ready
           const label = getCurrentWebviewWindow().label;
@@ -51,7 +49,7 @@ export function EditorHost() {
       setAssetId(null);
       // Still emit ready for empty editor if needed, but registry doesn't track handoff for empty.
       const label = getCurrentWebviewWindow().label;
-      emit("editor.ready", { window_label: label }).ok;
+      void emit("editor.ready", { window_label: label });
     }
   }, []);
 
@@ -81,19 +79,21 @@ export function EditorHost() {
     return <div className="editor-loading">Loading...</div>;
   }
 
+  const dims = image ? getCompositionDimensions(image.width, image.height, preset) : { canvasW: 0, canvasH: 0 };
+
   return (
     <div className="editor-shell" ref={containerRef}>
       {assetId && image ? (
         <div className="editor-canvas-container">
           <canvas
             ref={canvasRef}
-            width={image.width + preset.padding * 2}
-            height={image.height + preset.padding * 2}
+            width={dims.canvasW}
+            height={dims.canvasH}
             className="editor-preview-canvas"
           />
         </div>
       ) : assetId === null ? (
-        <EmptyState />
+        <EmptyState showToast={showToast} />
       ) : (
         <div className="editor-loading">Loading capture...</div>
       )}

@@ -1,4 +1,72 @@
-import { EditorPreset, BACKGROUND_CONFIGS } from "./preset";
+import { EditorPreset, BACKGROUND_CONFIGS, RatioOption } from "./preset";
+
+export interface CompositionDimensions {
+  canvasW: number;
+  canvasH: number;
+  drawX: number;
+  drawY: number;
+}
+
+/**
+ * Shared dimension math for both preview and export.
+ * Computes canvas size and centering offsets based on ratio and padding.
+ */
+export function getCompositionDimensions(
+  imageW: number,
+  imageH: number,
+  preset: EditorPreset
+): CompositionDimensions {
+  const { padding, ratio } = preset;
+  
+  // 1. Initial size with padding
+  const paddedW = imageW + padding * 2;
+  const paddedH = imageH + padding * 2;
+  
+  if (ratio === "Free") {
+    return {
+      canvasW: paddedW,
+      canvasH: paddedH,
+      drawX: padding,
+      drawY: padding
+    };
+  }
+  
+  // 2. Fixed ratio sizing
+  const [targetRatioW, targetRatioH] = parseRatio(ratio);
+  const targetRatio = targetRatioW / targetRatioH;
+  const currentRatio = paddedW / paddedH;
+  
+  let canvasW: number;
+  let canvasH: number;
+  
+  if (currentRatio > targetRatio) {
+    // Current is wider than target, height must grow
+    canvasW = paddedW;
+    canvasH = paddedW / targetRatio;
+  } else {
+    // Current is taller than target, width must grow
+    canvasH = paddedH;
+    canvasW = paddedH * targetRatio;
+  }
+  
+  return {
+    canvasW,
+    canvasH,
+    drawX: (canvasW - imageW) / 2,
+    drawY: (canvasH - imageH) / 2
+  };
+}
+
+function parseRatio(ratio: RatioOption): [number, number] {
+  switch (ratio) {
+    case "16:9": return [16, 9];
+    case "4:3": return [4, 3];
+    case "1:1": return [1, 1];
+    case "3:4": return [3, 4];
+    case "9:16": return [9, 16];
+    default: return [1, 1]; // Fallback
+  }
+}
 
 export function drawComposition(
   ctx: CanvasRenderingContext2D,
@@ -21,15 +89,13 @@ export function drawComposition(
   ctx.fillRect(0, 0, canvasW, canvasH);
 
   // 2. Calculations
-  const { padding, inset, radius, shadow } = preset;
+  const { inset, radius, shadow } = preset;
+  const dims = getCompositionDimensions(image.width, image.height, preset);
   
-  // Calculate content area (where the screenshot card goes)
-  // In MVP, we assume image is centered in the canvas
+  const drawX = dims.drawX;
+  const drawY = dims.drawY;
   const imgW = image.width;
   const imgH = image.height;
-  
-  const drawX = (canvasW - imgW) / 2;
-  const drawY = (canvasH - imgH) / 2;
 
   // 3. Shadow
   if (shadow !== "None") {
@@ -50,8 +116,7 @@ export function drawComposition(
         break;
     }
     
-    // Draw a shadow-only rect behind the image (since we clip the image next)
-    ctx.fillStyle = "white"; // Hidden by the image
+    ctx.fillStyle = "white";
     roundedRect(ctx, drawX + inset, drawY + inset, imgW - inset * 2, imgH - inset * 2, radius);
     ctx.fill();
     ctx.restore();

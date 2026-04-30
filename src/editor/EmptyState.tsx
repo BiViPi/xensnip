@@ -1,11 +1,15 @@
 import { captureStartRegion, captureStartWindow } from "../ipc/index";
 
-export function EmptyState() {
+interface Props {
+  showToast: (message: string, type?: "success" | "error") => void;
+}
+
+export function EmptyState({ showToast }: Props) {
   const handleRegion = async () => {
     try {
       await captureStartRegion();
     } catch {
-      // Small toast or silent failure if capture already in progress
+      showToast("Capture already in progress.", "error");
     }
   };
 
@@ -13,7 +17,7 @@ export function EmptyState() {
     try {
       await captureStartWindow();
     } catch {
-      // Small toast or silent failure
+      showToast("Capture already in progress.", "error");
     }
   };
 

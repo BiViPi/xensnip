@@ -30,6 +30,8 @@ tauri-plugin-clipboard-manager = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-fs = "2"
 image = "0.24"
+thiserror = "2"
+tokio = { version = "1", features = ["full"] }
 xcap = { version = "0.9.4", features = ["image", "wgc"] }
 windows = { version = "0.62.2", features = [
     "Win32_UI_WindowsAndMessaging",

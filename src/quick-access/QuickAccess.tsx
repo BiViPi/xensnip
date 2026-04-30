@@ -1,5 +1,6 @@
 import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useRef, useState } from "react";
+import {
   clipboardWriteImage,
   editorOpen,
   exportSavePng,
@@ -49,16 +50,13 @@ export function QuickAccess() {
     const targetId = id ?? assetIdRef.current;
     if (!targetId) return;
     pauseDismissTimer();
-    if (mode === "editor") {
-      window.close();
-      return;
-    }
+    
     try {
       await quickAccessDismiss(targetId);
     } catch {
       // Rust close hook owns final cleanup.
     }
-  }, [mode, pauseDismissTimer]);
+  }, [pauseDismissTimer]);
 
   const resetDismissTimer = useCallback((id: string) => {
     if (dismissTimerRef.current) {
@@ -90,15 +88,9 @@ export function QuickAccess() {
     setAssetUri(null);
 
     try {
-      // 1. Resolve asset for QA UI
-      // Note: we'll use tauri.state for the actual resolve call in next step if needed, 
-      // but for now we'll stick to the existing IPC.
-      // Wait, the plan says editor DOESN'T call it, but doesn't say QA shouldn't.
-      
       const assetUri = `xensnip-asset://localhost/${nextAssetId}`;
       const img = await loadImage(assetUri);
       
-      // 2. Compose preview with default preset
       const blobBytes = await composeToBlob(img, DEFAULT_PRESET);
       const objectUrl = URL.createObjectURL(new Blob([blobBytes], { type: "image/png" }));
       
@@ -134,6 +126,7 @@ export function QuickAccess() {
   }, [bootstrapAsset]);
 
   useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
     const initialAssetId = searchParams.get("asset_id");
     if (initialAssetId) {
       void bootstrapAsset(initialAssetId);
@@ -218,11 +211,11 @@ export function QuickAccess() {
     setHandoffPending(true);
     pauseDismissTimer();
 
+    let unlistenHandoff: (() => void) | null = null;
+
     try {
-      await editorOpen(id);
-      
-      // Listen for handoff result from Rust
-      const unlisten = await listen<EditorHandoffResult>("editor.handoff_result", (event) => {
+      // FIX High: Register listener BEFORE calling editorOpen to avoid race
+      const promise = listen<EditorHandoffResult>("editor.handoff_result", (event) => {
         if (event.payload.status === "succeeded") {
           void handleDismiss(id);
         } else {
@@ -230,9 +223,14 @@ export function QuickAccess() {
           resumeDismissTimer();
           showToast("Editor took too long to open. Please try again.");
         }
-        unlisten();
+        unlistenHandoff?.();
       });
+      
+      unlistenHandoff = await promise;
+
+      await editorOpen(id);
     } catch (err: any) {
+      unlistenHandoff?.();
       setHandoffPending(false);
       resumeDismissTimer();
 
@@ -310,12 +308,5 @@ export function QuickAccess() {
 
       {toast && <div className="qa-toast">{toast}</div>}
     </div>
-
-      {toast && <div className="qa-toast">{toast}</div>}
-    </div>
   );
-}
-
-async function blobToBytes(blob: Blob): Promise<Uint8Array> {
-  return new Uint8Array(await blob.arrayBuffer());
 }

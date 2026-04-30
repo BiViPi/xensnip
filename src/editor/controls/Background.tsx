@@ -1,4 +1,4 @@
-import { BACKGROUND_CONFIGS, BackgroundStyle, EditorPreset } from "../../compose/preset";
+import { BACKGROUND_CONFIGS, BackgroundStyle } from "../../compose/preset";
 
 interface Props {
   value: BackgroundStyle;

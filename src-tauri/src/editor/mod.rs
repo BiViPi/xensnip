@@ -10,6 +10,21 @@ use self::handoff::HandoffManager;
 
 const EDITOR_LABEL_PREFIX: &str = "editor-";
 
+fn focus_most_recent_editor(app: &AppHandle, registry: &EditorRegistry) -> bool {
+    if let Some(focused_label) = registry.get_most_recent_label() {
+        if let Some(window) = app.get_webview_window(&focused_label) {
+            let _ = window.unminimize();
+            let _ = window.set_focus();
+            // Fallback for Windows focus quirks.
+            let _ = window.set_always_on_top(true);
+            let _ = window.set_always_on_top(false);
+            return true;
+        }
+    }
+
+    false
+}
+
 #[derive(Debug, Serialize)]
 pub struct EditorOpenResult {
     pub window_label: String,
@@ -21,17 +36,12 @@ pub fn open(app: &AppHandle, asset_id: &str, qa_label: &str) -> Result<EditorOpe
     
     // Multi-window guard (limit 3)
     if registry.count() >= 3 {
-        if let Some(focused_label) = registry.get_most_recent_label() {
-            if let Some(window) = app.get_webview_window(&focused_label) {
-                let _ = window.unminimize();
-                let _ = window.set_focus();
-                // Fallback for Windows 11 focus issues: toggle always_on_top
-                let _ = window.set_always_on_top(true);
-                let _ = window.set_always_on_top(false);
-                
-                return Err(EditorOpenError::SoftLimitReached { focused_label });
-            }
-        }
+        let focused_label = registry
+            .get_most_recent_label()
+            .unwrap_or_else(|| "most-recent-editor".to_string());
+
+        let _ = focus_most_recent_editor(app, &registry);
+        return Err(EditorOpenError::SoftLimitReached { focused_label });
     }
 
     let asset_uri = format!("xensnip-asset://localhost/{}", asset_id);
@@ -47,7 +57,13 @@ pub fn open(app: &AppHandle, asset_id: &str, qa_label: &str) -> Result<EditorOpe
 
     asset_registry
         .resolve_internal(asset_id, &window_label)
-        .map_err(|e| EditorOpenError::SpawnFailed { message: e.to_string() })?;
+        .map_err(|e| {
+            if e.code == "asset_missing" {
+                EditorOpenError::AssetMissing
+            } else {
+                EditorOpenError::SpawnFailed { message: e.to_string() }
+            }
+        })?;
 
     match spawn_editor_window(app, &window_label, Some(asset_id)) {
         Ok(()) => {
@@ -90,16 +106,12 @@ pub fn open_empty(app: &AppHandle) -> Result<String, EditorOpenError> {
     
     // Multi-window guard (limit 3)
     if registry.count() >= 3 {
-        if let Some(focused_label) = registry.get_most_recent_label() {
-            if let Some(window) = app.get_webview_window(&focused_label) {
-                let _ = window.unminimize();
-                let _ = window.set_focus();
-                let _ = window.set_always_on_top(true);
-                let _ = window.set_always_on_top(false);
-                
-                return Err(EditorOpenError::SoftLimitReached { focused_label });
-            }
-        }
+        let focused_label = registry
+            .get_most_recent_label()
+            .unwrap_or_else(|| "most-recent-editor".to_string());
+
+        let _ = focus_most_recent_editor(app, &registry);
+        return Err(EditorOpenError::SoftLimitReached { focused_label });
     }
 
     let window_label = format!(

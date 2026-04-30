@@ -10,7 +10,7 @@ mod settings;
 
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Manager, Emitter, Listener};
 use tauri_plugin_log::{Target, TargetKind};
 
 fn parse_asset_id_from_uri(uri: &tauri::http::Uri) -> String {
