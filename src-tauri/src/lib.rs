@@ -98,6 +98,7 @@ pub fn run() {
             app.manage(asset::AssetRegistry::new());
             app.manage(editor::registry::EditorRegistry::new());
             app.manage(quick_access::BusyRegistry::new());
+            app.manage(quick_access::ActiveAsset::new());
 
             let app_handle = app.handle();
             let settings = settings::load_or_create_default(app_handle);

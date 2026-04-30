@@ -27,6 +27,14 @@ impl BusyRegistry {
     }
 }
 
+pub struct ActiveAsset(Arc<Mutex<Option<String>>>);
+
+impl ActiveAsset {
+    pub fn new() -> Self {
+        Self(Arc::new(Mutex::new(None)))
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MonitorWorkAreaLogical {
     pub x: i32,
@@ -88,39 +96,50 @@ pub fn emit_show(app: &AppHandle, asset_id: &str, capture_meta: CapturePositionM
         return;
     }
 
-    if let Some(existing) = app.get_webview_window(QA_LABEL) {
-        log::info!(target: "quick_access", "Replacing existing QA window for new capture.");
-        let _ = existing.close();
-    }
-
     let payload = QuickAccessShowPayload {
         asset_id: asset_id.to_string(),
         capture_meta: capture_meta.clone(),
     };
 
-    if let Err(err) = spawn_window(app, asset_id, &capture_meta) {
-        log::error!(target: "quick_access", "Failed to spawn QA window: {:?}", err);
-        let _ = registry.release(asset_id, "quick_access_orchestrator");
-        let _ = registry.release(asset_id, "capture_engine");
-        return;
-    }
+    if let Some(existing) = app.get_webview_window(QA_LABEL) {
+        log::info!(target: "quick_access", "Reusing existing QA window for new capture.");
+        
+        // Update active asset tracking
+        if let Some(active_asset) = app.try_state::<ActiveAsset>() {
+            let mut current = active_asset.0.lock().unwrap();
+            if let Some(old_id) = current.take() {
+                let _ = registry.release(&old_id, "quick_access_orchestrator");
+            }
+            *current = Some(asset_id.to_string());
+        }
 
-    let _ = registry.release(asset_id, "capture_engine");
+        // Reposition and focus
+        let (x, y) = compute_position(&capture_meta);
+        let _ = existing.set_position(tauri::LogicalPosition::new(x as f64, y as f64));
+        let _ = existing.set_focus();
 
-    if let Some(window) = app.get_webview_window(QA_LABEL) {
-        match window.emit("quick-access-show", &payload) {
+        match existing.emit("quick-access-show", &payload) {
             Ok(()) => {
-                log::info!(target: "quick_access", "quick-access-show emit ok asset_id={}", asset_id);
+                log::info!(target: "quick_access", "quick-access-show emit ok (reuse) asset_id={}", asset_id);
             }
             Err(err) => {
-                log::error!(
-                    target: "quick_access",
-                    "quick-access-show emit failed asset_id={} err={}",
-                    asset_id,
-                    err
-                );
+                log::error!(target: "quick_access", "quick-access-show emit failed (reuse) asset_id={} err={}", asset_id, err);
             }
         }
+        let _ = registry.release(asset_id, "capture_engine");
+    } else {
+        log::info!(target: "quick_access", "Spawning new QA window.");
+        if let Some(active_asset) = app.try_state::<ActiveAsset>() {
+            *active_asset.0.lock().unwrap() = Some(asset_id.to_string());
+        }
+
+        if let Err(err) = spawn_window(app, asset_id, &capture_meta) {
+            log::error!(target: "quick_access", "Failed to spawn QA window: {:?}", err);
+            let _ = registry.release(asset_id, "quick_access_orchestrator");
+            let _ = registry.release(asset_id, "capture_engine");
+            return;
+        }
+        let _ = registry.release(asset_id, "capture_engine");
     }
 }
 

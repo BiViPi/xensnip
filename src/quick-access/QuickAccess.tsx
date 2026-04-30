@@ -27,6 +27,7 @@ export function QuickAccess() {
   const rafIdRef = useRef<number | null>(null);
   const assetIdRef = useRef<string | null>(null);
   const bootstrappedAssetIdRef = useRef<string | null>(null);
+  const resolvedAssetIdRef = useRef<string | null>(null);
   const blobUrlRef = useRef<string | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -35,13 +36,16 @@ export function QuickAccess() {
   }, [assetId]);
 
   useEffect(() => {
+    if (assetId) {
+      void quickAccessSetBusy(assetId, isActionInFlight).catch(() => {});
+    }
     return () => {
       // Ensure we clear busy state if unmounting or switching captures.
       if (assetId) {
         void quickAccessSetBusy(assetId, false).catch(() => {});
       }
     };
-  }, [assetId]);
+  }, [assetId, isActionInFlight]);
 
   const handleDismiss = useCallback(async (id?: string) => {
     const targetId = id ?? assetIdRef.current;
@@ -55,11 +59,16 @@ export function QuickAccess() {
   }, []);
 
   const bootstrapAsset = useCallback(async (nextAssetId: string) => {
-    let uiAssetResolved = false;
-
     if (bootstrappedAssetIdRef.current === nextAssetId) {
       return;
     }
+
+    // Release old UI ref if it exists
+    if (resolvedAssetIdRef.current && resolvedAssetIdRef.current !== nextAssetId) {
+      void assetRelease(resolvedAssetIdRef.current, "quick_access_ui").catch(() => {});
+      resolvedAssetIdRef.current = null;
+    }
+
     bootstrappedAssetIdRef.current = nextAssetId;
     setIsLoading(true);
     setToast(null);
@@ -73,7 +82,7 @@ export function QuickAccess() {
 
     try {
       await assetResolve(nextAssetId, "quick_access_ui");
-      uiAssetResolved = true;
+      resolvedAssetIdRef.current = nextAssetId;
 
       const bytes = await assetReadPng(nextAssetId);
       const blob = new Blob([bytes], { type: "image/png" });
@@ -96,8 +105,9 @@ export function QuickAccess() {
     } catch (e) {
       console.error("Bootstrap failed", e);
       bootstrappedAssetIdRef.current = null;
-      if (uiAssetResolved) {
-        void assetRelease(nextAssetId, "quick_access_ui");
+      if (resolvedAssetIdRef.current === nextAssetId) {
+        void assetRelease(nextAssetId, "quick_access_ui").catch(() => {});
+        resolvedAssetIdRef.current = null;
       }
       showToast("Capture is no longer available. Please capture again.", "error");
     } finally {
