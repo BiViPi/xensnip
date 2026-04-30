@@ -106,9 +106,9 @@ pub fn run() {
 
             hotkeys::register_hotkeys(app_handle, &settings);
 
-            // editor.ready listener
+            // editor-ready listener
             let app_handle_ready = app.handle().clone();
-            app.listen("editor.ready", move |event| {
+            app.listen("editor-ready", move |event| {
                 let payload: serde_json::Value = serde_json::from_str(event.payload()).unwrap();
                 let window_label = payload["window_label"].as_str().unwrap_or_default();
                 
@@ -116,7 +116,7 @@ pub fn run() {
                 if let Some(pending) = handoff.resolve(window_label) {
                     if let Some(qa_window) = app_handle_ready.get_webview_window(&pending.qa_label) {
                         let _ = qa_window.emit(
-                            "editor.handoff_result",
+                            "editor-handoff-result",
                             editor::handoff::EditorHandoffResult {
                                 status: "succeeded".to_string(),
                                 reason: None,
@@ -138,7 +138,7 @@ pub fn run() {
                     for pending in expired {
                         if let Some(qa_window) = app_handle_watchdog.get_webview_window(&pending.qa_label) {
                             let _ = qa_window.emit(
-                                "editor.handoff_result",
+                                "editor-handoff-result",
                                 editor::handoff::EditorHandoffResult {
                                     status: "failed".to_string(),
                                     reason: Some("timeout".to_string()),

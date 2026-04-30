@@ -36,9 +36,9 @@ export function EditorHost() {
           const balancedPadding = autoBalance(img.width, img.height, DEFAULT_PRESET.ratio);
           setPreset(prev => ({ ...prev, padding: balancedPadding }));
 
-          // Emit editor.ready
+          // Emit editor-ready
           const label = getCurrentWebviewWindow().label;
-          await emit("editor.ready", { window_label: label });
+          await emit("editor-ready", { window_label: label });
         } catch (err) {
           console.error("Failed to load asset", err);
           setError("Could not load captured screenshot.");
@@ -49,7 +49,7 @@ export function EditorHost() {
       setAssetId(null);
       // Still emit ready for empty editor if needed, but registry doesn't track handoff for empty.
       const label = getCurrentWebviewWindow().label;
-      void emit("editor.ready", { window_label: label });
+      void emit("editor-ready", { window_label: label });
     }
   }, []);
 

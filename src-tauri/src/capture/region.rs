@@ -30,7 +30,7 @@ pub fn finish_region_capture(
     let start_time = std::time::Instant::now();
     log::info!(target: "capture", "finish_region_capture: rect={}x{} at {},{}", w, h, x, y);
 
-    crate::overlay::close(app);
+    crate::overlay::hide(app);
 
     // Settle delay
     std::thread::sleep(std::time::Duration::from_millis(200));
@@ -194,21 +194,29 @@ pub fn finish_region_capture(
         }
     };
 
-    crate::quick_access::emit_show(
-        app,
-        &id,
-        crate::quick_access::CapturePositionMeta {
-            monitor_work_area_logical,
-            monitor_dpi: dpi_pct,
-            capture_kind: "region".to_string(),
-            capture_rect_logical: Some(crate::quick_access::CaptureRectLogical {
-                x: logical_i32(x, dpi_pct),
-                y: logical_i32(y, dpi_pct),
-                w: logical_u32(final_w, dpi_pct),
-                h: logical_u32(final_h, dpi_pct),
-            }),
-        },
-    );
+    let qa_meta = crate::quick_access::CapturePositionMeta {
+        monitor_work_area_logical,
+        monitor_dpi: dpi_pct,
+        capture_kind: "region".to_string(),
+        capture_rect_logical: Some(crate::quick_access::CaptureRectLogical {
+            x: logical_i32(x, dpi_pct),
+            y: logical_i32(y, dpi_pct),
+            w: logical_u32(final_w, dpi_pct),
+            h: logical_u32(final_h, dpi_pct),
+        }),
+    };
+
+    // Region confirm is invoked from the overlay webview. Opening QA synchronously here can
+    // stall inside WebviewWindowBuilder::build() before the IPC returns. Defer QA spawn until
+    // after this command unwinds.
+    let app_handle = app.clone();
+    let qa_asset_id = id.clone();
+    tauri::async_runtime::spawn(async move {
+        tokio::time::sleep(std::time::Duration::from_millis(25)).await;
+        log::info!(target: "capture", "deferred quick access emit start asset_id={}", qa_asset_id);
+        eprintln!("[qa-debug] deferred quick access emit start asset_id={}", qa_asset_id);
+        crate::quick_access::emit_show(&app_handle, &qa_asset_id, qa_meta);
+    });
 
     let meta = crate::diagnostics::CaptureMetadata {
         capture_mode: crate::diagnostics::CaptureMode::Region,

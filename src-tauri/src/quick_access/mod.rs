@@ -31,17 +31,22 @@ pub struct QuickAccessShowPayload {
     pub capture_meta: CapturePositionMeta,
 }
 
-const QA_WIDTH: u32 = 420;
-const QA_HEIGHT: u32 = 300;
+const QA_WIDTH: u32 = 520;
+const QA_HEIGHT: u32 = 420;
 const QA_MARGIN: i32 = 16;
 const QA_LABEL: &str = "quick-access";
 
 pub fn emit_show(app: &AppHandle, asset_id: &str, capture_meta: CapturePositionMeta) {
+    log::info!(target: "quick_access", "emit_show start asset_id={}", asset_id);
+    eprintln!("[qa-debug] emit_show start asset_id={}", asset_id);
     let Some(registry) = app.try_state::<crate::asset::AssetRegistry>() else {
-        log::error!(target: "quick_access", "Asset registry missing during quick_access.show.");
+        log::error!(target: "quick_access", "Asset registry missing during quick-access-show.");
+        eprintln!("[qa-debug] asset registry missing");
         return;
     };
 
+    log::info!(target: "quick_access", "emit_show before resolve_internal asset_id={}", asset_id);
+    eprintln!("[qa-debug] before resolve_internal asset_id={}", asset_id);
     if let Err(err) = registry.resolve_internal(asset_id, "quick_access_orchestrator") {
         log::error!(
             target: "quick_access",
@@ -49,32 +54,69 @@ pub fn emit_show(app: &AppHandle, asset_id: &str, capture_meta: CapturePositionM
             asset_id,
             err
         );
+        eprintln!("[qa-debug] resolve_internal failed asset_id={} err={}", asset_id, err);
         return;
     }
+    log::info!(target: "quick_access", "emit_show after resolve_internal asset_id={}", asset_id);
+    eprintln!("[qa-debug] after resolve_internal asset_id={}", asset_id);
 
+    log::info!(target: "quick_access", "emit_show before existing window check asset_id={}", asset_id);
+    eprintln!("[qa-debug] before existing window check asset_id={}", asset_id);
     if let Some(existing) = app.get_webview_window(QA_LABEL) {
         log::info!(target: "quick_access", "Replacing existing QA window for new capture.");
+        eprintln!("[qa-debug] existing QA window found, closing");
         let _ = existing.close();
     }
+    log::info!(target: "quick_access", "emit_show after existing window check asset_id={}", asset_id);
+    eprintln!("[qa-debug] after existing window check asset_id={}", asset_id);
 
     let payload = QuickAccessShowPayload {
         asset_id: asset_id.to_string(),
         capture_meta: capture_meta.clone(),
     };
+    log::info!(target: "quick_access", "emit_show payload built asset_id={}", asset_id);
+    eprintln!("[qa-debug] payload built asset_id={}", asset_id);
 
+    log::info!(target: "quick_access", "emit_show before spawn_window asset_id={}", asset_id);
+    eprintln!("[qa-debug] before spawn_window asset_id={}", asset_id);
     if let Err(err) = spawn_window(app, asset_id, &capture_meta) {
         log::error!(target: "quick_access", "Failed to spawn QA window: {:?}", err);
+        eprintln!("[qa-debug] spawn_window failed asset_id={} err={:?}", asset_id, err);
         let _ = registry.release(asset_id, "quick_access_orchestrator");
         let _ = registry.release(asset_id, "capture_engine");
         return;
     }
+    log::info!(target: "quick_access", "emit_show after spawn_window asset_id={}", asset_id);
+    eprintln!("[qa-debug] after spawn_window asset_id={}", asset_id);
 
     let _ = registry.release(asset_id, "capture_engine");
+    log::info!(target: "quick_access", "emit_show after release capture_engine asset_id={}", asset_id);
+    eprintln!("[qa-debug] after release capture_engine asset_id={}", asset_id);
 
+    log::info!(target: "quick_access", "emit_show before emit asset_id={}", asset_id);
+    eprintln!("[qa-debug] before emit asset_id={}", asset_id);
     if let Some(window) = app.get_webview_window(QA_LABEL) {
-        window.emit("quick_access.show", &payload).ok();
+        match window.emit("quick-access-show", &payload) {
+            Ok(()) => {
+                log::info!(target: "quick_access", "quick-access-show emit ok asset_id={}", asset_id);
+                eprintln!("[qa-debug] emit ok asset_id={}", asset_id);
+            }
+            Err(err) => {
+                log::error!(
+                    target: "quick_access",
+                    "quick-access-show emit failed asset_id={} err={}",
+                    asset_id,
+                    err
+                );
+                eprintln!("[qa-debug] emit failed asset_id={} err={}", asset_id, err);
+            }
+        }
+    } else {
+        log::error!(target: "quick_access", "QA window missing before quick-access-show emit asset_id={}", asset_id);
+        eprintln!("[qa-debug] QA window missing before emit asset_id={}", asset_id);
     }
-    log::info!(target: "quick_access", "quick_access.show emitted for asset_id={}", asset_id);
+    log::info!(target: "quick_access", "quick-access-show emitted for asset_id={}", asset_id);
+    eprintln!("[qa-debug] emit_show done asset_id={}", asset_id);
 }
 
 pub fn dismiss(app: &AppHandle, _asset_id: &str) {
@@ -88,11 +130,20 @@ fn spawn_window(
     asset_id: &str,
     meta: &CapturePositionMeta,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    log::info!(target: "quick_access", "spawn_window start asset_id={}", asset_id);
+    eprintln!("[qa-debug] spawn_window start asset_id={}", asset_id);
     let (x, y) = compute_position(meta);
+    log::info!(target: "quick_access", "spawn_window position asset_id={} x={} y={}", asset_id, x, y);
+    eprintln!("[qa-debug] spawn_window position asset_id={} x={} y={}", asset_id, x, y);
+
+    let url = format!("quick-access.html?asset_id={}", url_encode(asset_id));
+    log::info!(target: "quick_access", "spawn_window url asset_id={} url={}", asset_id, url);
+    eprintln!("[qa-debug] spawn_window url asset_id={} url={}", asset_id, url);
+
     let window = WebviewWindowBuilder::new(
         app,
         QA_LABEL,
-        WebviewUrl::App(format!("quick-access.html?asset_id={}", url_encode(asset_id)).into()),
+        WebviewUrl::App(url.into()),
     )
     .title("XenSnip Quick Access")
     .decorations(true)
@@ -103,6 +154,8 @@ fn spawn_window(
     .inner_size(QA_WIDTH as f64, QA_HEIGHT as f64)
     .position(x as f64, y as f64)
     .build()?;
+    log::info!(target: "quick_access", "spawn_window build ok asset_id={}", asset_id);
+    eprintln!("[qa-debug] spawn_window build ok asset_id={}", asset_id);
 
     let app_handle = app.clone();
     let asset_id = asset_id.to_string();

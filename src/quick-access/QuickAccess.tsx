@@ -1,6 +1,8 @@
 import { listen } from "@tauri-apps/api/event";
+import { invoke } from "@tauri-apps/api/core";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  assetReadPng,
   clipboardWriteImage,
   editorOpen,
   exportSavePng,
@@ -11,6 +13,17 @@ import { composeToBlob, loadImage } from "../compose/compose";
 import { DEFAULT_PRESET } from "../compose/preset";
 
 const AUTO_DISMISS_MS = 8000;
+
+function probe(stage: string) {
+  const root = document.getElementById("root");
+  void invoke("debug_webview_probe", {
+    label: "quick-access",
+    stage,
+    href: window.location.href,
+    rootChildren: root?.childElementCount ?? -1,
+    scripts: document.scripts.length,
+  }).catch(() => {});
+}
 
 export function QuickAccess() {
   const [assetId, setAssetId] = useState<string | null>(null);
@@ -76,7 +89,9 @@ export function QuickAccess() {
   }, [resetDismissTimer]);
 
   const bootstrapAsset = useCallback(async (nextAssetId: string) => {
+    probe(`bootstrap_start:${nextAssetId}`);
     if (bootstrappedAssetIdRef.current === nextAssetId) {
+      probe(`bootstrap_skip_duplicate:${nextAssetId}`);
       return;
     }
     bootstrappedAssetIdRef.current = nextAssetId;
@@ -88,36 +103,44 @@ export function QuickAccess() {
     setAssetUri(null);
 
     try {
-      const assetUri = `xensnip-asset://localhost/${nextAssetId}`;
-      const img = await loadImage(assetUri);
-      
-      const blobBytes = await composeToBlob(img, DEFAULT_PRESET);
-      const objectUrl = URL.createObjectURL(new Blob([blobBytes], { type: "image/png" }));
-      
+      const pngBytes = await assetReadPng(nextAssetId);
+      probe(`bootstrap_asset_read_ok:${nextAssetId}:${pngBytes.length}`);
+      const assetUri = URL.createObjectURL(
+        new Blob([pngBytes], { type: "image/png" }),
+      );
+
       if (previewObjectUrlRef.current) {
         URL.revokeObjectURL(previewObjectUrlRef.current);
       }
-      previewObjectUrlRef.current = objectUrl;
+      previewObjectUrlRef.current = assetUri;
       setAssetId(nextAssetId);
       setAssetUri(assetUri);
-      setPreviewUrl(objectUrl);
+      setPreviewUrl(assetUri);
+      probe(`bootstrap_success:${nextAssetId}`);
     } catch (e) {
       console.error("Bootstrap failed", e);
       bootstrappedAssetIdRef.current = null;
+      probe(`bootstrap_error:${nextAssetId}`);
       showToast("Capture is no longer available. Please capture again.");
     } finally {
       setIsLoading(false);
       resetDismissTimer(nextAssetId);
+      probe(`bootstrap_finally:${nextAssetId}`);
     }
   }, [resetDismissTimer]);
 
   useEffect(() => {
+    probe("component_mounted");
     let unlisten: (() => void) | null = null;
 
-    listen<QuickAccessShowPayload>("quick_access.show", (event) => {
+    listen<QuickAccessShowPayload>("quick-access-show", (event) => {
+      probe(`event_quick_access_show:${event.payload.asset_id}`);
       void bootstrapAsset(event.payload.asset_id);
     }).then((fn) => {
       unlisten = fn;
+      probe("listen_registered");
+    }).catch(() => {
+      probe("listen_register_error");
     });
 
     return () => {
@@ -128,6 +151,7 @@ export function QuickAccess() {
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
     const initialAssetId = searchParams.get("asset_id");
+    probe(`search_params_asset:${initialAssetId ?? "none"}`);
     if (initialAssetId) {
       void bootstrapAsset(initialAssetId);
     }
@@ -215,7 +239,7 @@ export function QuickAccess() {
 
     try {
       // FIX High: Register listener BEFORE calling editorOpen to avoid race
-      const promise = listen<EditorHandoffResult>("editor.handoff_result", (event) => {
+      const promise = listen<EditorHandoffResult>("editor-handoff-result", (event) => {
         if (event.payload.status === "succeeded") {
           void handleDismiss(id);
         } else {

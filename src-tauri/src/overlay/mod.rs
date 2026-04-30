@@ -4,9 +4,11 @@ use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
 pub fn show(app: &AppHandle) -> Result<(), CaptureError> {
     let window_label = "region-overlay";
 
-    // Check if it already exists
-    if let Some(_window) = app.get_webview_window(window_label) {
-        return Ok(()); // Already open
+    // Reuse the existing overlay window if it was previously hidden.
+    if let Some(window) = app.get_webview_window(window_label) {
+        let _ = window.show();
+        let _ = window.set_focus();
+        return Ok(());
     }
 
     let builder =
@@ -38,5 +40,11 @@ pub fn show(app: &AppHandle) -> Result<(), CaptureError> {
 pub fn close(app: &AppHandle) {
     if let Some(window) = app.get_webview_window("region-overlay") {
         let _ = window.close();
+    }
+}
+
+pub fn hide(app: &AppHandle) {
+    if let Some(window) = app.get_webview_window("region-overlay") {
+        let _ = window.hide();
     }
 }

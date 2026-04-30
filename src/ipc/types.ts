@@ -74,7 +74,7 @@ export interface CapturePositionMeta {
   capture_rect_logical: CaptureRectLogical | null;
 }
 
-/** Payload of the "quick_access.show" event */
+/** Payload of the "quick-access-show" event */
 export interface QuickAccessShowPayload {
   asset_id: string;
   capture_meta: CapturePositionMeta;
