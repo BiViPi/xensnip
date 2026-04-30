@@ -101,6 +101,10 @@ export async function quickAccessDismiss(assetId: string): Promise<void> {
   return await invoke<void>("quick_access_dismiss", { assetId });
 }
 
+export async function quickAccessSetBusy(assetId: string, busy: boolean): Promise<void> {
+  return await invoke<void>("quick_access_set_busy", { assetId, busy });
+}
+
 // ─── Re-export event payload types ───────────────────────────────────────────
 
 export type { CaptureResult, CaptureFailure };

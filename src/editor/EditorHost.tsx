@@ -1,6 +1,4 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { emit } from "@tauri-apps/api/event";
-import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { loadImage, composeToCanvas } from "../compose/compose";
 import { getCompositionDimensions } from "../compose/core";
 import { DEFAULT_PRESET, EditorPreset } from "../compose/preset";
@@ -18,7 +16,6 @@ export function EditorHost() {
   const [error, setError] = useState<string | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
   const rafIdRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -36,20 +33,13 @@ export function EditorHost() {
           const balancedPadding = autoBalance(img.width, img.height, DEFAULT_PRESET.ratio);
           setPreset(prev => ({ ...prev, padding: balancedPadding }));
 
-          // Emit editor-ready
-          const label = getCurrentWebviewWindow().label;
-          await emit("editor-ready", { window_label: label });
         } catch (err) {
           console.error("Failed to load asset", err);
           setError("Could not load captured screenshot.");
         }
       })();
     } else {
-      // Empty state
       setAssetId(null);
-      // Still emit ready for empty editor if needed, but registry doesn't track handoff for empty.
-      const label = getCurrentWebviewWindow().label;
-      void emit("editor-ready", { window_label: label });
     }
   }, []);
 
@@ -82,7 +72,7 @@ export function EditorHost() {
   const dims = image ? getCompositionDimensions(image.width, image.height, preset) : { canvasW: 0, canvasH: 0 };
 
   return (
-    <div className="editor-shell" ref={containerRef}>
+    <div className="editor-shell">
       {assetId && image ? (
         <div className="editor-canvas-container">
           <canvas
@@ -103,7 +93,6 @@ export function EditorHost() {
           preset={preset}
           setPreset={setPreset}
           image={image}
-          assetId={assetId}
           isActionInFlight={isActionInFlight}
           setIsActionInFlight={setIsActionInFlight}
           showToast={showToast}

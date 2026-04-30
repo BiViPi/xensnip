@@ -1,5 +1,31 @@
+use std::collections::HashSet;
+use std::sync::{Arc, Mutex};
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder, WindowEvent};
+
+pub struct BusyRegistry(Arc<Mutex<HashSet<String>>>);
+
+impl BusyRegistry {
+    pub fn new() -> Self {
+        Self(Arc::new(Mutex::new(HashSet::new())))
+    }
+    pub fn set_busy(&self, asset_id: String, busy: bool) {
+        if let Ok(mut set) = self.0.lock() {
+            if busy {
+                set.insert(asset_id);
+            } else {
+                set.remove(&asset_id);
+            }
+        }
+    }
+    pub fn is_any_busy(&self) -> bool {
+        if let Ok(set) = self.0.lock() {
+            !set.is_empty()
+        } else {
+            false
+        }
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MonitorWorkAreaLogical {
@@ -31,22 +57,27 @@ pub struct QuickAccessShowPayload {
     pub capture_meta: CapturePositionMeta,
 }
 
-const QA_WIDTH: u32 = 520;
-const QA_HEIGHT: u32 = 420;
+const EDITOR_WIDTH: u32 = 1100;
+const EDITOR_HEIGHT: u32 = 720;
+const EDITOR_MIN_WIDTH: u32 = 720;
+const EDITOR_MIN_HEIGHT: u32 = 480;
 const QA_MARGIN: i32 = 16;
 const QA_LABEL: &str = "quick-access";
 
 pub fn emit_show(app: &AppHandle, asset_id: &str, capture_meta: CapturePositionMeta) {
-    log::info!(target: "quick_access", "emit_show start asset_id={}", asset_id);
-    eprintln!("[qa-debug] emit_show start asset_id={}", asset_id);
     let Some(registry) = app.try_state::<crate::asset::AssetRegistry>() else {
         log::error!(target: "quick_access", "Asset registry missing during quick-access-show.");
-        eprintln!("[qa-debug] asset registry missing");
         return;
     };
 
-    log::info!(target: "quick_access", "emit_show before resolve_internal asset_id={}", asset_id);
-    eprintln!("[qa-debug] before resolve_internal asset_id={}", asset_id);
+    if let Some(busy_registry) = app.try_state::<BusyRegistry>() {
+        if busy_registry.is_any_busy() {
+            log::warn!(target: "quick_access", "New capture ignored: Editor is busy with an action.");
+            let _ = registry.release(asset_id, "capture_engine");
+            return;
+        }
+    }
+
     if let Err(err) = registry.resolve_internal(asset_id, "quick_access_orchestrator") {
         log::error!(
             target: "quick_access",
@@ -54,52 +85,32 @@ pub fn emit_show(app: &AppHandle, asset_id: &str, capture_meta: CapturePositionM
             asset_id,
             err
         );
-        eprintln!("[qa-debug] resolve_internal failed asset_id={} err={}", asset_id, err);
         return;
     }
-    log::info!(target: "quick_access", "emit_show after resolve_internal asset_id={}", asset_id);
-    eprintln!("[qa-debug] after resolve_internal asset_id={}", asset_id);
 
-    log::info!(target: "quick_access", "emit_show before existing window check asset_id={}", asset_id);
-    eprintln!("[qa-debug] before existing window check asset_id={}", asset_id);
     if let Some(existing) = app.get_webview_window(QA_LABEL) {
         log::info!(target: "quick_access", "Replacing existing QA window for new capture.");
-        eprintln!("[qa-debug] existing QA window found, closing");
         let _ = existing.close();
     }
-    log::info!(target: "quick_access", "emit_show after existing window check asset_id={}", asset_id);
-    eprintln!("[qa-debug] after existing window check asset_id={}", asset_id);
 
     let payload = QuickAccessShowPayload {
         asset_id: asset_id.to_string(),
         capture_meta: capture_meta.clone(),
     };
-    log::info!(target: "quick_access", "emit_show payload built asset_id={}", asset_id);
-    eprintln!("[qa-debug] payload built asset_id={}", asset_id);
 
-    log::info!(target: "quick_access", "emit_show before spawn_window asset_id={}", asset_id);
-    eprintln!("[qa-debug] before spawn_window asset_id={}", asset_id);
     if let Err(err) = spawn_window(app, asset_id, &capture_meta) {
         log::error!(target: "quick_access", "Failed to spawn QA window: {:?}", err);
-        eprintln!("[qa-debug] spawn_window failed asset_id={} err={:?}", asset_id, err);
         let _ = registry.release(asset_id, "quick_access_orchestrator");
         let _ = registry.release(asset_id, "capture_engine");
         return;
     }
-    log::info!(target: "quick_access", "emit_show after spawn_window asset_id={}", asset_id);
-    eprintln!("[qa-debug] after spawn_window asset_id={}", asset_id);
 
     let _ = registry.release(asset_id, "capture_engine");
-    log::info!(target: "quick_access", "emit_show after release capture_engine asset_id={}", asset_id);
-    eprintln!("[qa-debug] after release capture_engine asset_id={}", asset_id);
 
-    log::info!(target: "quick_access", "emit_show before emit asset_id={}", asset_id);
-    eprintln!("[qa-debug] before emit asset_id={}", asset_id);
     if let Some(window) = app.get_webview_window(QA_LABEL) {
         match window.emit("quick-access-show", &payload) {
             Ok(()) => {
                 log::info!(target: "quick_access", "quick-access-show emit ok asset_id={}", asset_id);
-                eprintln!("[qa-debug] emit ok asset_id={}", asset_id);
             }
             Err(err) => {
                 log::error!(
@@ -108,15 +119,9 @@ pub fn emit_show(app: &AppHandle, asset_id: &str, capture_meta: CapturePositionM
                     asset_id,
                     err
                 );
-                eprintln!("[qa-debug] emit failed asset_id={} err={}", asset_id, err);
             }
         }
-    } else {
-        log::error!(target: "quick_access", "QA window missing before quick-access-show emit asset_id={}", asset_id);
-        eprintln!("[qa-debug] QA window missing before emit asset_id={}", asset_id);
     }
-    log::info!(target: "quick_access", "quick-access-show emitted for asset_id={}", asset_id);
-    eprintln!("[qa-debug] emit_show done asset_id={}", asset_id);
 }
 
 pub fn dismiss(app: &AppHandle, _asset_id: &str) {
@@ -130,32 +135,25 @@ fn spawn_window(
     asset_id: &str,
     meta: &CapturePositionMeta,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    log::info!(target: "quick_access", "spawn_window start asset_id={}", asset_id);
-    eprintln!("[qa-debug] spawn_window start asset_id={}", asset_id);
     let (x, y) = compute_position(meta);
-    log::info!(target: "quick_access", "spawn_window position asset_id={} x={} y={}", asset_id, x, y);
-    eprintln!("[qa-debug] spawn_window position asset_id={} x={} y={}", asset_id, x, y);
 
     let url = format!("quick-access.html?asset_id={}", url_encode(asset_id));
-    log::info!(target: "quick_access", "spawn_window url asset_id={} url={}", asset_id, url);
-    eprintln!("[qa-debug] spawn_window url asset_id={} url={}", asset_id, url);
 
     let window = WebviewWindowBuilder::new(
         app,
         QA_LABEL,
         WebviewUrl::App(url.into()),
     )
-    .title("XenSnip Quick Access")
+    .title("XenSnip Editor")
     .decorations(true)
     .resizable(true)
-    .always_on_top(true)
-    .skip_taskbar(true)
-    .focused(false)
-    .inner_size(QA_WIDTH as f64, QA_HEIGHT as f64)
+    .always_on_top(false)
+    .skip_taskbar(false)
+    .focused(true)
+    .inner_size(EDITOR_WIDTH as f64, EDITOR_HEIGHT as f64)
+    .min_inner_size(EDITOR_MIN_WIDTH as f64, EDITOR_MIN_HEIGHT as f64)
     .position(x as f64, y as f64)
     .build()?;
-    log::info!(target: "quick_access", "spawn_window build ok asset_id={}", asset_id);
-    eprintln!("[qa-debug] spawn_window build ok asset_id={}", asset_id);
 
     let app_handle = app.clone();
     let asset_id = asset_id.to_string();
@@ -171,26 +169,26 @@ fn spawn_window(
 
     log::info!(
         target: "quick_access",
-        "QA window spawned at ({},{}) size {}x{}",
+        "QA window spawned as Editor at ({},{}) size {}x{}",
         x,
         y,
-        QA_WIDTH,
-        QA_HEIGHT
+        EDITOR_WIDTH,
+        EDITOR_HEIGHT
     );
     Ok(())
 }
 
 fn compute_position(meta: &CapturePositionMeta) -> (i32, i32) {
     let work = &meta.monitor_work_area_logical;
-    let default_x = work.x + work.w as i32 - QA_WIDTH as i32 - QA_MARGIN;
+    let default_x = work.x + work.w as i32 - EDITOR_WIDTH as i32 - QA_MARGIN;
     let default_y = work.y + QA_MARGIN;
 
     if let Some(capture_rect) = &meta.capture_rect_logical {
         let qa_rect = Rect {
             x: default_x,
             y: default_y,
-            w: QA_WIDTH as i32,
-            h: QA_HEIGHT as i32,
+            w: EDITOR_WIDTH as i32,
+            h: EDITOR_HEIGHT as i32,
         };
         let capture_rect = Rect {
             x: capture_rect.x,
@@ -202,13 +200,13 @@ fn compute_position(meta: &CapturePositionMeta) -> (i32, i32) {
         if rects_overlap(&qa_rect, &capture_rect) {
             let candidates = [
                 (
-                    work.x + work.w as i32 - QA_WIDTH as i32 - QA_MARGIN,
-                    work.y + work.h as i32 - QA_HEIGHT as i32 - QA_MARGIN,
+                    work.x + work.w as i32 - EDITOR_WIDTH as i32 - QA_MARGIN,
+                    work.y + work.h as i32 - EDITOR_HEIGHT as i32 - QA_MARGIN,
                 ),
                 (work.x + QA_MARGIN, work.y + QA_MARGIN),
                 (
                     work.x + QA_MARGIN,
-                    work.y + work.h as i32 - QA_HEIGHT as i32 - QA_MARGIN,
+                    work.y + work.h as i32 - EDITOR_HEIGHT as i32 - QA_MARGIN,
                 ),
             ];
 
@@ -216,8 +214,8 @@ fn compute_position(meta: &CapturePositionMeta) -> (i32, i32) {
                 let candidate = Rect {
                     x: candidate_x,
                     y: candidate_y,
-                    w: QA_WIDTH as i32,
-                    h: QA_HEIGHT as i32,
+                    w: EDITOR_WIDTH as i32,
+                    h: EDITOR_HEIGHT as i32,
                 };
                 if !rects_overlap(&candidate, &capture_rect) {
                     return (candidate_x, candidate_y);

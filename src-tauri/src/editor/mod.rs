@@ -1,12 +1,9 @@
 pub mod errors;
-pub mod handoff;
 pub mod registry;
 
-use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 use self::errors::EditorOpenError;
 use self::registry::EditorRegistry;
-use self::handoff::HandoffManager;
 
 const EDITOR_LABEL_PREFIX: &str = "editor-";
 
@@ -23,82 +20,6 @@ fn focus_most_recent_editor(app: &AppHandle, registry: &EditorRegistry) -> bool 
     }
 
     false
-}
-
-#[derive(Debug, Serialize)]
-pub struct EditorOpenResult {
-    pub window_label: String,
-    pub asset_uri: String,
-}
-
-pub fn open(app: &AppHandle, asset_id: &str, qa_label: &str) -> Result<EditorOpenResult, EditorOpenError> {
-    let registry = app.state::<EditorRegistry>();
-    
-    // Multi-window guard (limit 3)
-    if registry.count() >= 3 {
-        let focused_label = registry
-            .get_most_recent_label()
-            .unwrap_or_else(|| "most-recent-editor".to_string());
-
-        let _ = focus_most_recent_editor(app, &registry);
-        return Err(EditorOpenError::SoftLimitReached { focused_label });
-    }
-
-    let asset_uri = format!("xensnip-asset://localhost/{}", asset_id);
-    let window_label = format!(
-        "{}{}",
-        EDITOR_LABEL_PREFIX,
-        chrono::Utc::now().timestamp_millis()
-    );
-
-    let asset_registry = app
-        .try_state::<crate::asset::AssetRegistry>()
-        .ok_or_else(|| EditorOpenError::SpawnFailed { message: "Asset registry not available".to_string() })?;
-
-    asset_registry
-        .resolve_internal(asset_id, &window_label)
-        .map_err(|e| {
-            if e.code == "asset_missing" {
-                EditorOpenError::AssetMissing
-            } else {
-                EditorOpenError::SpawnFailed { message: e.to_string() }
-            }
-        })?;
-
-    match spawn_editor_window(app, &window_label, Some(asset_id)) {
-        Ok(()) => {
-            registry.add(window_label.clone());
-            
-            // Record PendingHandoff
-            let handoff = app.state::<HandoffManager>();
-            handoff.add(window_label.clone(), qa_label.to_string(), std::time::Duration::from_secs(5));
-            
-            let count = registry.count();
-            app.emit(
-                "editor.count_changed",
-                serde_json::json!({ "open_count": count }),
-            )
-            .ok();
-            
-            log::info!(
-                target: "editor",
-                "Editor opened: label={} asset_id={} open_count={}",
-                window_label,
-                asset_id,
-                count
-            );
-            
-            Ok(EditorOpenResult {
-                window_label,
-                asset_uri,
-            })
-        }
-        Err(err) => {
-            let _ = asset_registry.release(asset_id, &window_label);
-            log::error!(target: "editor", "Failed to spawn editor window: {}", err);
-            Err(EditorOpenError::SpawnFailed { message: err.to_string() })
-        }
-    }
 }
 
 pub fn open_empty(app: &AppHandle) -> Result<String, EditorOpenError> {

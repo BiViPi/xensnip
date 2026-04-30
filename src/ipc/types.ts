@@ -88,14 +88,8 @@ export interface EditorCountChangedPayload {
 // ─── Sprint 04: Editor types ──────────────────────────────────────────────────
 
 export type EditorOpenError =
-  | { code: "AssetMissing" }
   | { code: "SpawnFailed"; data: { message: string } }
   | { code: "SoftLimitReached"; data: { focused_label: string } };
-
-export interface EditorHandoffResult {
-  status: "succeeded" | "failed";
-  reason?: string;
-}
 
 export interface EditorOpenResult {
   window_label: string;

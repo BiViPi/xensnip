@@ -144,15 +144,6 @@ pub async fn export_save_png(
 }
 
 #[tauri::command]
-pub fn editor_open(
-    app_handle: AppHandle,
-    window: tauri::WebviewWindow,
-    asset_id: String,
-) -> Result<crate::editor::EditorOpenResult, crate::editor::errors::EditorOpenError> {
-    crate::editor::open(&app_handle, &asset_id, window.label())
-}
-
-#[tauri::command]
 pub fn editor_open_empty(
     app_handle: AppHandle,
 ) -> Result<String, crate::editor::errors::EditorOpenError> {
@@ -166,21 +157,9 @@ pub fn quick_access_dismiss(app_handle: AppHandle, asset_id: String) -> Result<(
 }
 
 #[tauri::command]
-pub fn debug_webview_probe(
-    label: String,
-    stage: String,
-    href: String,
-    root_children: i32,
-    scripts: i32,
-) -> Result<(), String> {
-    log::info!(
-        target: "webview_probe",
-        "label={} stage={} href={} root_children={} scripts={}",
-        label,
-        stage,
-        href,
-        root_children,
-        scripts
-    );
+pub fn quick_access_set_busy(app_handle: AppHandle, asset_id: String, busy: bool) -> Result<(), String> {
+    if let Some(registry) = app_handle.try_state::<crate::quick_access::BusyRegistry>() {
+        registry.set_busy(asset_id, busy);
+    }
     Ok(())
 }

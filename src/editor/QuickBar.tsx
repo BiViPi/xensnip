@@ -11,7 +11,6 @@ interface Props {
   preset: EditorPreset;
   setPreset: (p: EditorPreset | ((prev: EditorPreset) => EditorPreset)) => void;
   image: HTMLImageElement;
-  assetId: string;
   isActionInFlight: boolean;
   setIsActionInFlight: (v: boolean) => void;
   showToast: (m: string, t?: "success" | "error") => void;

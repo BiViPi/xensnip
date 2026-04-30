@@ -43,9 +43,4 @@ impl EditorRegistry {
             .max_by_key(|&(_, &instant)| instant)
             .map(|(label, _)| label.clone())
     }
-
-    pub fn get_labels(&self) -> Vec<String> {
-        let entries = self.entries.lock().unwrap();
-        entries.keys().cloned().collect()
-    }
 }

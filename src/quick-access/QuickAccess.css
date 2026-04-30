@@ -1,95 +1,231 @@
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --editor-bg: #0f172a;
+  --panel-bg: rgba(30, 41, 59, 0.8);
+  --btn-bg: rgba(255, 255, 255, 0.1);
+  --btn-active: #3b82f6;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+}
 
 body {
-  background: transparent;
+  margin: 0;
+  padding: 0;
+  background: var(--editor-bg);
+  color: var(--text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   overflow: hidden;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  user-select: none;
 }
 
-.qa-container {
-  width: 100%;
-  min-height: 100vh;
-  background: rgba(20, 20, 35, 0.96);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+.editor-shell {
+  width: 100vw;
+  height: 100vh;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  backdrop-filter: blur(8px);
+  align-items: center;
+  justify-content: center;
+  position: relative;
 }
 
-.qa-preview {
+.editor-canvas-container {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 220px;
-  padding: 12px;
-  background: rgba(0,0,0,0.2);
+  width: 100%;
+  height: 100%;
+  padding-bottom: 80px; /* Space for QuickBar */
 }
 
-.qa-preview-img {
-  max-width: 100%;
-  max-height: 220px;
+.editor-preview-canvas {
+  max-width: 90%;
+  max-height: 80%;
   object-fit: contain;
-  border-radius: 6px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
 }
 
-.qa-loading {
-  color: rgba(255,255,255,0.4);
-  font-size: 13px;
+.editor-loading {
+  color: var(--text-secondary);
+  font-size: 14px;
 }
 
-.qa-actions {
+/* QuickBar Styles */
+.quick-bar-wrapper {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+}
+
+.quick-bar {
+  background: var(--panel-bg);
+  backdrop-filter: blur(12px);
+  padding: 8px 12px;
+  border-radius: 40px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
-  gap: 6px;
-  padding: 10px 12px;
-  background: rgba(255,255,255,0.04);
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
 }
 
-.qa-btn {
-  flex: 1;
-  padding: 7px 4px;
-  border: 1px solid rgba(255,255,255,0.15);
-  border-radius: 7px;
-  background: rgba(255,255,255,0.07);
-  color: rgba(255,255,255,0.85);
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 120ms, opacity 120ms;
+.control-group, .action-group {
+  display: flex;
+  gap: 4px;
 }
 
-.qa-btn:hover:not(:disabled) { background: rgba(255,255,255,0.14); }
-.qa-btn:disabled { opacity: 0.4; cursor: default; }
-
-.qa-btn-primary {
-  background: rgba(99, 102, 241, 0.7);
-  border-color: rgba(99,102,241,0.5);
-}
-.qa-btn-primary:hover:not(:disabled) { background: rgba(99,102,241,0.9); }
-
-.qa-btn-dismiss {
-  background: transparent;
-  border-color: rgba(255,255,255,0.08);
-  color: rgba(255,255,255,0.45);
+.divider {
+  width: 1px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.1);
 }
 
-.qa-toast {
+.control-btn, .action-btn {
+  background: var(--btn-bg);
+  border: none;
+  color: var(--text-primary);
   padding: 6px 12px;
-  font-size: 12px;
-  color: rgba(255,255,255,0.75);
-  background: rgba(99,102,241,0.25);
-  text-align: center;
-  border-top: 1px solid rgba(255,255,255,0.06);
+  border-radius: 20px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
-.qa-editor-footer {
-  padding: 10px 12px;
+.control-btn:hover, .action-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.control-btn.active {
+  background: var(--btn-active);
+}
+
+.action-btn.primary {
+  background: var(--btn-active);
+}
+
+.action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Popovers */
+.control-popover {
+  position: absolute;
+  bottom: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--panel-bg);
+  backdrop-filter: blur(16px);
+  padding: 12px;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  min-width: 200px;
+}
+
+.swatch-row {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.swatch:hover {
+  transform: scale(1.2);
+}
+
+.swatch.active {
+  border-color: white;
+}
+
+.option-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: center;
+}
+
+.option-btn {
+  background: var(--btn-bg);
+  border: none;
+  color: var(--text-primary);
+  padding: 4px 8px;
+  border-radius: 4px;
   font-size: 12px;
-  color: rgba(255,255,255,0.5);
-  text-align: center;
-  background: rgba(255,255,255,0.04);
-  border-top: 1px solid rgba(255,255,255,0.06);
+  cursor: pointer;
+}
+
+.option-btn.active {
+  background: var(--btn-active);
+}
+
+.slider-popover {
+  width: 240px;
+}
+
+.slider-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.control-slider {
+  width: 100%;
+  cursor: pointer;
+}
+
+/* Pivot Dismiss button (optional/secondary) */
+.qa-pivot-dismiss {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-secondary);
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.qa-pivot-dismiss:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+}
+
+/* Toast */
+.editor-toast {
+  position: absolute;
+  bottom: 80px;
+  left: 24px;
+  background: var(--panel-bg);
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  animation: slide-in 0.3s ease-out;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 1000;
+}
+
+.editor-toast.error {
+  border-color: #ef4444;
+}
+
+@keyframes slide-in {
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
