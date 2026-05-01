@@ -89,23 +89,25 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 16px;
-  background: var(--xs-glass);
+  padding: 8px 12px;
+  background: rgba(13, 19, 32, 0.92);
   backdrop-filter: var(--xs-blur);
   -webkit-backdrop-filter: var(--xs-blur);
-  border-radius: var(--xs-r-pill);
-  box-shadow: var(--xs-shadow-dock);
-  border: 1px solid var(--xs-border);
-
-  /* Inner Glow highlight */
-  background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    inset 1px 0 0 rgba(255, 255, 255, 0.05),
+    inset -1px 0 0 rgba(255, 255, 255, 0.05),
+    0 8px 32px rgba(0, 0, 0, 0.55),
+    0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
 .xs-divider {
   width: 1px;
-  height: 24px;
-  background: var(--xs-border);
-  margin: 0 4px;
+  height: 22px;
+  background: rgba(255, 255, 255, 0.09);
+  margin: 0 2px;
 }
 
 /* ── Ratio Button ───────────────────────────────────────────────────────── */
@@ -153,6 +155,43 @@ body {
   box-shadow: 0 0 10px var(--xs-accent);
 }
 
+/* ── Base Button Reset ──────────────────────────────────────────────────── */
+.xs-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: all 0.18s ease;
+  font-family: inherit;
+}
+
+/* ── Pill Button (Ratio selector) ───────────────────────────────────────── */
+.xs-pill-btn {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 8px;
+  padding: 0 12px;
+  height: 34px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--xs-text);
+  gap: 6px;
+}
+
+.xs-pill-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.xs-pill-btn.active {
+  border-color: var(--xs-accent);
+  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.1);
+}
+
 /* ── Control Icon Buttons ───────────────────────────────────────────────── */
 .xs-icon-btn {
   width: 36px;
@@ -160,12 +199,12 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 10px;
+  border-radius: 8px;
   color: var(--xs-text-dim);
   background: transparent;
   border: none;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.18s;
 }
 
 .xs-icon-btn:hover {
@@ -179,41 +218,58 @@ body {
 }
 
 /* ── Action Buttons ─────────────────────────────────────────────────────── */
-.xs-action-btn {
+.xs-action-primary {
   display: flex;
   align-items: center;
-  gap: 8px;
-  height: 36px;
-  padding: 0 18px;
-  border-radius: var(--xs-r-pill);
+  gap: 6px;
+  height: 34px;
+  padding: 0 16px;
+  border-radius: 10px;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   border: none;
-  transition: all 0.2s;
-}
-
-.xs-action-btn.primary {
+  font-family: inherit;
+  transition: all 0.18s ease;
   background: var(--xs-accent);
   color: #fff;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
-.xs-action-btn.primary:hover {
+.xs-action-primary:hover {
   background: #2563eb;
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.2);
   transform: translateY(-1px);
 }
 
-.xs-action-btn.secondary {
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
-  border: 1px solid var(--xs-border);
+.xs-action-primary:active { transform: translateY(0); }
+.xs-action-primary:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+.xs-action-secondary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.18s ease;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--xs-text);
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
-.xs-action-btn.secondary:hover {
-  background: rgba(255, 255, 255, 0.15);
+.xs-action-secondary:hover {
+  background: rgba(255, 255, 255, 0.11);
+  border-color: rgba(255, 255, 255, 0.2);
   transform: translateY(-1px);
 }
+
+.xs-action-secondary:active { transform: translateY(0); }
+.xs-action-secondary:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
 
 /* ── Popovers ──────────────────────────────────────────────────────────── */
 .xs-pop {

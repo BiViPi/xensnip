@@ -6,7 +6,7 @@
 
 :root {
   --xs-bg:           #05070a;
-  --xs-glass-white:  rgba(255, 255, 255, 0.95);
+  --xs-glass-white:  rgba(13, 19, 32, 0.92);
   --xs-glass-dark:   rgba(15, 23, 42, 0.75);
   --xs-border:       rgba(255, 255, 255, 0.08);
   --xs-text:         #f8fafc;
@@ -91,13 +91,28 @@ html, body {
 
 .xs-dock {
   background: var(--xs-glass-white);
-  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-  padding: 8px 12px; border-radius: var(--xs-r-pill);
-  display: flex; align-items: center; gap: 8px;
-  box-shadow: var(--xs-shadow-dock);
+  backdrop-filter: var(--xs-blur);
+  -webkit-backdrop-filter: var(--xs-blur);
+  padding: 8px 12px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    inset 1px 0 0 rgba(255, 255, 255, 0.05),
+    inset -1px 0 0 rgba(255, 255, 255, 0.05),
+    0 8px 32px rgba(0, 0, 0, 0.55),
+    0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
-.xs-divider { width: 1px; height: 24px; background: #e2e8f0; margin: 0 4px; }
+.xs-divider {
+  width: 1px;
+  height: 22px;
+  background: rgba(255, 255, 255, 0.09);
+  margin: 0 2px;
+}
 
 /* Buttons */
 .xs-btn {
@@ -107,19 +122,40 @@ html, body {
 }
 
 .xs-pill-btn {
-  background: rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.05);
-  border-radius: 100px; padding: 6px 14px;
-  font-size: 13px; font-weight: 600; color: #1e293b; gap: 6px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 8px;
+  padding: 0 12px;
+  height: 34px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--xs-text);
+  gap: 6px;
 }
-.xs-pill-btn:hover { background: rgba(0,0,0,0.08); }
-.xs-pill-btn.active { border-color: var(--xs-accent); color: var(--xs-accent); }
+.xs-pill-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+.xs-pill-btn.active {
+  border-color: var(--xs-accent);
+  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.1);
+}
 
 .xs-icon-btn {
-  width: 36px; height: 36px; border-radius: 10px;
-  color: #64748b;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  color: var(--xs-text-dim);
 }
-.xs-icon-btn:hover { background: rgba(0,0,0,0.05); color: #0f172a; }
-.xs-icon-btn.active { background: rgba(59,130,246,0.1); color: var(--xs-accent); }
+.xs-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--xs-text);
+}
+.xs-icon-btn.active {
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--xs-accent);
+}
 
 /* Swatches */
 .xs-swatch {
@@ -139,20 +175,34 @@ html, body {
 .xs-action-primary:hover { background: #2563eb; transform: translateY(-1px); }
 
 .xs-action-secondary {
-  background: #fff; color: #1e293b; padding: 8px 18px;
-  border-radius: 100px; font-weight: 600; font-size: 13px;
-  border: 1px solid #e2e8f0; gap: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--xs-text);
+  padding: 8px 18px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 13px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  gap: 6px;
 }
-.xs-action-secondary:hover { background: #f8fafc; border-color: #cbd5e1; }
+.xs-action-secondary:hover {
+  background: rgba(255, 255, 255, 0.11);
+  border-color: rgba(255, 255, 255, 0.2);
+}
 
 /* Popovers (Card pop-out) */
 .xs-pop {
-  position: absolute; bottom: calc(100% + 16px); left: 50%;
-  transform: translateX(-50%); background: #fff;
-  border-radius: 20px; padding: 12px; box-shadow: 0 20px 40px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.05);
-  border: 1px solid rgba(255,255,255,0.8); min-width: auto;
+  position: absolute;
+  bottom: calc(100% + 16px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 42, 0.97);
+  border-radius: 16px;
+  padding: 12px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  min-width: auto;
   animation: xs-slide 0.3s cubic-bezier(0.2, 1, 0.3, 1);
-  color: #1e293b;
+  color: var(--xs-text);
   z-index: 1000;
 }
 

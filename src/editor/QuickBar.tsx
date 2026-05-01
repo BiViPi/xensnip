@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { EditorPreset } from "../compose/preset";
 import { composeToBlob } from "../compose/compose";
 import { clipboardWriteImage, exportSavePng } from "../ipc/index";
