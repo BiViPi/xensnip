@@ -14,6 +14,7 @@ import { getCompositionDimensions } from "../compose/core";
 import { autoBalance } from "../editor/autoBalance";
 import { QuickBar } from "../editor/QuickBar";
 import { Toast } from "../editor/Toast";
+import { TitleBar } from "../editor/TitleBar";
 
 export function QuickAccess() {
   const [assetId, setAssetId] = useState<string | null>(null);
@@ -25,45 +26,30 @@ export function QuickAccess() {
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafIdRef = useRef<number | null>(null);
-  const assetIdRef = useRef<string | null>(null);
   const bootstrappedAssetIdRef = useRef<string | null>(null);
   const resolvedAssetIdRef = useRef<string | null>(null);
   const blobUrlRef = useRef<string | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    assetIdRef.current = assetId;
-  }, [assetId]);
-
-  useEffect(() => {
     if (assetId) {
       void quickAccessSetBusy(assetId, isActionInFlight).catch(() => {});
     }
-    return () => {
-      // Ensure we clear busy state if unmounting or switching captures.
-      if (assetId) {
-        void quickAccessSetBusy(assetId, false).catch(() => {});
-      }
-    };
   }, [assetId, isActionInFlight]);
 
-  const handleDismiss = useCallback(async (id?: string) => {
-    const targetId = id ?? assetIdRef.current;
+  const handleDismiss = useCallback(async () => {
+    const targetId = assetId;
     if (!targetId) return;
-    
     try {
       await quickAccessDismiss(targetId);
     } catch {
-      // Rust close hook owns final cleanup.
+      // Native window close hook handles actual destruction
     }
-  }, []);
+  }, [assetId]);
 
   const bootstrapAsset = useCallback(async (nextAssetId: string) => {
-    if (bootstrappedAssetIdRef.current === nextAssetId) {
-      return;
-    }
+    if (bootstrappedAssetIdRef.current === nextAssetId) return;
 
-    // Release old UI ref if it exists
     if (resolvedAssetIdRef.current && resolvedAssetIdRef.current !== nextAssetId) {
       void assetRelease(resolvedAssetIdRef.current, "quick_access_ui").catch(() => {});
       resolvedAssetIdRef.current = null;
@@ -99,7 +85,6 @@ export function QuickAccess() {
       setImage(img);
       setAssetId(nextAssetId);
 
-      // Initial auto-balance
       const balancedPadding = autoBalance(img.width, img.height, DEFAULT_PRESET.ratio);
       setPreset({ ...DEFAULT_PRESET, padding: balancedPadding });
     } catch (e) {
@@ -109,7 +94,7 @@ export function QuickAccess() {
         void assetRelease(nextAssetId, "quick_access_ui").catch(() => {});
         resolvedAssetIdRef.current = null;
       }
-      showToast("Capture is no longer available. Please capture again.", "error");
+      showToast("Capture is no longer available.", "error");
     } finally {
       setIsLoading(false);
     }
@@ -117,24 +102,16 @@ export function QuickAccess() {
 
   useEffect(() => {
     let unlisten: (() => void) | null = null;
-
     listen<QuickAccessShowPayload>("quick-access-show", (event) => {
       void bootstrapAsset(event.payload.asset_id);
-    }).then((fn) => {
-      unlisten = fn;
-    });
-
-    return () => {
-      unlisten?.();
-    };
+    }).then((fn) => { unlisten = fn; });
+    return () => { unlisten?.(); };
   }, [bootstrapAsset]);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
-    const initialAssetId = searchParams.get("asset_id");
-    if (initialAssetId) {
-      void bootstrapAsset(initialAssetId);
-    }
+    const initialId = searchParams.get("asset_id");
+    if (initialId) void bootstrapAsset(initialId);
   }, [bootstrapAsset]);
 
   const draw = useCallback(() => {
@@ -143,68 +120,51 @@ export function QuickAccess() {
   }, [image, preset]);
 
   useEffect(() => {
-    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
     rafIdRef.current = requestAnimationFrame(draw);
-    return () => {
-      if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
-    };
+    return () => { if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current); };
   }, [draw]);
-
-  useEffect(() => {
-    return () => {
-      if (toastTimerRef.current) {
-        clearTimeout(toastTimerRef.current);
-        toastTimerRef.current = null;
-      }
-      if (blobUrlRef.current) {
-        URL.revokeObjectURL(blobUrlRef.current);
-        blobUrlRef.current = null;
-      }
-    };
-  }, []);
 
   const showToast = (message: string, type: "success" | "error" = "success") => {
     setToast({ message, type });
-    if (toastTimerRef.current) {
-      clearTimeout(toastTimerRef.current);
-    }
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     toastTimerRef.current = setTimeout(() => setToast(null), 3000);
   };
 
   const dims = image ? getCompositionDimensions(image.width, image.height, preset) : { canvasW: 0, canvasH: 0 };
 
   return (
-    <div className="editor-shell qa-pivot-shell">
+    <div className="xs-shell" data-tauri-drag-region>
+      <TitleBar title="XenSnip Editor" onClose={handleDismiss} />
+      
       {assetId && image ? (
-        <div className="editor-canvas-container">
+        <div className="xs-viewport" data-tauri-drag-region>
           <canvas
             ref={canvasRef}
             width={dims.canvasW}
             height={dims.canvasH}
-            className="editor-preview-canvas"
+            className="xs-canvas"
           />
         </div>
       ) : (
-        <div className="editor-loading">
-          {isLoading ? "Loading capture..." : "Capture unavailable."}
+        <div className="xs-viewport" data-tauri-drag-region>
+          <div className="xs-loading">
+            {isLoading ? "Loading capture..." : "Capture unavailable."}
+          </div>
         </div>
       )}
 
       {assetId && image && (
-        <QuickBar
-          preset={preset}
-          setPreset={setPreset}
-          image={image}
-          assetId={assetId}
-          isActionInFlight={isActionInFlight}
-          setIsActionInFlight={setIsActionInFlight}
-          showToast={showToast}
-        />
+        <div className="xs-dock-container">
+          <QuickBar
+            preset={preset}
+            setPreset={setPreset}
+            image={image}
+            isActionInFlight={isActionInFlight}
+            setIsActionInFlight={setIsActionInFlight}
+            showToast={showToast}
+          />
+        </div>
       )}
-
-      <button className="qa-pivot-dismiss" onClick={() => void handleDismiss()} disabled={isActionInFlight}>
-        Dismiss
-      </button>
 
       {toast && <Toast message={toast.message} type={toast.type} />}
     </div>

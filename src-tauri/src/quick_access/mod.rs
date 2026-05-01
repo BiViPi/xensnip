@@ -164,7 +164,7 @@ fn spawn_window(
         WebviewUrl::App(url.into()),
     )
     .title("XenSnip Editor")
-    .decorations(true)
+    .decorations(false)
     .resizable(true)
     .always_on_top(false)
     .skip_taskbar(false)

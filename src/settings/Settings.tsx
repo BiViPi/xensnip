@@ -3,6 +3,7 @@ import { settingsLoad, settingsSave } from "../ipc/index";
 import { Settings as SettingsType, SettingsSaveError } from "../ipc/types";
 import { Toast } from "../editor/Toast";
 import { HotkeyField } from "./HotkeyField";
+import { TitleBar } from "../editor/TitleBar";
 import "./Settings.css";
 
 export function Settings() {
@@ -16,9 +17,7 @@ export function Settings() {
 
   const showToast = (message: string, type: "success" | "error" = "success") => {
     setToast({ message, type });
-    if (toastTimerRef.current !== null) {
-      window.clearTimeout(toastTimerRef.current);
-    }
+    if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
     toastTimerRef.current = window.setTimeout(() => {
       setToast(null);
       toastTimerRef.current = null;
@@ -27,7 +26,6 @@ export function Settings() {
 
   useEffect(() => {
     let isMounted = true;
-
     void settingsLoad()
       .then((nextSettings) => {
         if (!isMounted) return;
@@ -40,12 +38,9 @@ export function Settings() {
         if (!isMounted) return;
         setLoadError("Failed to load settings.");
       });
-
     return () => {
       isMounted = false;
-      if (toastTimerRef.current !== null) {
-        window.clearTimeout(toastTimerRef.current);
-      }
+      if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
     };
   }, []);
 
@@ -53,29 +48,20 @@ export function Settings() {
     if (!draft) return;
     setIsSaving(true);
     setErrors({});
-
     try {
       const result = await settingsSave(draft);
       setSettings(draft);
-
       if (result.warnings.length > 0) {
-        const message = result.warnings
-          .map(
-            (warning) =>
-              `Saved. Shortcut '${warning.shortcut}' could not be activated; it may be claimed by another app.`,
-          )
-          .join(" ");
-        showToast(message, "error");
+        showToast(`Saved with warnings.`, "error");
       } else {
         showToast("Settings saved.");
       }
     } catch (err: unknown) {
-      console.error("Save failed", err);
       const saveError = err as SettingsSaveError;
       if (saveError && saveError.code === "InvalidHotkey") {
-        setErrors({ [saveError.data.field]: `Invalid shortcut: ${saveError.data.value}` });
+        setErrors({ [saveError.data.field]: `Invalid: ${saveError.data.value}` });
       } else {
-        showToast("Failed to save settings.", "error");
+        showToast("Failed to save.", "error");
       }
     } finally {
       setIsSaving(false);
@@ -91,18 +77,38 @@ export function Settings() {
   if (!draft) return <div className="settings-loading">Loading...</div>;
 
   return (
-    <div className="settings-window">
-      <header className="settings-header">
-        <h1>XenSnip Settings</h1>
+    <div className="xs-settings-shell" data-tauri-drag-region>
+      <TitleBar title="Settings" />
+      
+      <header className="xs-settings-header">
+        <h1>XenSnip</h1>
       </header>
 
-      <main className="settings-content">
-        <section className="settings-section">
+      <main className="xs-settings-content">
+        <section className="xs-settings-section">
+          <h3>General</h3>
+          <div className="xs-settings-row">
+            <div className="xs-field-label">
+              <span className="xs-label-text">Startup</span>
+              <span className="xs-label-desc">Launch XenSnip on system startup</span>
+            </div>
+            <label className="xs-switch">
+              <input
+                type="checkbox"
+                checked={draft.launch_at_startup}
+                onChange={(e) => setDraft({ ...draft, launch_at_startup: e.target.checked })}
+              />
+              <span className="xs-slider"></span>
+            </label>
+          </div>
+        </section>
+
+        <section className="xs-settings-section">
           <h3>Hotkeys</h3>
-          <div className="settings-row">
-            <div className="field-label">
-              <span className="label-text">Region Capture</span>
-              <span className="label-desc">Capture a custom rectangular area</span>
+          <div className="xs-settings-row">
+            <div className="xs-field-label">
+              <span className="xs-label-text">Region Capture</span>
+              <span className="xs-label-desc">Draw a box to capture</span>
             </div>
             <HotkeyField
               value={draft.hotkeys.region}
@@ -111,41 +117,23 @@ export function Settings() {
             />
           </div>
 
-          <div className="settings-row">
-            <div className="field-label">
-              <span className="label-text">Window Capture</span>
-              <span className="label-desc">Capture the currently active window</span>
+          <div className="xs-settings-row">
+            <div className="xs-field-label">
+              <span className="xs-label-text">Window Capture</span>
+              <span className="xs-label-desc">Capture active window</span>
             </div>
             <HotkeyField
               value={draft.hotkeys.active_window}
-              onChange={(value) =>
-                setDraft({ ...draft, hotkeys: { ...draft.hotkeys, active_window: value } })
-              }
+              onChange={(value) => setDraft({ ...draft, hotkeys: { ...draft.hotkeys, active_window: value } })}
               error={errors.active_window}
             />
           </div>
         </section>
-
-        <section className="settings-section">
-          <h3>Startup</h3>
-          <div className="settings-row checkbox-row">
-            <label className="checkbox-container">
-              <input
-                type="checkbox"
-                checked={draft.launch_at_startup}
-                onChange={(e) => setDraft({ ...draft, launch_at_startup: e.target.checked })}
-              />
-              <span className="checkbox-label">Launch XenSnip on system startup</span>
-            </label>
-          </div>
-        </section>
       </main>
 
-      <footer className="settings-actions">
-        <button className="settings-btn secondary" onClick={handleCancel} disabled={isSaving}>
-          Cancel
-        </button>
-        <button className="settings-btn primary" onClick={handleSave} disabled={isSaving}>
+      <footer className="xs-settings-footer">
+        <button className="xs-btn xs-action-secondary" onClick={handleCancel} disabled={isSaving}>Cancel</button>
+        <button className="xs-btn xs-action-primary" onClick={handleSave} disabled={isSaving}>
           {isSaving ? "Saving..." : "Save Changes"}
         </button>
       </footer>
