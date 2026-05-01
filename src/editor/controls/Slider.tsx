@@ -17,32 +17,34 @@ export function SliderControl({ label, value, min, max, onChange }: Props) {
   const ticks = [min, min + (max - min) / 4, min + (max - min) / 2, min + (max - min) * 3 / 4, max];
 
   return (
-    <div className="control-popover slider-popover">
-      <div className="slider-header">
-        <span className="slider-label">{label}</span>
-        <div className="slider-value-row">
-          <span className="slider-value">{value}</span>
-          <span className="slider-unit">px</span>
+    <div className="xs-slider-pop">
+      <div className="xs-slider-header">
+        <span className="xs-slider-label">{label}</span>
+        <div className="xs-slider-value-badge">
+          <span className="xs-slider-value">{value}</span>
+          <span className="xs-slider-unit">px</span>
         </div>
       </div>
 
-      <div className="slider-track-row">
-        <button className="slider-icon-btn" onClick={() => step(-4)} title="Decrease">−</button>
-        <input
-          type="range"
-          min={min}
-          max={max}
-          value={value}
-          onChange={(e) => onChange(parseInt(e.target.value, 10))}
-          className="control-slider"
-          style={{ "--pct": `${pct}%` } as React.CSSProperties}
-        />
-        <button className="slider-icon-btn" onClick={() => step(4)} title="Increase">+</button>
+      <div className="xs-slider-row">
+        <button className="xs-slider-action" onClick={() => step(-4)}>−</button>
+        <div className="xs-slider-track-container">
+          <input
+            type="range"
+            min={min}
+            max={max}
+            value={value}
+            onChange={(e) => onChange(parseInt(e.target.value, 10))}
+            className="xs-slider-input"
+            style={{ "--pct": `${pct}%` } as React.CSSProperties}
+          />
+        </div>
+        <button className="xs-slider-action" onClick={() => step(4)}>+</button>
       </div>
 
-      <div className="slider-ticks">
+      <div className="xs-slider-ticks">
         {ticks.map((t, i) => (
-          <span key={i} className="slider-tick">{Math.round(t)}</span>
+          <span key={i} className="xs-slider-tick">{Math.round(t)}</span>
         ))}
       </div>
     </div>
