@@ -30,7 +30,7 @@ export function TitleBar({
     };
     void checkState();
 
-    // Listen for resize/maximize events to update UI
+    // Listen for resize/maximize events to update UI state
     const unlisten = appWindow.onResized(async () => {
       const maximized = await appWindow.isMaximized();
       setIsMaximized(maximized);
@@ -40,24 +40,38 @@ export function TitleBar({
   }, [appWindow]);
 
   const handleMinimize = () => {
-    console.log("[TitleBar] Minimize clicked");
+    console.log("[TitleBar] Action: Minimize");
     void appWindow.minimize();
   };
   
   const handleMaximize = async () => {
-    console.log("[TitleBar] Toggling Maximize. Current isMaximized state:", isMaximized);
-    await appWindow.toggleMaximize();
+    console.log("[TitleBar] Action: Maximize/Restore Toggle. Current UI State:", isMaximized);
+    // Explicitly check current state from OS before acting
+    const currentlyMaximized = await appWindow.isMaximized();
     
-    // Give OS a tiny bit of time to complete the animation/state change
-    setTimeout(async () => {
-      const actualState = await appWindow.isMaximized();
-      setIsMaximized(actualState);
-      console.log("[TitleBar] Updated isMaximized state to:", actualState);
-    }, 150);
+    try {
+      if (currentlyMaximized) {
+        console.log("[TitleBar] Command: unmaximize()");
+        await appWindow.unmaximize();
+      } else {
+        console.log("[TitleBar] Command: maximize()");
+        await appWindow.maximize();
+      }
+      
+      // Update state after action
+      setTimeout(async () => {
+        const newState = await appWindow.isMaximized();
+        setIsMaximized(newState);
+      }, 100);
+    } catch (err) {
+      console.error("[TitleBar] Maximize error:", err);
+      // Last resort fallback
+      void appWindow.toggleMaximize();
+    }
   };
   
   const handleClose = () => {
-    console.log("[TitleBar] Close clicked");
+    console.log("[TitleBar] Action: Close");
     if (onClose) onClose();
     else appWindow.close();
   };
@@ -66,24 +80,24 @@ export function TitleBar({
     <div className={`xs-titlebar ${dark ? 'dark' : 'light'}`}>
       {/* Left side: Logo & Title */}
       <div className="xs-titlebar-left">
-        <img 
-          src={logo} 
-          alt="Xensnip" 
-          className="xs-titlebar-logo"
-        />
+        <img src={logo} alt="Xensnip" className="xs-titlebar-logo" />
         <span className="xs-titlebar-text">{title}</span>
       </div>
 
-      {/* Drag Area - Expanded to fill middle */}
+      {/* Drag Area - Middle space */}
       <div 
         data-tauri-drag-region 
-        onMouseDown={() => {
-          void appWindow.startDragging().catch(() => {});
+        onMouseDown={(e) => {
+          // Only start dragging if it's the primary mouse button
+          if (e.button === 0) {
+            void appWindow.startDragging().catch(() => {});
+          }
         }}
+        onDoubleClick={handleMaximize}
         className="xs-titlebar-drag-area"
       />
       
-      {/* Controls Area - High z-index to stay above drag area */}
+      {/* Controls Area - Fixed width to prevent overlap */}
       <div className="xs-titlebar-controls">
         {showMinimize && (
           <button onClick={handleMinimize} className="xs-titlebar-btn" title="Minimize">
@@ -94,11 +108,12 @@ export function TitleBar({
           <button onClick={handleMaximize} className="xs-titlebar-btn" title={isMaximized ? "Restore" : "Maximize"}>
             {isMaximized ? (
               <svg width="14" height="14" viewBox="0 0 16 16">
-                <path fill="none" stroke="currentColor" strokeWidth="1.2" d="M5.5 3.5h7v7M3.5 5.5h7v7h-7z" />
+                <rect x="5.5" y="3.5" width="7" height="7" fill="none" stroke="currentColor" strokeWidth="1.2" />
+                <path d="M3.5 5.5 v7 h7 v-7 h-7" fill="none" stroke="currentColor" strokeWidth="1.2" />
               </svg>
             ) : (
               <svg width="14" height="14" viewBox="0 0 16 16">
-                <rect fill="none" stroke="currentColor" strokeWidth="1.2" x="3.5" y="3.5" width="9" height="9" />
+                <rect x="3.5" y="3.5" width="9" height="9" fill="none" stroke="currentColor" strokeWidth="1.2" />
               </svg>
             )}
           </button>
@@ -118,15 +133,14 @@ export function TitleBar({
           width: 100%;
           display: flex;
           align-items: center;
-          justify-content: space-between;
           user-select: none;
           position: absolute;
           top: 0;
           left: 0;
-          z-index: 10000; /* Extremely high z-index */
-          background: rgba(15, 23, 42, 0.4);
+          z-index: 10000;
+          background: rgba(15, 23, 42, 0.6);
           backdrop-filter: blur(20px);
-          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
 
         .xs-titlebar-left {
@@ -136,6 +150,7 @@ export function TitleBar({
           padding-left: 14px;
           pointer-events: none;
           flex-shrink: 0;
+          width: 120px; /* Fixed width to prevent drag area overlap */
         }
 
         .xs-titlebar-logo {
@@ -157,14 +172,16 @@ export function TitleBar({
           height: 100%;
           cursor: default;
           background: rgba(0, 0, 0, 0.001);
+          z-index: 10001;
         }
 
         .xs-titlebar-controls {
           display: flex;
           height: 100%;
           padding-right: 2px;
-          position: relative;
-          z-index: 10001; /* Higher than drag area */
+          flex-shrink: 0;
+          width: 144px; /* 3 buttons * 48px */
+          z-index: 10002; /* Ensure buttons stay above drag area */
         }
         
         .xs-titlebar-btn {
@@ -176,16 +193,17 @@ export function TitleBar({
           background: transparent;
           border: none;
           color: #f8fafc;
-          opacity: 0.7;
+          opacity: 0.8;
           cursor: pointer;
           transition: all 0.1s ease;
           position: relative;
-          z-index: 10002;
+          z-index: 10003;
+          pointer-events: auto !important; /* Force pointer events */
         }
 
         .xs-titlebar-btn:hover {
           opacity: 1;
-          background: rgba(255, 255, 255, 0.1);
+          background: rgba(255, 255, 255, 0.12);
         }
 
         .xs-titlebar-btn.close:hover {
