@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { getCurrentWindow } from "@tauri-apps/api/window";
 import { settingsLoad, settingsSave } from "../ipc/index";
 import { Settings as SettingsType, SettingsSaveError } from "../ipc/types";
 import { Toast } from "../editor/Toast";
@@ -8,7 +7,6 @@ import { TitleBar } from "../editor/TitleBar";
 import "./Settings.css";
 
 export function Settings() {
-  const appWindow = getCurrentWindow();
   const [draft, setDraft] = useState<SettingsType | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
@@ -59,6 +57,7 @@ export function Settings() {
     setErrors({});
     try {
       const result = await settingsSave(draft);
+      loadedRef.current = draft;
       if (result.warnings.length > 0) {
         for (const w of result.warnings) {
           showToast(
@@ -83,7 +82,10 @@ export function Settings() {
   };
 
   const handleCancel = () => {
-    void appWindow.close();
+    if (loadedRef.current) {
+      setDraft(loadedRef.current);
+    }
+    setErrors({});
   };
 
   if (loadError) return <div className="settings-loading">{loadError}</div>;
