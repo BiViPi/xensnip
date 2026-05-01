@@ -134,7 +134,7 @@ export function QuickAccess() {
 
   return (
     <div className="xs-shell">
-      <TitleBar title="XenSnip Editor" onClose={handleDismiss} />
+      <TitleBar title="Xensnip" onClose={handleDismiss} />
       
       {assetId && image ? (
         <div className="xs-viewport">
