@@ -139,13 +139,26 @@ export function EditorHost() {
         .xs-divider { width: 1px; height: 24px; background: #e2e8f0; margin: 0 4px; }
         
         .xs-pop {
-          position: absolute; bottom: calc(100% + 16px); left: 50%;
-          transform: translateX(-50%); background: #fff;
-          border-radius: 18px; padding: 20px; box-shadow: 0 15px 50px rgba(0,0,0,0.15);
-          border: 1px solid rgba(0,0,0,0.05); min-width: 260px;
+          position: absolute; 
+          bottom: calc(100% + 14px); 
+          left: 50%;
+          transform: translateX(-50%); 
+          background: #fff;
+          border-radius: 20px; 
+          padding: 12px; 
+          box-shadow: 0 20px 50px rgba(0,0,0,0.2), 0 0 0 1px rgba(0,0,0,0.05);
+          border: 1px solid rgba(0,0,0,0.05); 
+          min-width: 200px;
           animation: xs-slide 0.3s cubic-bezier(0.2, 1, 0.3, 1);
+          z-index: 1000;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
         }
-        @keyframes xs-slide { from { opacity: 0; transform: translateX(-50%) translateY(10px); } }
+        @keyframes xs-slide { 
+          from { opacity: 0; transform: translateX(-50%) translateY(10px); } 
+          to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
       `}</style>
 
       <div className="xs-bg-glow" style={{ top: '-10%', left: '-10%' }} />

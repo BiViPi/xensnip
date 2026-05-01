@@ -56,14 +56,14 @@ export function QuickBar({ preset, setPreset, image, isActionInFlight, setIsActi
   return (
     <div className="xs-dock">
       <div style={{ display: 'flex', gap: '8px' }}>
-        <div style={{ position: "relative" }}>
+        <div style={{ position: "relative", display: 'flex', width: 'fit-content' }}>
           <button className={`xs-btn xs-pill-btn ${active === 'ratio' ? 'active' : ''}`} onClick={() => toggle('ratio')}>
             <Icon name="ratio" /> {preset.ratio} <Icon name="chevron" />
           </button>
           {active === 'ratio' && <div className="xs-pop"><RatioControl value={preset.ratio} onChange={(v) => { setPreset(p => ({ ...p, ratio: v })); setActive(null); }} /></div>}
         </div>
 
-        <div style={{ position: "relative" }}>
+        <div style={{ position: "relative", display: 'flex', width: 'fit-content' }}>
           <button className={`xs-btn xs-icon-btn ${active === 'background' ? 'active' : ''}`} onClick={() => toggle('background')}>
             <Icon name="background" />
           </button>
@@ -81,19 +81,19 @@ export function QuickBar({ preset, setPreset, image, isActionInFlight, setIsActi
       <div className="xs-divider" />
 
       <div style={{ display: 'flex', gap: '2px' }}>
-        <div style={{ position: 'relative' }}>
+        <div style={{ position: 'relative', display: 'flex', width: 'fit-content' }}>
           <button className={`xs-btn xs-icon-btn ${active === 'padding' ? 'active' : ''}`} onClick={() => toggle('padding')}><Icon name="padding" /></button>
           {active === 'padding' && <div className="xs-pop"><SliderControl label="Padding" min={0} max={96} value={preset.padding} onChange={v => setPreset(p => ({ ...p, padding: v }))} /></div>}
         </div>
-        <div style={{ position: 'relative' }}>
+        <div style={{ position: 'relative', display: 'flex', width: 'fit-content' }}>
           <button className={`xs-btn xs-icon-btn ${active === 'inset' ? 'active' : ''}`} onClick={() => toggle('inset')}><Icon name="inset" /></button>
           {active === 'inset' && <div className="xs-pop"><SliderControl label="Inset" min={0} max={96} value={preset.inset} onChange={v => setPreset(p => ({ ...p, inset: v }))} /></div>}
         </div>
-        <div style={{ position: 'relative' }}>
+        <div style={{ position: 'relative', display: 'flex', width: 'fit-content' }}>
           <button className={`xs-btn xs-icon-btn ${active === 'radius' ? 'active' : ''}`} onClick={() => toggle('radius')}><Icon name="radius" /></button>
           {active === 'radius' && <div className="xs-pop"><SliderControl label="Radius" min={0} max={48} value={preset.radius} onChange={v => setPreset(p => ({ ...p, radius: v }))} /></div>}
         </div>
-        <div style={{ position: 'relative' }}>
+        <div style={{ position: 'relative', display: 'flex', width: 'fit-content' }}>
           <button className={`xs-btn xs-icon-btn ${active === 'shadow' ? 'active' : ''}`} onClick={() => toggle('shadow')}><Icon name="shadow" /></button>
           {active === 'shadow' && <div className="xs-pop"><ShadowControl value={preset.shadow} onChange={v => { setPreset(p => ({ ...p, shadow: v })); setActive(null); }} /></div>}
         </div>
