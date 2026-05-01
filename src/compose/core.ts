@@ -1,4 +1,4 @@
-import { EditorPreset, RatioOption } from "./preset";
+import { EditorPreset, RatioOption, WALLPAPER_MAP } from "./preset";
 
 export interface CompositionDimensions {
   canvasW: number;
@@ -6,6 +6,9 @@ export interface CompositionDimensions {
   drawX: number;
   drawY: number;
 }
+
+// Global cache for wallpapers
+const wallpaperCache: Record<string, HTMLImageElement> = {};
 
 export function getCompositionDimensions(
   imageW: number,
@@ -60,6 +63,21 @@ function parseRatio(ratio: RatioOption): [number, number] {
   }
 }
 
+/** Internal helper to load wallpaper on demand */
+function getOrLoadWallpaper(wpId: string): HTMLImageElement | null {
+  if (wallpaperCache[wpId]) return wallpaperCache[wpId];
+  
+  const url = WALLPAPER_MAP[wpId];
+  if (!url) return null;
+
+  const img = new Image();
+  img.onload = () => { wallpaperCache[wpId] = img; };
+  img.src = url;
+  
+  // Return null on first frame, next frames will have it
+  return null;
+}
+
 export function drawComposition(
   ctx: CanvasRenderingContext2D,
   image: HTMLImageElement,
@@ -78,17 +96,14 @@ export function drawComposition(
     let gradient: CanvasGradient;
     
     if (bg_gradient_type === "Linear") {
-      // Calculate angle coordinates
       const angleRad = (bg_angle - 90) * (Math.PI / 180);
       const length = Math.sqrt(canvasW ** 2 + canvasH ** 2);
       const x0 = canvasW / 2 - (Math.cos(angleRad) * length) / 2;
       const y0 = canvasH / 2 - (Math.sin(angleRad) * length) / 2;
       const x1 = canvasW / 2 + (Math.cos(angleRad) * length) / 2;
       const y1 = canvasH / 2 + (Math.sin(angleRad) * length) / 2;
-      
       gradient = ctx.createLinearGradient(x0, y0, x1, y1);
     } else {
-      // Radial Gradient
       const cx = canvasW / 2;
       const cy = canvasH / 2;
       const r = (bg_radius / 100) * Math.max(canvasW, canvasH);
@@ -104,32 +119,13 @@ export function drawComposition(
     ctx.fillRect(0, 0, canvasW, canvasH);
   }
   else if (bg_mode === "Wallpaper") {
-    // Premium Mesh-like rendering using multiple radial gradients for a "Windows 11" feel
-    const stops = bg_colors.length > 0 ? bg_colors : ["#3b82f6", "#1d4ed8"];
-    
-    // Base color
-    ctx.fillStyle = stops[0];
-    ctx.fillRect(0, 0, canvasW, canvasH);
-
-    // Overlay mesh spots
-    const spots = [
-      { x: 0, y: 0, r: 1.2, c: stops[1] || stops[0] },
-      { x: 1, y: 1, r: 1.0, c: stops[0] },
-      { x: 0.8, y: 0.2, r: 0.8, c: stops[1] || stops[0] }
-    ];
-
-    ctx.globalCompositeOperation = "screen";
-    spots.forEach(spot => {
-      const g = ctx.createRadialGradient(
-        spot.x * canvasW, spot.y * canvasH, 0,
-        spot.x * canvasW, spot.y * canvasH, spot.r * canvasW
-      );
-      g.addColorStop(0, spot.c);
-      g.addColorStop(1, "transparent");
-      ctx.fillStyle = g;
+    const wpImg = getOrLoadWallpaper(bg_value);
+    if (wpImg) {
+      ctx.drawImage(wpImg, 0, 0, canvasW, canvasH);
+    } else {
+      ctx.fillStyle = "#0f172a";
       ctx.fillRect(0, 0, canvasW, canvasH);
-    });
-    ctx.globalCompositeOperation = "source-over";
+    }
   }
 
   // 2. Main Image & Shadow Logic

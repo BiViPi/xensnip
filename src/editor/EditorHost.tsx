@@ -38,7 +38,13 @@ export function EditorHost() {
 
   const draw = useCallback(() => {
     if (!canvasRef.current || !image) return;
-    composeToCanvas(canvasRef.current, image, preset);
+    try {
+      composeToCanvas(canvasRef.current, image, preset);
+    } catch (err) {
+      console.error("Draw error:", err);
+    }
+    // Loop
+    rafIdRef.current = requestAnimationFrame(draw);
   }, [image, preset]);
 
   useEffect(() => {

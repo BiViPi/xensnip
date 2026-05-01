@@ -1,4 +1,4 @@
-import { EditorPreset, WALLPAPER_PRESETS, GRADIENT_PRESETS, SOLID_PRESETS, BackgroundMode, GradientType } from "../../compose/preset";
+import { EditorPreset, WALLPAPER_PRESETS, WALLPAPER_MAP, GRADIENT_PRESETS, SOLID_PRESETS, BackgroundMode, GradientType } from "../../compose/preset";
 
 interface Props {
   preset: EditorPreset;
@@ -9,9 +9,8 @@ export function BackgroundControl({ preset, onChange }: Props) {
   const { bg_mode, bg_value, bg_colors, bg_gradient_type, bg_angle, bg_radius } = preset;
 
   const setMode = (mode: BackgroundMode) => {
-    // Default values when switching modes
     if (mode === "Wallpaper") {
-      onChange({ bg_mode: mode, bg_colors: WALLPAPER_PRESETS[0].colors, bg_value: WALLPAPER_PRESETS[0].id });
+      onChange({ bg_mode: mode, bg_value: WALLPAPER_PRESETS[0].id });
     } else if (mode === "Gradient") {
       onChange({ bg_mode: mode, bg_colors: GRADIENT_PRESETS[0], bg_gradient_type: "Linear" });
     } else {
@@ -34,14 +33,18 @@ export function BackgroundControl({ preset, onChange }: Props) {
         ))}
       </div>
 
-      {/* 2. Preset Grid */}
-      <div className="xs-bg-grid">
+      {/* 2. Preset Grid (Fixed 4 columns) */}
+      <div className="xs-bg-grid" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
         {bg_mode === "Wallpaper" && WALLPAPER_PRESETS.map((wp) => (
           <button
             key={wp.id}
             className={`xs-bg-tile ${bg_value === wp.id ? "active" : ""}`}
-            style={{ background: `linear-gradient(45deg, ${wp.colors.join(", ")})` }}
-            onClick={() => onChange({ bg_value: wp.id, bg_colors: wp.colors })}
+            style={{ 
+              backgroundImage: `url(${WALLPAPER_MAP[wp.id]})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center"
+            }}
+            onClick={() => onChange({ bg_value: wp.id })}
           />
         ))}
 
