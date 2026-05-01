@@ -159,11 +159,23 @@ pub fn run() {
                 })
                 .build(app)?;
 
-            log::info!(target: "app", "XenSnip initialized (Sprint 04)");
+            // Log the actual log directory path so DIAG-01 can be verified.
+            if let Ok(log_dir) = app.path().app_log_dir() {
+                log::info!(target: "app", "Log directory: {}", log_dir.display());
+            }
+
+            log::info!(target: "app", "XenSnip initialized (Sprint 06)");
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while running tauri application")
+        .run(|_app_handle, event| {
+            // Keep the tray runtime alive when all windows are closed.
+            // The user must Quit explicitly from the tray menu.
+            if let tauri::RunEvent::ExitRequested { api, .. } = event {
+                api.prevent_exit();
+            }
+        });
 }
 
 pub fn open_settings_window(app: &AppHandle) -> tauri::Result<()> {

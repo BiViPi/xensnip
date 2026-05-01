@@ -15,6 +15,7 @@ export function Settings() {
   const [isSaving, setIsSaving] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const toastTimerRef = useRef<number | null>(null);
+  const loadedRef = useRef<SettingsType | null>(null);
 
   const showToast = (message: string, type: "success" | "error" = "success") => {
     setToast({ message, type });
@@ -30,6 +31,7 @@ export function Settings() {
     void settingsLoad()
       .then((nextSettings) => {
         if (!isMounted) return;
+        loadedRef.current = nextSettings;
         setDraft(nextSettings);
         setLoadError(null);
       })
@@ -46,15 +48,27 @@ export function Settings() {
 
   const handleSave = async () => {
     if (!draft) return;
+
+    // HOTKEY-03 Track 1: block save on duplicate binding
+    if (draft.hotkeys.region === draft.hotkeys.active_window) {
+      setErrors({ active_window: "This shortcut is already used for Region Capture" });
+      return;
+    }
+
     setIsSaving(true);
     setErrors({});
     try {
-      await settingsSave(draft);
-      showToast("Settings saved successfully.");
-      // Optional: close window after save
-      setTimeout(() => {
-        void appWindow.close();
-      }, 1000);
+      const result = await settingsSave(draft);
+      if (result.warnings.length > 0) {
+        for (const w of result.warnings) {
+          showToast(
+            `Saved. Shortcut '${w.shortcut}' could not be activated — it may be claimed by another app.`,
+            "error"
+          );
+        }
+      } else {
+        showToast("Settings saved successfully.");
+      }
     } catch (err: unknown) {
       const saveError = err as SettingsSaveError;
       if (saveError && saveError.code === "InvalidHotkey") {
@@ -69,7 +83,6 @@ export function Settings() {
   };
 
   const handleCancel = () => {
-    // Dismiss window on cancel
     void appWindow.close();
   };
 
@@ -132,7 +145,10 @@ export function Settings() {
               </div>
               <HotkeyField
                 value={draft.hotkeys.active_window}
-                onChange={(value) => setDraft({ ...draft, hotkeys: { ...draft.hotkeys, active_window: value } })}
+                onChange={(value) => {
+                  setDraft({ ...draft, hotkeys: { ...draft.hotkeys, active_window: value } });
+                  if (errors.active_window) setErrors((prev) => { const n = { ...prev }; delete n.active_window; return n; });
+                }}
                 error={errors.active_window}
               />
             </div>
