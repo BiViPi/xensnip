@@ -20,7 +20,7 @@ interface Props {
 
 const Icon = ({ name }: { name: string }) => {
   if (name === 'ratio') return (
-    <svg width="20" height="20" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
+    <svg width="24" height="24" viewBox="80 100 310 270" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="grad_ratio" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#2D5BFF" />
@@ -40,7 +40,7 @@ const Icon = ({ name }: { name: string }) => {
     </svg>
   );
   if (name === 'background') return (
-    <svg width="20" height="20" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
+    <svg width="24" height="24" viewBox="70 90 340 305" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="grad_bg_win" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#3B70FF" />
@@ -81,9 +81,9 @@ const Icon = ({ name }: { name: string }) => {
       <rect x="240" y="350" width="38" height="8" rx="4" fill="#D3DBE8" />
     </svg>
   );
-  if (name === 'chevron') return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>;
+  if (name === 'chevron') return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>;
   if (name === 'padding') return (
-    <svg width="20" height="20" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
+    <svg width="24" height="24" viewBox="60 60 380 380" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="grad_pad" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#05C3FF" />
@@ -93,9 +93,9 @@ const Icon = ({ name }: { name: string }) => {
           <feDropShadow dx="0" dy="12" stdDeviation="15" floodColor="#0A2050" floodOpacity="0.15" />
         </filter>
         <g id="arrow_pad">
-          <line x1="250" y1="80" x2="250" y2="135" fill="none" stroke="url(#grad_pad)" strokeWidth="12" strokeLinecap="round"/>
-          <polyline points="233,97 250,80 267,97" fill="none" stroke="url(#grad_pad)" strokeWidth="12" strokeLinecap="round" strokeLinejoin="round"/>
-          <polyline points="233,118 250,135 267,118" fill="none" stroke="url(#grad_pad)" strokeWidth="12" strokeLinecap="round" strokeLinejoin="round"/>
+          <line x1="250" y1="80" x2="250" y2="135" fill="none" stroke="url(#grad_pad)" strokeWidth="12" strokeLinecap="round" />
+          <polyline points="233,97 250,80 267,97" fill="none" stroke="url(#grad_pad)" strokeWidth="12" strokeLinecap="round" strokeLinejoin="round" />
+          <polyline points="233,118 250,135 267,118" fill="none" stroke="url(#grad_pad)" strokeWidth="12" strokeLinecap="round" strokeLinejoin="round" />
         </g>
       </defs>
       <rect x="70" y="70" width="360" height="360" rx="48" fill="none" stroke="url(#grad_pad)" strokeWidth="10" strokeLinecap="round" strokeDasharray="22 28" />
@@ -107,7 +107,7 @@ const Icon = ({ name }: { name: string }) => {
     </svg>
   );
   if (name === 'radius') return (
-    <svg width="20" height="20" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+    <svg width="24" height="24" viewBox="30 30 196 196" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="grad_rad" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#2563EB" />
@@ -133,19 +133,19 @@ const Icon = ({ name }: { name: string }) => {
     </svg>
   );
   if (name === 'shadow') return (
-    <svg width="20" height="20" viewBox="40 40 176 176">
+    <svg width="24" height="24" viewBox="40 40 176 176">
       <defs>
-          <linearGradient id="shadowStroke" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#2563EB" stopOpacity="0" />
-              <stop offset="35%" stopColor="#2563EB" stopOpacity="0" />
-              <stop offset="65%" stopColor="#2563EB" stopOpacity="1" />
-              <stop offset="100%" stopColor="#2563EB" stopOpacity="1" />
-          </linearGradient>
-          <linearGradient id="shadowFill" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#60A5FA" stopOpacity="0" />
-              <stop offset="40%" stopColor="#60A5FA" stopOpacity="0.05" />
-              <stop offset="100%" stopColor="#60A5FA" stopOpacity="0.3" />
-          </linearGradient>
+        <linearGradient id="shadowStroke" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#2563EB" stopOpacity="0" />
+          <stop offset="35%" stopColor="#2563EB" stopOpacity="0" />
+          <stop offset="65%" stopColor="#2563EB" stopOpacity="1" />
+          <stop offset="100%" stopColor="#2563EB" stopOpacity="1" />
+        </linearGradient>
+        <linearGradient id="shadowFill" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#60A5FA" stopOpacity="0" />
+          <stop offset="40%" stopColor="#60A5FA" stopOpacity="0.05" />
+          <stop offset="100%" stopColor="#60A5FA" stopOpacity="0.3" />
+        </linearGradient>
       </defs>
       <rect x="104" y="104" width="104" height="104" rx="24" fill="url(#shadowFill)" stroke="url(#shadowStroke)" strokeWidth="10" />
       <path d="M 120 80 L 160 80 A 24 24 0 0 1 184 104 L 184 160 A 24 24 0 0 1 160 184 L 104 184 A 24 24 0 0 1 80 160 L 80 120 Z" fill="#FFFFFF" />
@@ -158,9 +158,9 @@ const Icon = ({ name }: { name: string }) => {
   return null;
 };
 
-export function QuickBar({ 
+export function QuickBar({
   preset, setPreset, image, isActionInFlight, setIsActionInFlight, showToast,
-  activePop, onActivePopChange 
+  activePop, onActivePopChange
 }: Props) {
   const toggle = (n: string) => onActivePopChange(activePop === n ? null : n);
 
@@ -200,9 +200,9 @@ export function QuickBar({
           </button>
           {activePop === 'background' && (
             <div className="xs-pop">
-              <BackgroundControl 
-                preset={preset} 
-                onChange={(updates) => setPreset(p => ({ ...p, ...updates }))} 
+              <BackgroundControl
+                preset={preset}
+                onChange={(updates) => setPreset(p => ({ ...p, ...updates }))}
               />
             </div>
           )}
@@ -225,9 +225,9 @@ export function QuickBar({
           <button className={`xs-btn xs-icon-btn ${activePop === 'shadow' ? 'active' : ''}`} onClick={() => toggle('shadow')}><Icon name="shadow" /></button>
           {activePop === 'shadow' && (
             <div className="xs-pop light">
-              <ShadowControl 
-                preset={preset} 
-                onChange={(updates) => setPreset(p => ({ ...p, ...updates }))} 
+              <ShadowControl
+                preset={preset}
+                onChange={(updates) => setPreset(p => ({ ...p, ...updates }))}
               />
             </div>
           )}
