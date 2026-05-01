@@ -24,7 +24,6 @@ export interface EditorPreset {
 
   ratio: RatioOption;
   padding: number;
-  inset: number;
   radius: number;
   
   // New Dynamic Shadow System
@@ -84,7 +83,6 @@ export const DEFAULT_PRESET: EditorPreset = {
 
   ratio: "16:9",
   padding: 32,
-  inset: 0,
   radius: 12,
   
   shadow_enabled: true,

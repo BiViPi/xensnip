@@ -91,7 +91,7 @@ export function drawComposition(
   const { canvasW, canvasH, drawX, drawY, drawW, drawH } = dims;
   const { 
     bg_mode, bg_value, bg_colors, bg_gradient_type, bg_angle, bg_radius, 
-    inset, radius, 
+    radius, 
     shadow_enabled, shadow_blur, shadow_opacity, shadow_angle, shadow_offset 
   } = preset;
 
@@ -144,10 +144,10 @@ export function drawComposition(
   }
 
   // 2. Image Rendering
-  const finalX = Math.round(drawX + inset);
-  const finalY = Math.round(drawY + inset);
-  const finalW = Math.round(drawW - inset * 2);
-  const finalH = Math.round(drawH - inset * 2);
+  const finalX = drawX;
+  const finalY = drawY;
+  const finalW = drawW;
+  const finalH = drawH;
 
   // 3. 3D Glass Frame & Dynamic Lighting (The "Volumetric" effect)
   const framePadding = 12; // Thickness of the glass frame
