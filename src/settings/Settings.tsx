@@ -77,8 +77,8 @@ export function Settings() {
   if (!draft) return <div className="settings-loading">Loading...</div>;
 
   return (
-    <div className="xs-settings-shell" data-tauri-drag-region>
-      <TitleBar title="Settings" />
+    <div className="xs-settings-shell">
+      <TitleBar title="Settings" showMaximize={false} />
       
       <header className="xs-settings-header">
         <h1>XenSnip</h1>

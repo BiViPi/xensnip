@@ -133,11 +133,11 @@ export function QuickAccess() {
   const dims = image ? getCompositionDimensions(image.width, image.height, preset) : { canvasW: 0, canvasH: 0 };
 
   return (
-    <div className="xs-shell" data-tauri-drag-region>
+    <div className="xs-shell">
       <TitleBar title="XenSnip Editor" onClose={handleDismiss} />
       
       {assetId && image ? (
-        <div className="xs-viewport" data-tauri-drag-region>
+        <div className="xs-viewport">
           <canvas
             ref={canvasRef}
             width={dims.canvasW}
@@ -146,7 +146,7 @@ export function QuickAccess() {
           />
         </div>
       ) : (
-        <div className="xs-viewport" data-tauri-drag-region>
+        <div className="xs-viewport">
           <div className="xs-loading">
             {isLoading ? "Loading capture..." : "Capture unavailable."}
           </div>

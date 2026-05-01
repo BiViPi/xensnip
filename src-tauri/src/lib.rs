@@ -181,7 +181,7 @@ pub fn open_settings_window(app: &AppHandle) -> tauri::Result<()> {
         tauri::WebviewUrl::App("settings.html".into()),
     )
     .title("XenSnip Settings")
-    .inner_size(480.0, 420.0) // Slightly taller to fit content comfortably
+    .inner_size(600.0, 520.0) 
     .resizable(false)
     .decorations(false)
     .focused(true)
