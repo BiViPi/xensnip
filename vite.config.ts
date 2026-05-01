@@ -26,7 +26,6 @@ export default defineConfig(async () => ({
         main: resolve(__dirname, "index.html"),
         overlay: resolve(__dirname, "overlay.html"),
         "quick-access": resolve(__dirname, "quick-access.html"),
-        editor: resolve(__dirname, "editor.html"),
         settings: resolve(__dirname, "settings.html"),
       },
     },

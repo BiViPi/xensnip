@@ -200,13 +200,6 @@ pub fn settings_save(
 }
 
 #[tauri::command]
-pub fn editor_open_empty(
-    app_handle: AppHandle,
-) -> Result<String, crate::editor::errors::EditorOpenError> {
-    crate::editor::open_empty(&app_handle)
-}
-
-#[tauri::command]
 pub fn quick_access_dismiss(app_handle: AppHandle, asset_id: String) -> Result<(), String> {
     crate::quick_access::dismiss(&app_handle, &asset_id);
     Ok(())

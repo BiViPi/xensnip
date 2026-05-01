@@ -3,7 +3,6 @@ mod autostart;
 mod capture;
 mod commands;
 mod diagnostics;
-mod editor;
 mod hotkeys;
 mod overlay;
 mod quick_access;
@@ -88,7 +87,6 @@ pub fn run() {
             commands::asset_resolve,
             commands::asset_release,
             commands::asset_read_png,
-            commands::editor_open_empty,
             commands::quick_access_dismiss,
             commands::quick_access_set_busy,
             commands::clipboard_write_image,
@@ -98,7 +96,6 @@ pub fn run() {
         .setup(|app| {
             app.manage(capture::CaptureSession::new());
             app.manage(asset::AssetRegistry::new());
-            app.manage(editor::registry::EditorRegistry::new());
             app.manage(quick_access::BusyRegistry::new());
             app.manage(quick_access::ActiveAsset::new());
 
