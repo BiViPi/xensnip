@@ -1,4 +1,4 @@
-import { EditorPreset, BACKGROUND_CONFIGS, RatioOption } from "./preset";
+import { EditorPreset, RatioOption } from "./preset";
 
 export interface CompositionDimensions {
   canvasW: number;
@@ -7,10 +7,6 @@ export interface CompositionDimensions {
   drawY: number;
 }
 
-/**
- * Shared dimension math for both preview and export.
- * Computes canvas size and centering offsets based on ratio and padding.
- */
 export function getCompositionDimensions(
   imageW: number,
   imageH: number,
@@ -18,7 +14,6 @@ export function getCompositionDimensions(
 ): CompositionDimensions {
   const { padding, ratio } = preset;
   
-  // 1. Initial size with padding
   const paddedW = imageW + padding * 2;
   const paddedH = imageH + padding * 2;
   
@@ -31,7 +26,6 @@ export function getCompositionDimensions(
     };
   }
   
-  // 2. Fixed ratio sizing
   const [targetRatioW, targetRatioH] = parseRatio(ratio);
   const targetRatio = targetRatioW / targetRatioH;
   const currentRatio = paddedW / paddedH;
@@ -40,11 +34,9 @@ export function getCompositionDimensions(
   let canvasH: number;
   
   if (currentRatio > targetRatio) {
-    // Current is wider than target, height must grow
     canvasW = paddedW;
     canvasH = paddedW / targetRatio;
   } else {
-    // Current is taller than target, width must grow
     canvasH = paddedH;
     canvasW = paddedH * targetRatio;
   }
@@ -64,7 +56,7 @@ function parseRatio(ratio: RatioOption): [number, number] {
     case "1:1": return [1, 1];
     case "3:4": return [3, 4];
     case "9:16": return [9, 16];
-    default: return [1, 1]; // Fallback
+    default: return [1, 1];
   }
 }
 
@@ -75,20 +67,72 @@ export function drawComposition(
   canvasW: number,
   canvasH: number
 ): void {
-  // 1. Background
-  const config = BACKGROUND_CONFIGS[preset.background];
-  if (Array.isArray(config)) {
-    const gradient = ctx.createLinearGradient(0, 0, canvasW, canvasH);
-    config.forEach((color, i) => {
-      gradient.addColorStop(i / (config.length - 1), color);
-    });
-    ctx.fillStyle = gradient;
-  } else {
-    ctx.fillStyle = config;
-  }
-  ctx.fillRect(0, 0, canvasW, canvasH);
+  // 1. Background Rendering Logic
+  const { bg_mode, bg_value, bg_colors, bg_gradient_type, bg_angle, bg_radius } = preset;
 
-  // 2. Calculations
+  if (bg_mode === "Solid") {
+    ctx.fillStyle = bg_value || "#000000";
+    ctx.fillRect(0, 0, canvasW, canvasH);
+  } 
+  else if (bg_mode === "Gradient") {
+    let gradient: CanvasGradient;
+    
+    if (bg_gradient_type === "Linear") {
+      // Calculate angle coordinates
+      const angleRad = (bg_angle - 90) * (Math.PI / 180);
+      const length = Math.sqrt(canvasW ** 2 + canvasH ** 2);
+      const x0 = canvasW / 2 - (Math.cos(angleRad) * length) / 2;
+      const y0 = canvasH / 2 - (Math.sin(angleRad) * length) / 2;
+      const x1 = canvasW / 2 + (Math.cos(angleRad) * length) / 2;
+      const y1 = canvasH / 2 + (Math.sin(angleRad) * length) / 2;
+      
+      gradient = ctx.createLinearGradient(x0, y0, x1, y1);
+    } else {
+      // Radial Gradient
+      const cx = canvasW / 2;
+      const cy = canvasH / 2;
+      const r = (bg_radius / 100) * Math.max(canvasW, canvasH);
+      gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+    }
+
+    const stops = bg_colors.length > 0 ? bg_colors : ["#3b82f6", "#1d4ed8"];
+    stops.forEach((color, i) => {
+      gradient.addColorStop(i / (stops.length - 1), color);
+    });
+    
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvasW, canvasH);
+  }
+  else if (bg_mode === "Wallpaper") {
+    // Premium Mesh-like rendering using multiple radial gradients for a "Windows 11" feel
+    const stops = bg_colors.length > 0 ? bg_colors : ["#3b82f6", "#1d4ed8"];
+    
+    // Base color
+    ctx.fillStyle = stops[0];
+    ctx.fillRect(0, 0, canvasW, canvasH);
+
+    // Overlay mesh spots
+    const spots = [
+      { x: 0, y: 0, r: 1.2, c: stops[1] || stops[0] },
+      { x: 1, y: 1, r: 1.0, c: stops[0] },
+      { x: 0.8, y: 0.2, r: 0.8, c: stops[1] || stops[0] }
+    ];
+
+    ctx.globalCompositeOperation = "screen";
+    spots.forEach(spot => {
+      const g = ctx.createRadialGradient(
+        spot.x * canvasW, spot.y * canvasH, 0,
+        spot.x * canvasW, spot.y * canvasH, spot.r * canvasW
+      );
+      g.addColorStop(0, spot.c);
+      g.addColorStop(1, "transparent");
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, canvasW, canvasH);
+    });
+    ctx.globalCompositeOperation = "source-over";
+  }
+
+  // 2. Main Image & Shadow Logic
   const { inset, radius, shadow } = preset;
   const dims = getCompositionDimensions(image.width, image.height, preset);
   
@@ -97,23 +141,13 @@ export function drawComposition(
   const imgW = image.width;
   const imgH = image.height;
 
-  // 3. Shadow
   if (shadow !== "None") {
     ctx.save();
     ctx.shadowColor = "rgba(0,0,0,0.4)";
     switch (shadow) {
-      case "Small":
-        ctx.shadowBlur = 12;
-        ctx.shadowOffsetY = 4;
-        break;
-      case "Medium":
-        ctx.shadowBlur = 24;
-        ctx.shadowOffsetY = 8;
-        break;
-      case "Large":
-        ctx.shadowBlur = 48;
-        ctx.shadowOffsetY = 16;
-        break;
+      case "Small": ctx.shadowBlur = 12; ctx.shadowOffsetY = 4; break;
+      case "Medium": ctx.shadowBlur = 24; ctx.shadowOffsetY = 8; break;
+      case "Large": ctx.shadowBlur = 48; ctx.shadowOffsetY = 16; break;
     }
     
     ctx.fillStyle = "white";
@@ -122,7 +156,6 @@ export function drawComposition(
     ctx.restore();
   }
 
-  // 4. Image with Radius Clipping + Inset
   ctx.save();
   roundedRect(ctx, drawX + inset, drawY + inset, imgW - inset * 2, imgH - inset * 2, radius);
   ctx.clip();

@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { EditorPreset, BACKGROUND_CONFIGS, BackgroundStyle } from "../compose/preset";
+import { EditorPreset } from "../compose/preset";
 import { composeToBlob } from "../compose/compose";
 import { clipboardWriteImage, exportSavePng } from "../ipc/index";
 import { RatioControl } from "./controls/Ratio";
 import { SliderControl } from "./controls/Slider";
 import { ShadowControl } from "./controls/Shadow";
+import { BackgroundControl } from "./controls/Background";
 
 interface Props {
   preset: EditorPreset;
@@ -17,6 +18,7 @@ interface Props {
 
 const Icon = ({ name }: { name: string }) => {
   if (name === 'ratio') return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="14" x="3" y="5" rx="2" /><path d="M7 9h10M7 15h10" /></svg>;
+  if (name === 'background') return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.9 0 1.7-.1 2.5-.4 1.1-.4 1.8-1.4 1.8-2.6v-.3c0-1.1.9-2 2-2h.3c1.2 0 2.2-.7 2.6-1.8.3-.8.4-1.6.4-2.5 0-5.5-4.5-10-10-10z"/></svg>;
   if (name === 'chevron') return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>;
   if (name === 'padding') return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 14V4h10" /><rect width="12" height="12" x="8" y="8" rx="2" /></svg>;
   if (name === 'inset') return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="2" /><rect width="12" height="12" x="6" y="6" rx="1" strokeDasharray="3 2" /></svg>;
@@ -53,19 +55,27 @@ export function QuickBar({ preset, setPreset, image, isActionInFlight, setIsActi
 
   return (
     <div className="xs-dock">
-      <div style={{ position: "relative" }}>
-        <button className={`xs-btn xs-pill-btn ${active === 'ratio' ? 'active' : ''}`} onClick={() => toggle('ratio')}>
-          <Icon name="ratio" /> {preset.ratio} <Icon name="chevron" />
-        </button>
-        {active === 'ratio' && <div className="xs-pop"><RatioControl value={preset.ratio} onChange={(v) => { setPreset(p => ({ ...p, ratio: v })); setActive(null); }} /></div>}
-      </div>
+      <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ position: "relative" }}>
+          <button className={`xs-btn xs-pill-btn ${active === 'ratio' ? 'active' : ''}`} onClick={() => toggle('ratio')}>
+            <Icon name="ratio" /> {preset.ratio} <Icon name="chevron" />
+          </button>
+          {active === 'ratio' && <div className="xs-pop"><RatioControl value={preset.ratio} onChange={(v) => { setPreset(p => ({ ...p, ratio: v })); setActive(null); }} /></div>}
+        </div>
 
-      <div className="xs-divider" />
-
-      <div style={{ display: 'flex', gap: '6px' }}>
-        {(Object.keys(BACKGROUND_CONFIGS) as BackgroundStyle[]).map(s => (
-          <div key={s} className={`xs-swatch ${preset.background === s ? 'active' : ''}`} onClick={() => setPreset(p => ({ ...p, background: s }))} style={{ background: Array.isArray(BACKGROUND_CONFIGS[s]) ? `linear-gradient(135deg, ${(BACKGROUND_CONFIGS[s] as string[]).join(", ")})` : (BACKGROUND_CONFIGS[s] as string) }} />
-        ))}
+        <div style={{ position: "relative" }}>
+          <button className={`xs-btn xs-icon-btn ${active === 'background' ? 'active' : ''}`} onClick={() => toggle('background')}>
+            <Icon name="background" />
+          </button>
+          {active === 'background' && (
+            <div className="xs-pop">
+              <BackgroundControl 
+                preset={preset} 
+                onChange={(updates) => setPreset(p => ({ ...p, ...updates }))} 
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="xs-divider" />
