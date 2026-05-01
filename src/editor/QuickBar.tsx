@@ -95,7 +95,14 @@ export function QuickBar({ preset, setPreset, image, isActionInFlight, setIsActi
         </div>
         <div style={{ position: 'relative', display: 'flex', width: 'fit-content' }}>
           <button className={`xs-btn xs-icon-btn ${active === 'shadow' ? 'active' : ''}`} onClick={() => toggle('shadow')}><Icon name="shadow" /></button>
-          {active === 'shadow' && <div className="xs-pop"><ShadowControl value={preset.shadow} onChange={v => { setPreset(p => ({ ...p, shadow: v })); setActive(null); }} /></div>}
+          {active === 'shadow' && (
+            <div className="xs-pop">
+              <ShadowControl 
+                preset={preset} 
+                onChange={(updates) => setPreset(p => ({ ...p, ...updates }))} 
+              />
+            </div>
+          )}
         </div>
       </div>
 

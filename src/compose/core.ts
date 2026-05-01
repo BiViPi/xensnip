@@ -89,7 +89,11 @@ export function drawComposition(
   // 0. RESET STATE
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   const { canvasW, canvasH, drawX, drawY, drawW, drawH } = dims;
-  const { bg_mode, bg_value, bg_colors, bg_gradient_type, bg_angle, bg_radius, inset, radius, shadow } = preset;
+  const { 
+    bg_mode, bg_value, bg_colors, bg_gradient_type, bg_angle, bg_radius, 
+    inset, radius, 
+    shadow_enabled, shadow_blur, shadow_opacity, shadow_angle, shadow_offset 
+  } = preset;
 
   // Clear
   ctx.clearRect(0, 0, canvasW, canvasH);
@@ -145,14 +149,14 @@ export function drawComposition(
   const finalW = Math.round(drawW - inset * 2);
   const finalH = Math.round(drawH - inset * 2);
 
-  if (shadow !== "None") {
+  if (shadow_enabled) {
     ctx.save();
-    ctx.shadowColor = "rgba(0,0,0,0.5)";
-    switch (shadow) {
-      case "Small": ctx.shadowBlur = 20; ctx.shadowOffsetY = 10; break;
-      case "Medium": ctx.shadowBlur = 40; ctx.shadowOffsetY = 20; break;
-      case "Large": ctx.shadowBlur = 80; ctx.shadowOffsetY = 40; break;
-    }
+    const angleRad = (shadow_angle - 90) * (Math.PI / 180);
+    ctx.shadowOffsetX = Math.cos(angleRad) * shadow_offset;
+    ctx.shadowOffsetY = Math.sin(angleRad) * shadow_offset;
+    ctx.shadowBlur = shadow_blur;
+    ctx.shadowColor = `rgba(0, 0, 0, ${shadow_opacity})`;
+    
     ctx.fillStyle = "white";
     roundedRect(ctx, finalX, finalY, finalW, finalH, radius);
     ctx.fill();
