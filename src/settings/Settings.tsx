@@ -9,7 +9,6 @@ import "./Settings.css";
 
 export function Settings() {
   const appWindow = getCurrentWindow();
-  const [settings, setSettings] = useState<SettingsType | null>(null);
   const [draft, setDraft] = useState<SettingsType | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
@@ -31,7 +30,6 @@ export function Settings() {
     void settingsLoad()
       .then((nextSettings) => {
         if (!isMounted) return;
-        setSettings(nextSettings);
         setDraft(nextSettings);
         setLoadError(null);
       })
@@ -52,7 +50,6 @@ export function Settings() {
     setErrors({});
     try {
       await settingsSave(draft);
-      setSettings(draft);
       showToast("Settings saved successfully.");
       // Optional: close window after save
       setTimeout(() => {

@@ -5,9 +5,10 @@ export interface CompositionDimensions {
   canvasH: number;
   drawX: number;
   drawY: number;
+  drawW: number;
+  drawH: number;
 }
 
-// Global cache for wallpapers
 const wallpaperCache: Record<string, HTMLImageElement> = {};
 
 export function getCompositionDimensions(
@@ -17,38 +18,44 @@ export function getCompositionDimensions(
 ): CompositionDimensions {
   const { padding, ratio } = preset;
   
-  const paddedW = imageW + padding * 2;
-  const paddedH = imageH + padding * 2;
-  
-  if (ratio === "Free") {
-    return {
-      canvasW: paddedW,
-      canvasH: paddedH,
-      drawX: padding,
-      drawY: padding
-    };
-  }
-  
-  const [targetRatioW, targetRatioH] = parseRatio(ratio);
-  const targetRatio = targetRatioW / targetRatioH;
-  const currentRatio = paddedW / paddedH;
-  
+  const requiredW = imageW + padding * 2;
+  const requiredH = imageH + padding * 2;
+
   let canvasW: number;
   let canvasH: number;
-  
-  if (currentRatio > targetRatio) {
-    canvasW = paddedW;
-    canvasH = paddedW / targetRatio;
+
+  if (ratio === "Auto") {
+    canvasW = requiredW;
+    canvasH = requiredH;
   } else {
-    canvasH = paddedH;
-    canvasW = paddedH * targetRatio;
+    const [rw, rh] = parseRatio(ratio);
+    const targetAspect = rw / rh;
+    const currentAspect = requiredW / requiredH;
+
+    if (currentAspect > targetAspect) {
+      canvasW = requiredW;
+      canvasH = requiredW / targetAspect;
+    } else {
+      canvasH = requiredH;
+      canvasW = requiredH * targetAspect;
+    }
   }
+
+  // Final scale to fit image into canvas minus padding
+  const safeW = canvasW - padding * 2;
+  const safeH = canvasH - padding * 2;
+  const scale = Math.min(safeW / imageW, safeH / imageH);
   
+  const drawW = imageW * scale;
+  const drawH = imageH * scale;
+
   return {
-    canvasW,
-    canvasH,
-    drawX: (canvasW - imageW) / 2,
-    drawY: (canvasH - imageH) / 2
+    canvasW: Math.round(canvasW),
+    canvasH: Math.round(canvasH),
+    drawX: Math.round((canvasW - drawW) / 2),
+    drawY: Math.round((canvasH - drawH) / 2),
+    drawW: Math.round(drawW),
+    drawH: Math.round(drawH)
   };
 }
 
@@ -63,18 +70,13 @@ function parseRatio(ratio: RatioOption): [number, number] {
   }
 }
 
-/** Internal helper to load wallpaper on demand */
 function getOrLoadWallpaper(wpId: string): HTMLImageElement | null {
   if (wallpaperCache[wpId]) return wallpaperCache[wpId];
-  
   const url = WALLPAPER_MAP[wpId];
   if (!url) return null;
-
   const img = new Image();
   img.onload = () => { wallpaperCache[wpId] = img; };
   img.src = url;
-  
-  // Return null on first frame, next frames will have it
   return null;
 }
 
@@ -82,19 +84,23 @@ export function drawComposition(
   ctx: CanvasRenderingContext2D,
   image: HTMLImageElement,
   preset: EditorPreset,
-  canvasW: number,
-  canvasH: number
+  dims: CompositionDimensions
 ): void {
-  // 1. Background Rendering Logic
-  const { bg_mode, bg_value, bg_colors, bg_gradient_type, bg_angle, bg_radius } = preset;
+  // 0. RESET STATE
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  const { canvasW, canvasH, drawX, drawY, drawW, drawH } = dims;
+  const { bg_mode, bg_value, bg_colors, bg_gradient_type, bg_angle, bg_radius, inset, radius, shadow } = preset;
 
+  // Clear
+  ctx.clearRect(0, 0, canvasW, canvasH);
+
+  // 1. Background
   if (bg_mode === "Solid") {
     ctx.fillStyle = bg_value || "#000000";
     ctx.fillRect(0, 0, canvasW, canvasH);
   } 
   else if (bg_mode === "Gradient") {
     let gradient: CanvasGradient;
-    
     if (bg_gradient_type === "Linear") {
       const angleRad = (bg_angle - 90) * (Math.PI / 180);
       const length = Math.sqrt(canvasW ** 2 + canvasH ** 2);
@@ -109,69 +115,61 @@ export function drawComposition(
       const r = (bg_radius / 100) * Math.max(canvasW, canvasH);
       gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
     }
-
     const stops = bg_colors.length > 0 ? bg_colors : ["#3b82f6", "#1d4ed8"];
     stops.forEach((color, i) => {
       gradient.addColorStop(i / (stops.length - 1), color);
     });
-    
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvasW, canvasH);
   }
   else if (bg_mode === "Wallpaper") {
     const wpImg = getOrLoadWallpaper(bg_value);
     if (wpImg) {
-      ctx.drawImage(wpImg, 0, 0, canvasW, canvasH);
+      const iw = wpImg.width;
+      const ih = wpImg.height;
+      const r = Math.max(canvasW / iw, canvasH / ih);
+      const nw = iw * r;
+      const nh = ih * r;
+      const nx = (canvasW - nw) / 2;
+      const ny = (canvasH - nh) / 2;
+      ctx.drawImage(wpImg, nx, ny, nw, nh);
     } else {
       ctx.fillStyle = "#0f172a";
       ctx.fillRect(0, 0, canvasW, canvasH);
     }
   }
 
-  // 2. Main Image & Shadow Logic
-  const { inset, radius, shadow } = preset;
-  const dims = getCompositionDimensions(image.width, image.height, preset);
-  
-  const drawX = dims.drawX;
-  const drawY = dims.drawY;
-  const imgW = image.width;
-  const imgH = image.height;
+  // 2. Image Rendering
+  const finalX = Math.round(drawX + inset);
+  const finalY = Math.round(drawY + inset);
+  const finalW = Math.round(drawW - inset * 2);
+  const finalH = Math.round(drawH - inset * 2);
 
   if (shadow !== "None") {
     ctx.save();
-    ctx.shadowColor = "rgba(0,0,0,0.4)";
+    ctx.shadowColor = "rgba(0,0,0,0.5)";
     switch (shadow) {
-      case "Small": ctx.shadowBlur = 12; ctx.shadowOffsetY = 4; break;
-      case "Medium": ctx.shadowBlur = 24; ctx.shadowOffsetY = 8; break;
-      case "Large": ctx.shadowBlur = 48; ctx.shadowOffsetY = 16; break;
+      case "Small": ctx.shadowBlur = 20; ctx.shadowOffsetY = 10; break;
+      case "Medium": ctx.shadowBlur = 40; ctx.shadowOffsetY = 20; break;
+      case "Large": ctx.shadowBlur = 80; ctx.shadowOffsetY = 40; break;
     }
-    
     ctx.fillStyle = "white";
-    roundedRect(ctx, drawX + inset, drawY + inset, imgW - inset * 2, imgH - inset * 2, radius);
+    roundedRect(ctx, finalX, finalY, finalW, finalH, radius);
     ctx.fill();
     ctx.restore();
   }
 
   ctx.save();
-  roundedRect(ctx, drawX + inset, drawY + inset, imgW - inset * 2, imgH - inset * 2, radius);
+  roundedRect(ctx, finalX, finalY, finalW, finalH, radius);
   ctx.clip();
-  ctx.drawImage(image, drawX + inset, drawY + inset, imgW - inset * 2, imgH - inset * 2);
+  ctx.drawImage(image, finalX, finalY, finalW, finalH);
   ctx.restore();
 }
 
-function roundedRect(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  r: number
-): void {
-  if (w < 0) w = 0;
-  if (h < 0) h = 0;
+function roundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
+  if (w <= 0 || h <= 0) return;
   if (r > w / 2) r = w / 2;
   if (r > h / 2) r = h / 2;
-  
   ctx.beginPath();
   ctx.moveTo(x + r, y);
   ctx.lineTo(x + w - r, y);

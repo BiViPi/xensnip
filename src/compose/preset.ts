@@ -11,7 +11,7 @@ import wp8 from "../assets/wallpapers/wp-8.jpg";
 export type BackgroundMode = "Wallpaper" | "Gradient" | "Solid";
 export type GradientType = "Linear" | "Radial";
 
-export type RatioOption = "Free" | "16:9" | "4:3" | "1:1" | "3:4" | "9:16";
+export type RatioOption = "Auto" | "16:9" | "4:3" | "1:1" | "3:4" | "9:16";
 export type ShadowStyle = "None" | "Small" | "Medium" | "Large";
 
 export interface EditorPreset {

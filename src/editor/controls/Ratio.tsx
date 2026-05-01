@@ -5,7 +5,7 @@ interface Props {
   onChange: (value: RatioOption) => void;
 }
 
-const OPTIONS: RatioOption[] = ["Free", "16:9", "4:3", "1:1", "3:4", "9:16"];
+const OPTIONS: RatioOption[] = ["Auto", "16:9", "4:3", "1:1", "3:4", "9:16"];
 
 export function RatioControl({ value, onChange }: Props) {
   return (

@@ -9,8 +9,10 @@ export function autoBalance(
   imageH: number,
   ratio: RatioOption
 ): number {
-  if (ratio === "Free") {
-    return 48; // Default comfortable padding for Free ratio
+  const minPadding = ratio === "Auto" ? 48 : 32;
+
+  if (ratio === "Auto") {
+    return minPadding;
   }
 
   const [targetRatioW, targetRatioH] = parseRatio(ratio);
@@ -23,14 +25,14 @@ export function autoBalance(
     // (imageW) / (imageH + padding*2) = targetRatio
     // imageW / targetRatio = imageH + padding*2
     // (imageW / targetRatio - imageH) / 2 = padding
-    return Math.max(8, Math.round((imageW / targetRatio - imageH) / 2));
+    return Math.max(minPadding, Math.round((imageW / targetRatio - imageH) / 2));
   } else {
     // Image is taller than target ratio (e.g. tall image in 16:9)
     // We need horizontal padding to reach the ratio
     // (imageW + padding*2) / (imageH) = targetRatio
     // imageH * targetRatio = imageW + padding*2
     // (imageH * targetRatio - imageW) / 2 = padding
-    return Math.max(8, Math.round((imageH * targetRatio - imageW) / 2));
+    return Math.max(minPadding, Math.round((imageH * targetRatio - imageW) / 2));
   }
 }
 

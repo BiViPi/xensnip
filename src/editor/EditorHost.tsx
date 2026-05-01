@@ -59,6 +59,18 @@ export function EditorHost() {
 
   const dims = image ? getCompositionDimensions(image.width, image.height, preset) : { canvasW: 0, canvasH: 0 };
 
+  // Explicit preview scaling based on window size
+  // Budget values from anh Phu's proposal
+  const previewBudgetW = window.innerWidth * 0.74;
+  const previewBudgetH = window.innerHeight * 0.66;
+  
+  const previewScale = dims.canvasW > 0 
+    ? Math.min(previewBudgetW / dims.canvasW, previewBudgetH / dims.canvasH, 1)
+    : 1;
+
+  const previewW = Math.floor(dims.canvasW * previewScale);
+  const previewH = Math.floor(dims.canvasH * previewScale);
+
   return (
     <div className="xs-app">
       {/* INLINE CSS TO BYPASS ALL CACHE ISSUES */}
@@ -77,20 +89,28 @@ export function EditorHost() {
           filter: blur(100px); pointer-events: none; z-index: 0;
         }
         .xs-viewport {
+          flex: 1; display: flex; flex-direction: column; 
+          z-index: 1; width: 100%; height: 100%;
+        }
+        .xs-canvas-area {
           flex: 1; display: flex; align-items: center; justify-content: center;
-          padding-bottom: 120px; z-index: 1; width: 100%;
+          width: 100%; padding: 20px;
+        }
+        .xs-dock-spacer {
+          height: 140px; width: 100%; pointer-events: none;
         }
         .xs-main-canvas {
-          max-width: 90%; max-height: 85%;
+          display: block;
           border-radius: 12px; box-shadow: 0 30px 90px rgba(0,0,0,0.6);
           border: 1px solid rgba(255,255,255,0.05);
+          background: #000;
         }
         .xs-dock-container {
           position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%);
           z-index: 100;
         }
         .xs-dock {
-          background: rgba(255, 255, 255, 0.95); /* Light Dock by default for premium look */
+          background: rgba(255, 255, 255, 0.95);
           backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
           padding: 8px 12px; border-radius: 100px;
           display: flex; align-items: center; gap: 8px;
@@ -168,7 +188,17 @@ export function EditorHost() {
         <div style={{ color: '#ef4444' }}>{error}</div>
       ) : assetId && image ? (
         <div className="xs-viewport">
-          <canvas ref={canvasRef} width={dims.canvasW} height={dims.canvasH} className="xs-main-canvas" />
+          <div className="xs-canvas-area">
+            <canvas 
+              key={`${preset.ratio}-${dims.canvasW}-${dims.canvasH}`}
+              ref={canvasRef} 
+              width={dims.canvasW} 
+              height={dims.canvasH} 
+              className="xs-main-canvas" 
+              style={{ width: `${previewW}px`, height: `${previewH}px` }}
+            />
+          </div>
+          <div className="xs-dock-spacer" />
         </div>
       ) : (
         <EmptyState showToast={showToast} />

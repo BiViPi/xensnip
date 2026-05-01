@@ -131,6 +131,17 @@ export function QuickAccess() {
   };
 
   const dims = image ? getCompositionDimensions(image.width, image.height, preset) : { canvasW: 0, canvasH: 0 };
+  
+  // Use window dimensions directly as proposed by anh Phu
+  const previewBudgetW = window.innerWidth * 0.74;
+  const previewBudgetH = window.innerHeight * 0.66;
+  
+  const previewScale = dims.canvasW > 0 
+    ? Math.min(previewBudgetW / dims.canvasW, previewBudgetH / dims.canvasH, 1)
+    : 1;
+
+  const previewW = Math.floor(dims.canvasW * previewScale);
+  const previewH = Math.floor(dims.canvasH * previewScale);
 
   return (
     <div className="xs-shell">
@@ -138,12 +149,17 @@ export function QuickAccess() {
       
       {assetId && image ? (
         <div className="xs-viewport">
-          <canvas
-            ref={canvasRef}
-            width={dims.canvasW}
-            height={dims.canvasH}
-            className="xs-canvas"
-          />
+          <div className="xs-canvas-area">
+            <canvas
+              key={`${preset.ratio}-${dims.canvasW}-${dims.canvasH}`}
+              ref={canvasRef}
+              width={dims.canvasW}
+              height={dims.canvasH}
+              className="xs-canvas"
+              style={{ width: `${previewW}px`, height: `${previewH}px` }}
+            />
+          </div>
+          <div className="xs-dock-spacer" />
         </div>
       ) : (
         <div className="xs-viewport">
