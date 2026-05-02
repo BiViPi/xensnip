@@ -1,23 +1,48 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { EditorPreset } from "../../compose/preset";
-import { SavedPreset } from "../../ipc/types";
-import { presetSave, presetDelete } from "../../ipc/index";
+import { SavedPreset, Settings } from "../../ipc/types";
+import { 
+  presetSave, 
+  presetDelete, 
+  presetRename, 
+  presetDuplicate, 
+  presetSetDefault, 
+  presetExportPack, 
+  presetImport 
+} from "../../ipc/index";
 
 interface Props {
   preset: EditorPreset;
-  savedPresets: SavedPreset[];
+  settings: Settings | null;
   onApply: (p: EditorPreset) => void;
   onRefresh: () => void;
   showToast: (m: string, t?: "success" | "error") => void;
+  onOpenManager: () => void;
 }
 
-export function PresetsControl({ preset, savedPresets, onApply, onRefresh, showToast }: Props) {
+export function PresetsControl({ preset, settings, onApply, onRefresh, showToast, onOpenManager }: Props) {
   const [name, setName] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+  const [menuTop, setMenuTop] = useState(0);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+
+  const savedPresets = settings?.saved_presets || [];
+  const defaultPresetId = settings?.default_preset_id;
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setActiveMenuId(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleSave = async () => {
     const trimmedName = name.trim();
-
     if (!trimmedName) {
       showToast("Please enter a name", "error");
       return;
@@ -31,9 +56,10 @@ export function PresetsControl({ preset, savedPresets, onApply, onRefresh, showT
     setIsSaving(true);
     try {
       const newSaved: SavedPreset = {
-        id: existingPreset?.id ?? Math.random().toString(36).substring(2, 9),
+        id: existingPreset?.id ?? crypto.randomUUID(),
         name: trimmedName,
-        preset: JSON.parse(JSON.stringify(preset)) // Deep clone
+        preset: JSON.parse(JSON.stringify(preset)),
+        updated_at: new Date().toISOString()
       };
       await presetSave(newSaved);
       setName("");
@@ -47,119 +73,185 @@ export function PresetsControl({ preset, savedPresets, onApply, onRefresh, showT
     }
   };
 
+  const handleRename = async (id: string, currentName: string) => {
+    const newName = window.prompt("Rename preset to:", currentName);
+    if (newName && newName.trim() !== currentName) {
+      try {
+        await presetRename(id, newName.trim());
+        onRefresh();
+        showToast("Preset renamed", "success");
+      } catch (err) {
+        showToast("Failed to rename preset", "error");
+      }
+    }
+    setActiveMenuId(null);
+  };
+
+  const handleDuplicate = async (id: string) => {
+    try {
+      await presetDuplicate(id);
+      onRefresh();
+      showToast("Preset duplicated", "success");
+    } catch (err) {
+      showToast("Failed to duplicate preset", "error");
+    }
+    setActiveMenuId(null);
+  };
+
+  const handleSetDefault = async (id: string) => {
+    try {
+      await presetSetDefault(id === defaultPresetId ? null : id);
+      onRefresh();
+      showToast(id === defaultPresetId ? "Default cleared" : "Default preset set", "success");
+    } catch (err) {
+      showToast("Failed to set default", "error");
+    }
+    setActiveMenuId(null);
+  };
+
+  const handleExportSingle = async (id: string) => {
+    try {
+      const success = await presetExportPack([id]);
+      if (success) showToast("Preset exported", "success");
+    } catch (err) {
+      showToast("Failed to export preset", "error");
+    }
+    setActiveMenuId(null);
+  };
+
+  const handleExportAll = async () => {
+    try {
+      const ids = savedPresets.map(p => p.id);
+      if (ids.length === 0) return;
+      const success = await presetExportPack(ids);
+      if (success) showToast("Preset pack exported", "success");
+    } catch (err) {
+      showToast("Export failed", "error");
+    }
+  };
+
+  const handleImport = async () => {
+    try {
+      const count = await presetImport();
+      if (count > 0) {
+        onRefresh();
+        showToast(`Imported ${count} preset(s)`, "success");
+      }
+    } catch (err) {
+      showToast("Import failed", "error");
+    }
+  };
+
   const handleDelete = async (id: string) => {
+    if (!window.confirm("Delete this preset?")) return;
     try {
       await presetDelete(id);
       onRefresh();
       showToast("Preset deleted", "success");
     } catch (err) {
       showToast("Failed to delete preset", "error");
-      console.error(err);
     }
+    setActiveMenuId(null);
   };
 
   return (
-    <div style={{ width: "260px", padding: "12px", display: "flex", flexDirection: "column", gap: "16px" }}>
-      <div style={{ color: "var(--xs-text-dim)", fontSize: "14px", fontWeight: 700, marginBottom: "4px" }}>Presets</div>
+    <div className="xs-preset-popover" ref={popoverRef}>
+      <div className="xs-pop-header">
+        <div className="xs-pop-title">Presets</div>
+        <div className="xs-pop-subtitle">Save and reuse your custom styles</div>
+      </div>
       
       {/* Save Area */}
-      <div style={{ display: "flex", gap: "8px" }}>
+      <div className="xs-preset-save-area">
         <input 
           type="text"
           placeholder="Preset name..."
           value={name}
           onChange={e => setName(e.target.value)}
           className="xs-preset-input"
-          style={{
-            flex: 1,
-            background: "rgba(255, 255, 255, 0.05)",
-            border: "1px solid rgba(255, 255, 255, 0.1)",
-            borderRadius: "6px",
-            padding: "6px 10px",
-            color: "#fff",
-            fontSize: "13px",
-            outline: "none"
-          }}
+          onKeyDown={e => e.key === 'Enter' && handleSave()}
         />
         <button 
+          className="xs-btn xs-btn-primary xs-preset-save-btn"
           onClick={handleSave}
           disabled={isSaving}
-          style={{
-            background: "#3b82f6",
-            color: "#fff",
-            border: "none",
-            borderRadius: "6px",
-            padding: "0 12px",
-            fontSize: "12px",
-            fontWeight: 600,
-            cursor: "pointer",
-            opacity: isSaving ? 0.6 : 1
-          }}
         >
           Save
         </button>
       </div>
 
       {/* List Area */}
-      <div style={{ 
-        maxHeight: "200px", 
-        overflowY: "auto", 
-        display: "flex", 
-        flexDirection: "column", 
-        gap: "4px",
-        paddingRight: "4px"
-      }}>
+      <div className="xs-preset-list">
         {savedPresets.length === 0 ? (
-          <div style={{ color: "rgba(255,255,255,0.2)", fontSize: "12px", textAlign: "center", padding: "20px 0" }}>
+          <div className="xs-preset-empty">
             No presets saved yet
           </div>
         ) : (
           savedPresets.map(p => (
-            <div key={p.id} className="xs-preset-item" style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "8px 10px",
-              borderRadius: "6px",
-              background: "rgba(255, 255, 255, 0.03)",
-              transition: "background 0.2s"
-            }}>
-              <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.8)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, marginRight: "12px" }}>
-                {p.name}
-              </span>
-              <div style={{ display: "flex", gap: "6px" }}>
-                <button 
-                  onClick={() => onApply(p.preset)}
-                  style={{
-                    background: "rgba(255, 255, 255, 0.1)",
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: "4px",
-                    padding: "4px 8px",
-                    fontSize: "11px",
-                    cursor: "pointer"
-                  }}
-                >
-                  Apply
-                </button>
-                <button 
-                  onClick={() => handleDelete(p.id)}
-                  style={{
-                    background: "rgba(239, 68, 68, 0.2)",
-                    color: "#f87171",
-                    border: "none",
-                    borderRadius: "4px",
-                    padding: "4px 8px",
-                    fontSize: "11px",
-                    cursor: "pointer"
-                  }}
-                >
-                  Delete
-                </button>
+            <div key={p.id} className={`xs-preset-row ${defaultPresetId === p.id ? 'is-default' : ''}`}>
+              <div className="xs-preset-info">
+                <div className="xs-preset-name-wrap">
+                  <span className="xs-preset-name">{p.name}</span>
+                  {defaultPresetId === p.id && <span className="xs-badge-default">Default</span>}
+                </div>
+                <div className="xs-preset-tags">
+                  <span className="xs-tag">{p.preset.ratio}</span>
+                  <span className="xs-tag">{p.preset.bg_mode}</span>
+                  <span className="xs-tag">P:{p.preset.padding}</span>
+                </div>
+              </div>
+              
+              <div className="xs-preset-actions">
+                <button className="xs-btn-apply" onClick={() => onApply(p.preset)}>Apply</button>
+                <div className="xs-more-wrap">
+                  <button className="xs-btn-more" onClick={(e) => {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const popRect = popoverRef.current?.getBoundingClientRect();
+                    if (popRect) {
+                      setMenuTop(rect.top - popRect.top);
+                    }
+                    setActiveMenuId(activeMenuId === p.id ? null : p.id);
+                  }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+                  </button>
+                </div>
               </div>
             </div>
           ))
         )}
+      </div>
+
+      {/* Slide-out Menu (Rendered outside list to avoid clipping) */}
+      {activeMenuId && (
+        <div 
+          className="xs-more-menu" 
+          ref={menuRef} 
+          style={{ top: `${menuTop}px` }}
+        >
+          {(() => {
+            const p = savedPresets.find(x => x.id === activeMenuId);
+            if (!p) return null;
+            return (
+              <>
+                <button onClick={() => handleRename(p.id, p.name)}>Rename</button>
+                <button onClick={() => handleDuplicate(p.id)}>Duplicate</button>
+                <button onClick={() => handleSetDefault(p.id)}>{defaultPresetId === p.id ? 'Unset Default' : 'Set as Default'}</button>
+                <button onClick={() => handleExportSingle(p.id)}>Export</button>
+                <div className="xs-menu-divider" />
+                <button className="xs-menu-danger" onClick={() => handleDelete(p.id)}>Delete</button>
+              </>
+            );
+          })()}
+        </div>
+      )}
+
+      {/* Footer */}
+      <div className="xs-preset-footer">
+        <button className="xs-btn-link" onClick={onOpenManager}>Manage presets</button>
+        <div className="xs-footer-group">
+          <button className="xs-btn-link" onClick={handleImport}>Import</button>
+          <button className="xs-btn-link" onClick={handleExportAll} disabled={savedPresets.length === 0}>Export All</button>
+        </div>
       </div>
     </div>
   );

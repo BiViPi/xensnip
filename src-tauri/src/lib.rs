@@ -104,6 +104,12 @@ pub fn run() {
             commands::settings_save,
             commands::preset_save,
             commands::preset_delete,
+            commands::preset_rename,
+            commands::preset_duplicate,
+            commands::preset_reorder,
+            commands::preset_set_default,
+            commands::preset_export_pack,
+            commands::preset_import,
             commands::settings_update_last_preset,
         ])
         .setup(|app| {

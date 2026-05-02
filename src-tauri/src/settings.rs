@@ -15,7 +15,14 @@ pub struct SavedPreset {
     pub id: String,
     pub name: String,
     pub preset: serde_json::Value,
+    #[serde(default = "chrono_now_iso")]
+    pub updated_at: String,
 }
+
+fn chrono_now_iso() -> String {
+    chrono::Utc::now().to_rfc3339()
+}
+
 
 fn default_true() -> bool { true }
 fn default_format() -> String { "PNG".to_string() }
@@ -39,12 +46,14 @@ pub struct Settings {
     pub saved_presets: Vec<SavedPreset>,
     #[serde(default)]
     pub last_preset: Option<serde_json::Value>,
+    #[serde(default)]
+    pub default_preset_id: Option<String>,
 }
 
 impl Default for Settings {
     fn default() -> Self {
         Self {
-            version: 5,
+            version: 6,
             hotkeys: Hotkeys {
                 region: "Ctrl+Shift+S".to_string(),
                 active_window: "Ctrl+Alt+W".to_string(),
@@ -57,6 +66,7 @@ impl Default for Settings {
             capture_all_monitors: true,
             saved_presets: Vec::new(),
             last_preset: None,
+            default_preset_id: None,
         }
     }
 }
@@ -85,6 +95,11 @@ fn migrate_settings_if_needed(settings: &mut Settings) -> bool {
 
     if settings.version < 5 {
         settings.version = 5;
+        changed = true;
+    }
+
+    if settings.version < 6 {
+        settings.version = 6;
         changed = true;
     }
 

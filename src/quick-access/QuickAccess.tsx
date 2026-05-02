@@ -17,6 +17,7 @@ import { autoBalance } from "../editor/autoBalance";
 import { QuickBar } from "../editor/QuickBar";
 import { Toast } from "../editor/Toast";
 import { TitleBar } from "../editor/TitleBar";
+import { PresetManager } from "../editor/controls/PresetManager";
 
 export function QuickAccess() {
   const [assetId, setAssetId] = useState<string | null>(null);
@@ -27,6 +28,7 @@ export function QuickAccess() {
   const [isLoading, setIsLoading] = useState(true);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [wallpaperFlip, setWallpaperFlip] = useState(0);
+  const [isPresetManagerOpen, setIsPresetManagerOpen] = useState(false);
 
   useEffect(() => {
     settingsLoad().then(setSettings).catch(console.error);
@@ -107,6 +109,14 @@ export function QuickAccess() {
 
       if (currentSettings?.last_preset) {
         setPreset({ ...DEFAULT_PRESET, ...currentSettings.last_preset });
+      } else if (currentSettings?.default_preset_id) {
+        const def = currentSettings.saved_presets.find(p => p.id === currentSettings.default_preset_id);
+        if (def) {
+          setPreset({ ...DEFAULT_PRESET, ...def.preset });
+        } else {
+          const balancedPadding = autoBalance(img.width, img.height, DEFAULT_PRESET.ratio);
+          setPreset({ ...DEFAULT_PRESET, padding: balancedPadding });
+        }
       } else {
         const balancedPadding = autoBalance(img.width, img.height, DEFAULT_PRESET.ratio);
         setPreset({ ...DEFAULT_PRESET, padding: balancedPadding });
@@ -306,8 +316,18 @@ export function QuickAccess() {
             onActivePopChange={setActivePop}
             settings={settings}
             onRefreshSettings={refreshSettings}
+            onOpenPresetManager={() => setIsPresetManagerOpen(true)}
           />
         </div>
+      )}
+
+      {isPresetManagerOpen && (
+        <PresetManager 
+          settings={settings}
+          onRefresh={refreshSettings}
+          onClose={() => setIsPresetManagerOpen(false)}
+          showToast={showToast}
+        />
       )}
 
       {toast && <Toast message={toast.message} type={toast.type} />}

@@ -115,6 +115,30 @@ export async function presetDelete(presetId: string): Promise<void> {
   return await invoke<void>("preset_delete", { presetId });
 }
 
+export async function presetRename(presetId: string, newName: string): Promise<void> {
+  return await invoke<void>("preset_rename", { presetId, newName });
+}
+
+export async function presetDuplicate(presetId: string): Promise<void> {
+  return await invoke<void>("preset_duplicate", { presetId });
+}
+
+export async function presetReorder(presetIds: string[]): Promise<void> {
+  return await invoke<void>("preset_reorder", { presetIds });
+}
+
+export async function presetSetDefault(presetId: string | null): Promise<void> {
+  return await invoke<void>("preset_set_default", { presetId });
+}
+
+export async function presetExportPack(presetIds: string[]): Promise<boolean> {
+  return await invoke<boolean>("preset_export_pack", { presetIds });
+}
+
+export async function presetImport(): Promise<number> {
+  return await invoke<number>("preset_import");
+}
+
 export async function settingsUpdateLastPreset(preset: EditorPreset): Promise<void> {
   return await invoke<void>("settings_update_last_preset", { preset });
 }

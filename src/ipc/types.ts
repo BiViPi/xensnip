@@ -18,12 +18,14 @@ export interface Settings {
   capture_all_monitors: boolean;
   saved_presets: SavedPreset[];
   last_preset: EditorPreset | null;
+  default_preset_id: string | null;
 }
 
 export interface SavedPreset {
   id: string;
   name: string;
   preset: EditorPreset;
+  updated_at: string;
 }
 
 export interface PingResponse {

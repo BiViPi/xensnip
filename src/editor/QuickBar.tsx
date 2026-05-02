@@ -21,6 +21,7 @@ interface Props {
   onActivePopChange: (n: string | null) => void;
   settings: Settings | null;
   onRefreshSettings: () => void;
+  onOpenPresetManager: () => void;
 }
 
 const Icon = ({ name }: { name: string }) => {
@@ -257,7 +258,7 @@ const Icon = ({ name }: { name: string }) => {
 
 export function QuickBar({
   preset, setPreset, image, isActionInFlight, setIsActionInFlight, showToast,
-  activePop, onActivePopChange, settings, onRefreshSettings
+  activePop, onActivePopChange, settings, onRefreshSettings, onOpenPresetManager
 }: Props) {
   const toggle = (n: string) => onActivePopChange(activePop === n ? null : n);
 
@@ -344,10 +345,11 @@ export function QuickBar({
             <div className="xs-pop">
               <PresetsControl
                 preset={preset}
-                savedPresets={settings?.saved_presets || []}
+                settings={settings}
                 onApply={(p) => { setPreset(p); onActivePopChange(null); }}
                 onRefresh={onRefreshSettings}
                 showToast={showToast}
+                onOpenManager={() => { onOpenPresetManager(); onActivePopChange(null); }}
               />
             </div>
           )}
