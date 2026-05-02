@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500">
-        <!-- Nền của SVG đã được xóa để làm trong suốt -->
+        <!-- Nền của SVG đã được loại bỏ để làm trong suốt -->
 
         <defs>
             <!-- Hiệu ứng chuyển màu (Gradient) từ Cyan sang Blue -->
@@ -7,15 +7,43 @@
                 <stop offset="0%" stop-color="#00d2ff" />
                 <stop offset="100%" stop-color="#0045ff" />
             </linearGradient>
-        </defs>
 
-        <!-- Nhóm chứa các thành phần (đã bỏ hiệu ứng Glow) -->
-        <g>
+            <!-- Hiệu ứng phát sáng (Glow Filter) -->
+            <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="2.5" result="blur1" />
+                <feGaussianBlur stdDeviation="7" result="blur2" />
+                <feMerge>
+                    <feMergeNode in="blur2" />
+                    <feMergeNode in="blur1" />
+                    <feMergeNode in="SourceGraphic" />
+            </feMerge>
+        </filter>
 
+        <!-- Thêm Mask để "đục lỗ" tạo độ trong suốt thay vì dùng nền đen để che -->
+        <mask id="monitor-cutout">
+            <rect width="100%" height="100%" fill="white" />
+            <!-- Che phần khung nét đứt giữa -->
+            <rect x="180" y="175" width="140" height="100" fill="black" />
+            <!-- Che phần con trỏ chuột -->
+            <path d="M 320 265 L 320 315 L 331 305 L 343 330 L 353 325 L 341 300 L 355 300 Z" fill="black" stroke="black" stroke-width="8" stroke-linejoin="round" stroke-linecap="round" />
+        </mask>
+
+        <mask id="pointer-cutout">
+            <rect width="100%" height="100%" fill="white" />
+            <!-- Che phần con trỏ chuột cho khung nét đứt -->
+            <path d="M 320 265 L 320 315 L 331 305 L 343 330 L 353 325 L 341 300 L 355 300 Z" fill="black" stroke="black" stroke-width="8" stroke-linejoin="round" stroke-linecap="round" />
+        </mask>
+    </defs>
+
+    <!-- Áp dụng hiệu ứng Glow cho toàn bộ nhóm -->
+    <g filter="url(#glow)">
+
+        <!-- Áp dụng Mask cho 2 màn hình -->
+        <g mask="url(#monitor-cutout)">
             <!-- Màn hình bên trái -->
             <g stroke="url(#neonGrad)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none">
-                <!-- Viền màn hình (Bo tròn góc) -->
-                <rect x="95" y="155" width="150" height="135" rx="15" fill="#05060b" />
+                <!-- Viền màn hình (Bỏ fill đen) -->
+                <rect x="95" y="155" width="150" height="135" rx="15" />
                 <!-- Chân đế đứng (2 đường thẳng) -->
                 <path d="M 155 290 L 155 320 M 185 290 L 185 320" />
                 <!-- Đế ngang -->
@@ -24,20 +52,18 @@
 
             <!-- Màn hình bên phải -->
             <g stroke="url(#neonGrad)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none">
-                <!-- Viền màn hình -->
-                <rect x="255" y="155" width="150" height="135" rx="15" fill="#05060b" />
+                <!-- Viền màn hình (Bỏ fill đen) -->
+                <rect x="255" y="155" width="150" height="135" rx="15" />
                 <!-- Chân đế đứng -->
                 <path d="M 315 290 L 315 320 M 345 290 L 345 320" />
                 <!-- Đế ngang -->
                 <path d="M 300 325 L 360 325" stroke-width="10" />
             </g>
+        </g>
 
-            <!-- Hình chữ nhật nét đứt ở giữa -->
-            <!-- Hình khối đóng vai trò làm mặt nạ che khuất các phần màn hình nằm bên dưới -->
-            <rect x="180" y="175" width="140" height="100" fill="#05060b" />
-
-            <g stroke="url(#neonGrad)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none">
-                <!-- Các góc L cố định -->
+        <!-- Hình chữ nhật nét đứt ở giữa (áp dụng mask để tránh đè lên chuột) -->
+        <g mask="url(#pointer-cutout)" stroke="url(#neonGrad)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+            <!-- Các góc L cố định -->
                 <path d="M 180 195 L 180 175 L 200 175" /> <!-- Góc trên trái -->
                 <path d="M 300 175 L 320 175 L 320 195" /> <!-- Góc trên phải -->
                 <path d="M 180 255 L 180 275 L 200 275" /> <!-- Góc dưới trái -->
@@ -52,13 +78,12 @@
                 <!-- Nét đứt nằm dọc -->
                 <!-- Cạnh trái -->
                 <path d="M 180 205 L 180 220 M 180 230 L 180 245" />
-                <!-- Cạnh phải -->
-                <path d="M 320 205 L 320 220 M 320 230 L 320 245" />
-            </g>
-
-            <!-- Con trỏ chuột -->
-            <!-- Dùng fill màu nền "#05060b" để nó đè lên và che khuất phần nét đứt phía dưới -->
-            <path d="M 320 265 L 320 315 L 331 305 L 343 330 L 353 325 L 341 300 L 355 300 Z"
-                  fill="#05060b" stroke="url(#neonGrad)" stroke-width="8" stroke-linejoin="round" stroke-linecap="round" />
+            <!-- Cạnh phải -->
+            <path d="M 320 205 L 320 220 M 320 230 L 320 245" />
         </g>
-    </svg>
+
+        <!-- Con trỏ chuột (Bỏ fill đen để thành trong suốt hoàn toàn) -->
+        <path d="M 320 265 L 320 315 L 331 305 L 343 330 L 353 325 L 341 300 L 355 300 Z"
+              fill="none" stroke="url(#neonGrad)" stroke-width="8" stroke-linejoin="round" stroke-linecap="round" />
+    </g>
+</svg>
