@@ -183,40 +183,51 @@ export function drawComposition(
     roundedRect(ctx, fx, fy, fw, fh, fr);
     ctx.fill();
     ctx.restore();
+
+    // Draw the Frame Highlights (Multi-layered "Soft Bevel" Effect)
+    ctx.save();
+    const lightAngleRad = (shadow_angle + 180 - 90) * (Math.PI / 180);
+    const lx0 = fx + fw / 2 + Math.cos(lightAngleRad) * (fw / 2);
+    const ly0 = fy + fh / 2 + Math.sin(lightAngleRad) * (fh / 2);
+    const lx1 = fx + fw / 2 - Math.cos(lightAngleRad) * (fw / 2);
+    const ly1 = fy + fh / 2 - Math.sin(lightAngleRad) * (fh / 2);
+
+    const frameGrad = ctx.createLinearGradient(lx0, ly0, lx1, ly1);
+    frameGrad.addColorStop(0, "rgba(255, 255, 255, 0.8)");
+    frameGrad.addColorStop(0.3, "rgba(255, 255, 255, 0.1)");
+    frameGrad.addColorStop(1, "rgba(255, 255, 255, 0)");
+
+    roundedRect(ctx, fx, fy, fw, fh, fr);
+    
+    // Layer 1: Bloom (Soft glow spreading outwards)
+    ctx.globalAlpha = 0.3;
+    ctx.strokeStyle = frameGrad;
+    ctx.lineWidth = 14; 
+    ctx.stroke();
+
+    // Layer 2: Medium Rim (The main body of light)
+    ctx.globalAlpha = 0.5;
+    ctx.lineWidth = 6;
+    ctx.stroke();
+
+    // Layer 3: Sharp Edge (Final crisp catch-light)
+    ctx.globalAlpha = 1.0;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    
+    ctx.restore();
+  } else {
+    // Flat background mode
+    ctx.save();
+    ctx.fillStyle = "#1e293b"; // Solid dark color
+    roundedRect(ctx, fx, fy, fw, fh, fr);
+    ctx.fill();
+    // Subtle solid border
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.restore();
   }
-
-  // Draw the Frame Highlights (Multi-layered "Soft Bevel" Effect)
-  ctx.save();
-  const lightAngleRad = (shadow_angle + 180 - 90) * (Math.PI / 180);
-  const lx0 = fx + fw / 2 + Math.cos(lightAngleRad) * (fw / 2);
-  const ly0 = fy + fh / 2 + Math.sin(lightAngleRad) * (fh / 2);
-  const lx1 = fx + fw / 2 - Math.cos(lightAngleRad) * (fw / 2);
-  const ly1 = fy + fh / 2 - Math.sin(lightAngleRad) * (fh / 2);
-
-  const frameGrad = ctx.createLinearGradient(lx0, ly0, lx1, ly1);
-  frameGrad.addColorStop(0, "rgba(255, 255, 255, 0.8)");
-  frameGrad.addColorStop(0.3, "rgba(255, 255, 255, 0.1)");
-  frameGrad.addColorStop(1, "rgba(255, 255, 255, 0)");
-
-  roundedRect(ctx, fx, fy, fw, fh, fr);
-  
-  // Layer 1: Bloom (Soft glow spreading outwards)
-  ctx.globalAlpha = 0.3;
-  ctx.strokeStyle = frameGrad;
-  ctx.lineWidth = 14; 
-  ctx.stroke();
-
-  // Layer 2: Medium Rim (The main body of light)
-  ctx.globalAlpha = 0.5;
-  ctx.lineWidth = 6;
-  ctx.stroke();
-
-  // Layer 3: Sharp Edge (Final crisp catch-light)
-  ctx.globalAlpha = 1.0;
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-  
-  ctx.restore();
 
   // 4. Draw the Main Image with subtle inner separation
   ctx.save();

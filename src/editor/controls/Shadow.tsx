@@ -105,7 +105,7 @@ export function ShadowControl({ preset, onChange }: Props) {
   const getTrackStyle = (val: number, min: number, max: number) => {
     const pct = ((val - min) / (max - min)) * 100;
     return {
-      background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${pct}%, #f1f5f9 ${pct}%, #f1f5f9 100%)`
+      background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${pct}%, rgba(255,255,255,0.1) ${pct}%, rgba(255,255,255,0.1) 100%)`
     };
   };
 
@@ -113,7 +113,7 @@ export function ShadowControl({ preset, onChange }: Props) {
     <div style={{ width: "260px", padding: "8px" }}>
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "24px", alignItems: "center" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", color: "#1e293b" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", color: "var(--xs-text-dim)" }}>
           <Icon name="shadow" />
           <span style={{ fontSize: "15px", fontWeight: 700 }}>Shadow</span>
         </div>
@@ -121,7 +121,7 @@ export function ShadowControl({ preset, onChange }: Props) {
           onClick={() => onChange({ shadow_enabled: !preset.shadow_enabled })}
           style={{ 
             width: "40px", height: "22px", 
-            backgroundColor: preset.shadow_enabled ? "#3b82f6" : "#e2e8f0",
+            backgroundColor: preset.shadow_enabled ? "#3b82f6" : "rgba(255,255,255,0.1)",
             borderRadius: "11px", position: "relative", cursor: "pointer",
             transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
           }}
@@ -163,7 +163,7 @@ export function ShadowControl({ preset, onChange }: Props) {
             }}>
               <Icon name={item.id} />
             </div>
-            <span style={{ fontSize: "14px", color: "#475569", fontWeight: 500 }}>{item.label}</span>
+            <span style={{ fontSize: "14px", color: "var(--xs-text-dim)", fontWeight: 500 }}>{item.label}</span>
             <input 
               type="range" 
               min={item.min} max={item.max} step={item.step}
@@ -173,7 +173,7 @@ export function ShadowControl({ preset, onChange }: Props) {
               style={{ width: "100%", ...getTrackStyle(item.value, item.min, item.max) }}
             />
             <span style={{ 
-              fontSize: "12px", color: "#64748b", 
+              fontSize: "12px", color: "var(--xs-text-dim)", 
               textAlign: "right", fontVariantNumeric: "tabular-nums" 
             }}>
               {item.displayVal}{item.unit}
