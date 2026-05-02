@@ -16,16 +16,23 @@ export function PresetsControl({ preset, savedPresets, onApply, onRefresh, showT
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = async () => {
-    if (!name.trim()) {
+    const trimmedName = name.trim();
+
+    if (!trimmedName) {
       showToast("Please enter a name", "error");
+      return;
+    }
+
+    const existingPreset = savedPresets.find((p) => p.name === trimmedName);
+    if (existingPreset && !window.confirm(`Overwrite preset "${trimmedName}"?`)) {
       return;
     }
     
     setIsSaving(true);
     try {
       const newSaved: SavedPreset = {
-        id: Math.random().toString(36).substring(2, 9),
-        name: name.trim(),
+        id: existingPreset?.id ?? Math.random().toString(36).substring(2, 9),
+        name: trimmedName,
         preset: JSON.parse(JSON.stringify(preset)) // Deep clone
       };
       await presetSave(newSaved);

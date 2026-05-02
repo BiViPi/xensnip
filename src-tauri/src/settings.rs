@@ -44,7 +44,7 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Self {
-            version: 3,
+            version: 5,
             hotkeys: Hotkeys {
                 region: "Ctrl+Shift+S".to_string(),
                 active_window: "Ctrl+Alt+W".to_string(),

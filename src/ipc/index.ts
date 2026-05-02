@@ -7,7 +7,9 @@ import {
   RegionConfirmPayload,
   AssetResolveResult,
   SettingsSaveResult,
+  SavedPreset,
 } from "./types";
+import type { EditorPreset } from "../compose/preset";
 
 // ─── Smoke / settings ─────────────────────────────────────────────────────────
 
@@ -105,7 +107,7 @@ export async function quickAccessSetBusy(assetId: string, busy: boolean): Promis
   return await invoke<void>("quick_access_set_busy", { assetId, busy });
 }
 
-export async function presetSave(savedPreset: any): Promise<void> {
+export async function presetSave(savedPreset: SavedPreset): Promise<void> {
   return await invoke<void>("preset_save", { savedPreset });
 }
 
@@ -113,7 +115,7 @@ export async function presetDelete(presetId: string): Promise<void> {
   return await invoke<void>("preset_delete", { presetId });
 }
 
-export async function settingsUpdateLastPreset(preset: any): Promise<void> {
+export async function settingsUpdateLastPreset(preset: EditorPreset): Promise<void> {
   return await invoke<void>("settings_update_last_preset", { preset });
 }
 

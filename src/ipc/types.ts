@@ -1,5 +1,7 @@
 // ─── Sprint 00 / settings types ───────────────────────────────────────────────
 
+import type { EditorPreset } from "../compose/preset";
+
 export interface Hotkeys {
   region: string;
   active_window: string;
@@ -15,13 +17,13 @@ export interface Settings {
   export_format: string;
   capture_all_monitors: boolean;
   saved_presets: SavedPreset[];
-  last_preset: any | null;
+  last_preset: EditorPreset | null;
 }
 
 export interface SavedPreset {
   id: string;
   name: string;
-  preset: any; // Using any for the flexible EditorPreset structure
+  preset: EditorPreset;
 }
 
 export interface PingResponse {

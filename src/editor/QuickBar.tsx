@@ -20,6 +20,7 @@ interface Props {
   activePop: string | null;
   onActivePopChange: (n: string | null) => void;
   settings: Settings | null;
+  onRefreshSettings: () => void;
 }
 
 const Icon = ({ name }: { name: string }) => {
@@ -256,7 +257,7 @@ const Icon = ({ name }: { name: string }) => {
 
 export function QuickBar({
   preset, setPreset, image, isActionInFlight, setIsActionInFlight, showToast,
-  activePop, onActivePopChange, settings
+  activePop, onActivePopChange, settings, onRefreshSettings
 }: Props) {
   const toggle = (n: string) => onActivePopChange(activePop === n ? null : n);
 
@@ -345,13 +346,7 @@ export function QuickBar({
                 preset={preset}
                 savedPresets={settings?.saved_presets || []}
                 onApply={(p) => { setPreset(p); onActivePopChange(null); }}
-                onRefresh={() => {
-                  // We need to trigger a refresh of settings in QuickAccess
-                  // Since settings is passed from parent, parent will handle it
-                  // We'll call a dummy onRefresh if provided or just rely on IPC side-effects
-                  // Actually, let's assume parent provides a way to refresh
-                  (window as any).__refreshSettings?.();
-                }}
+                onRefresh={onRefreshSettings}
                 showToast={showToast}
               />
             </div>

@@ -241,13 +241,22 @@ pub fn quick_access_set_busy(app_handle: AppHandle, asset_id: String, busy: bool
 #[tauri::command]
 pub fn preset_save(app_handle: AppHandle, saved_preset: SavedPreset) -> Result<(), String> {
     let mut settings = load_or_create_default(&app_handle);
+    let preset_name = saved_preset.name.trim();
+
+    if preset_name.is_empty() {
+        return Err("Preset name cannot be empty.".to_string());
+    }
     
     // Upsert by name as per V1 overwrite rule
-    if let Some(existing) = settings.saved_presets.iter_mut().find(|p| p.name == saved_preset.name) {
+    if let Some(existing) = settings.saved_presets.iter_mut().find(|p| p.name == preset_name) {
         existing.preset = saved_preset.preset;
-        existing.id = saved_preset.id; 
+        existing.name = preset_name.to_string();
     } else {
-        settings.saved_presets.push(saved_preset);
+        settings.saved_presets.push(SavedPreset {
+            id: saved_preset.id,
+            name: preset_name.to_string(),
+            preset: saved_preset.preset,
+        });
     }
     
     crate::settings::save_settings(&app_handle, &settings).map_err(|e| e.to_string())?;

@@ -7,6 +7,7 @@ import {
   assetResolve,
   quickAccessSetBusy,
   settingsLoad,
+  settingsUpdateLastPreset,
 } from "../ipc/index";
 import { QuickAccessShowPayload, Settings } from "../ipc/types";
 import { composeToCanvas } from "../compose/compose";
@@ -34,11 +35,6 @@ export function QuickAccess() {
   const refreshSettings = useCallback(() => {
     settingsLoad().then(setSettings).catch(console.error);
   }, []);
-
-  useEffect(() => {
-    (window as any).__refreshSettings = refreshSettings;
-    return () => { delete (window as any).__refreshSettings; };
-  }, [refreshSettings]);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafIdRef = useRef<number | null>(null);
@@ -101,21 +97,16 @@ export function QuickAccess() {
       setImage(img);
       setAssetId(nextAssetId);
 
-      // Persistence logic: use last preset if available, else default
-      let currentSettings = settings;
-      if (!currentSettings) {
-        try {
-          currentSettings = await settingsLoad();
-          setSettings(currentSettings);
-        } catch {
-          currentSettings = null;
-        }
+      let currentSettings: Settings | null = null;
+      try {
+        currentSettings = await settingsLoad();
+        setSettings(currentSettings);
+      } catch {
+        currentSettings = null;
       }
 
       if (currentSettings?.last_preset) {
-        const lp = currentSettings.last_preset as EditorPreset;
-        const balancedPadding = autoBalance(img.width, img.height, lp.ratio);
-        setPreset({ ...lp, padding: balancedPadding });
+        setPreset({ ...DEFAULT_PRESET, ...currentSettings.last_preset });
       } else {
         const balancedPadding = autoBalance(img.width, img.height, DEFAULT_PRESET.ratio);
         setPreset({ ...DEFAULT_PRESET, padding: balancedPadding });
@@ -162,10 +153,10 @@ export function QuickAccess() {
   useEffect(() => {
     if (isLoading || !image) return;
     const timer = setTimeout(() => {
-      void import("../ipc/index").then(m => m.settingsUpdateLastPreset(preset)).catch(console.error);
+      void settingsUpdateLastPreset(preset).catch(console.error);
     }, 1500);
     return () => clearTimeout(timer);
-  }, [preset, isLoading, !!image]);
+  }, [preset, isLoading, image]);
 
   useEffect(() => {
     if (preset.bg_mode === "Wallpaper") {
@@ -314,6 +305,7 @@ export function QuickAccess() {
             activePop={activePop}
             onActivePopChange={setActivePop}
             settings={settings}
+            onRefreshSettings={refreshSettings}
           />
         </div>
       )}
