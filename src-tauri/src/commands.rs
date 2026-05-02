@@ -1,6 +1,6 @@
 use crate::asset::{AssetRegistry, AssetResolveResult};
 use crate::capture::CaptureSession;
-use crate::settings::{load_or_create_default, Settings};
+use crate::settings::{load_or_create_default, Settings, SavedPreset};
 use tauri::image::Image;
 use tauri::{AppHandle, Manager};
 use tauri_plugin_clipboard_manager::ClipboardExt;
@@ -235,5 +235,37 @@ pub fn quick_access_set_busy(app_handle: AppHandle, asset_id: String, busy: bool
     if let Some(registry) = app_handle.try_state::<crate::quick_access::BusyRegistry>() {
         registry.set_busy(asset_id, busy);
     }
+    Ok(())
+}
+
+#[tauri::command]
+pub fn preset_save(app_handle: AppHandle, saved_preset: SavedPreset) -> Result<(), String> {
+    let mut settings = load_or_create_default(&app_handle);
+    
+    // Upsert by name as per V1 overwrite rule
+    if let Some(existing) = settings.saved_presets.iter_mut().find(|p| p.name == saved_preset.name) {
+        existing.preset = saved_preset.preset;
+        existing.id = saved_preset.id; 
+    } else {
+        settings.saved_presets.push(saved_preset);
+    }
+    
+    crate::settings::save_settings(&app_handle, &settings).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn preset_delete(app_handle: AppHandle, preset_id: String) -> Result<(), String> {
+    let mut settings = load_or_create_default(&app_handle);
+    settings.saved_presets.retain(|p| p.id != preset_id);
+    crate::settings::save_settings(&app_handle, &settings).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn settings_update_last_preset(app_handle: AppHandle, preset: serde_json::Value) -> Result<(), String> {
+    let mut settings = load_or_create_default(&app_handle);
+    settings.last_preset = Some(preset);
+    crate::settings::save_settings(&app_handle, &settings).map_err(|e| e.to_string())?;
     Ok(())
 }

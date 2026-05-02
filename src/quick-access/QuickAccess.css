@@ -533,3 +533,26 @@ html, body {
 }
 
 .xs-loading { color: var(--xs-text-dim); font-size: 14px; }
+
+/* Preset Control Styles */
+.xs-preset-input::placeholder {
+  color: rgba(255, 255, 255, 0.2);
+}
+
+.xs-preset-input:focus {
+  border-color: var(--xs-accent) !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.xs-preset-item:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.xs-preset-item button:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+}
+
+.xs-preset-item button:last-child:hover {
+  background: rgba(239, 68, 68, 0.3) !important;
+}
+

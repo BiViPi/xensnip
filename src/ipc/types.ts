@@ -14,6 +14,14 @@ export interface Settings {
   export_folder: string | null;
   export_format: string;
   capture_all_monitors: boolean;
+  saved_presets: SavedPreset[];
+  last_preset: any | null;
+}
+
+export interface SavedPreset {
+  id: string;
+  name: string;
+  preset: any; // Using any for the flexible EditorPreset structure
 }
 
 export interface PingResponse {

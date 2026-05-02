@@ -10,6 +10,13 @@ pub struct Hotkeys {
     pub active_window: String,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct SavedPreset {
+    pub id: String,
+    pub name: String,
+    pub preset: serde_json::Value,
+}
+
 fn default_true() -> bool { true }
 fn default_format() -> String { "PNG".to_string() }
 
@@ -28,6 +35,10 @@ pub struct Settings {
     pub export_format: String,
     #[serde(default = "default_true")]
     pub capture_all_monitors: bool,
+    #[serde(default)]
+    pub saved_presets: Vec<SavedPreset>,
+    #[serde(default)]
+    pub last_preset: Option<serde_json::Value>,
 }
 
 impl Default for Settings {
@@ -44,6 +55,8 @@ impl Default for Settings {
             export_folder: None,
             export_format: "PNG".to_string(),
             capture_all_monitors: true,
+            saved_presets: Vec::new(),
+            last_preset: None,
         }
     }
 }
@@ -62,6 +75,16 @@ fn migrate_settings_if_needed(settings: &mut Settings) -> bool {
     if settings.version < 3 {
         settings.version = 3;
         // Serde default handlers will have already populated the struct with default values during parsing
+        changed = true;
+    }
+
+    if settings.version < 4 {
+        settings.version = 4;
+        changed = true;
+    }
+
+    if settings.version < 5 {
+        settings.version = 5;
         changed = true;
     }
 

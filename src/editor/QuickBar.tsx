@@ -8,6 +8,7 @@ import { RatioControl } from "./controls/Ratio";
 import { SliderControl } from "./controls/Slider";
 import { ShadowControl } from "./controls/Shadow";
 import { BackgroundControl } from "./controls/Background";
+import { PresetsControl } from "./controls/Presets";
 
 interface Props {
   preset: EditorPreset;
@@ -158,6 +159,98 @@ const Icon = ({ name }: { name: string }) => {
   );
   if (name === 'copy') return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></svg>;
   if (name === 'export') return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="3" y2="15" /></svg>;
+  if (name === 'preset') return (
+    <svg width="24" height="24" viewBox="65 60 270 270" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="edge-highlight" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity="1.0"/>
+          <stop offset="20%" stopColor="#ffffff" stopOpacity="0.4"/>
+          <stop offset="60%" stopColor="#ffffff" stopOpacity="0.0"/>
+          <stop offset="100%" stopColor="#000000" stopOpacity="0.3"/>
+        </linearGradient>
+        <linearGradient id="bg-card-1" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#9358ff"/>
+          <stop offset="50%" stopColor="#ff66c4"/>
+          <stop offset="100%" stopColor="#ff9b5e"/>
+        </linearGradient>
+        <linearGradient id="bg-card-2" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#6e50ff"/>
+          <stop offset="50%" stopColor="#d147ff"/>
+          <stop offset="100%" stopColor="#ff549a"/>
+        </linearGradient>
+        <linearGradient id="slider-fill-1" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#647eff"/>
+          <stop offset="100%" stopColor="#b875ff"/>
+        </linearGradient>
+        <linearGradient id="slider-fill-2" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#c144ff"/>
+          <stop offset="100%" stopColor="#ff548e"/>
+        </linearGradient>
+        <linearGradient id="slider-fill-3" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#ff8b3d"/>
+          <stop offset="100%" stopColor="#ffc14d"/>
+        </linearGradient>
+        <radialGradient id="knob-1" cx="35%" cy="35%" r="65%">
+          <stop offset="0%" stopColor="#d2b3ff"/>
+          <stop offset="40%" stopColor="#a66cff"/>
+          <stop offset="100%" stopColor="#5522d9"/>
+        </radialGradient>
+        <radialGradient id="knob-2" cx="35%" cy="35%" r="65%">
+          <stop offset="0%" stopColor="#ffb3ce"/>
+          <stop offset="40%" stopColor="#ff5c99"/>
+          <stop offset="100%" stopColor="#d12065"/>
+        </radialGradient>
+        <radialGradient id="knob-3" cx="35%" cy="35%" r="65%">
+          <stop offset="0%" stopColor="#ffdcb3"/>
+          <stop offset="40%" stopColor="#ff9e40"/>
+          <stop offset="100%" stopColor="#c2570e"/>
+        </radialGradient>
+        <linearGradient id="bookmark-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#5e8cff"/>
+          <stop offset="100%" stopColor="#1935c9"/>
+        </linearGradient>
+      </defs>
+      <g>
+        <rect x="130" y="60" width="170" height="170" rx="30" fill="url(#bg-card-1)"/>
+        <rect x="131" y="61" width="168" height="168" rx="29" fill="none" stroke="url(#edge-highlight)" strokeWidth="2"/>
+      </g>
+      <g>
+        <rect x="100" y="90" width="170" height="170" rx="30" fill="url(#bg-card-2)"/>
+        <rect x="101" y="91" width="168" height="168" rx="29" fill="none" stroke="url(#edge-highlight)" strokeWidth="2"/>
+      </g>
+      <g>
+        <rect x="70" y="120" width="180" height="180" rx="30" fill="#1b1e2e"/>
+        <rect x="71" y="121" width="178" height="178" rx="29" fill="none" stroke="url(#edge-highlight)" strokeWidth="2"/>
+      </g>
+      <g id="ui-elements">
+        <g id="row-1">
+          <path d="M 95 158 L 90 158 L 90 163 M 90 167 L 90 172 L 95 172 M 105 158 L 110 158 L 110 163 M 110 167 L 110 172 L 105 172" fill="none" stroke="#8c77ff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+          <rect x="135" y="162" width="90" height="6" rx="3" fill="#0d0f18"/>
+          <rect x="135" y="162" width="60" height="6" rx="3" fill="url(#slider-fill-1)"/>
+          <circle cx="195" cy="165" r="9.5" fill="url(#knob-1)"/>
+        </g>
+        <g id="row-2">
+          <rect x="90" y="210" width="20" height="16" rx="3.5" fill="none" stroke="#d56cff" strokeWidth="2.5" strokeLinejoin="round"/>
+          <circle cx="96" cy="215" r="2.5" fill="#d56cff"/>
+          <path d="M 90 224 L 97 217 L 101 221 L 105 216 L 110 222" fill="none" stroke="#d56cff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+          <rect x="135" y="212" width="90" height="6" rx="3" fill="#0d0f18"/>
+          <rect x="135" y="212" width="45" height="6" rx="3" fill="url(#slider-fill-2)"/>
+          <circle cx="180" cy="215" r="9.5" fill="url(#knob-2)"/>
+        </g>
+        <g id="row-3">
+          <rect x="91" y="261" width="18" height="18" rx="4" fill="none" stroke="#ff9f4a" strokeWidth="2.5" strokeDasharray="5 4.5" strokeDashoffset="1" strokeLinecap="round"/>
+          <rect x="135" y="267" width="90" height="6" rx="3" fill="#0d0f18"/>
+          <rect x="135" y="267" width="30" height="6" rx="3" fill="url(#slider-fill-3)"/>
+          <circle cx="165" cy="270" r="9.5" fill="url(#knob-3)"/>
+        </g>
+      </g>
+      <g id="bookmark-group">
+        <path d="M 215 255 Q 210 255 210 260 L 210 330 L 237.5 310 L 265 330 L 265 260 Q 265 255 260 255 Z" fill="url(#bookmark-grad)"/>
+        <path d="M 215 256 Q 211 256 211 261 L 211 327 L 237.5 309 L 264 327 L 264 261 Q 264 256 260 256 Z" fill="none" stroke="url(#edge-highlight)" strokeWidth="1.5"/>
+        <path d="M 237.5 272 L 240.5 280 L 248.5 281 L 242 286 L 244 294 L 237.5 289.5 L 231 294 L 233 286 L 226.5 281 L 234.5 280 Z" fill="#f0f5ff" stroke="#ffffff" strokeWidth="2.5" strokeLinejoin="round"/>
+      </g>
+    </svg>
+  );
   return null;
 };
 
@@ -243,6 +336,28 @@ export function QuickBar({
           <button className={`xs-btn xs-icon-btn ${activePop === 'radius' ? 'active' : ''}`} onClick={() => toggle('radius')}><Icon name="radius" /></button>
           {activePop === 'radius' && <div className="xs-pop"><SliderControl label="Radius" min={0} max={48} value={preset.radius} onChange={v => setPreset(p => ({ ...p, radius: v }))} /></div>}
         </div>
+
+        <div style={{ position: 'relative', display: 'flex', width: 'fit-content' }}>
+          <button className={`xs-btn xs-icon-btn ${activePop === 'presets' ? 'active' : ''}`} onClick={() => toggle('presets')}><Icon name="preset" /></button>
+          {activePop === 'presets' && (
+            <div className="xs-pop">
+              <PresetsControl
+                preset={preset}
+                savedPresets={settings?.saved_presets || []}
+                onApply={(p) => { setPreset(p); onActivePopChange(null); }}
+                onRefresh={() => {
+                  // We need to trigger a refresh of settings in QuickAccess
+                  // Since settings is passed from parent, parent will handle it
+                  // We'll call a dummy onRefresh if provided or just rely on IPC side-effects
+                  // Actually, let's assume parent provides a way to refresh
+                  (window as any).__refreshSettings?.();
+                }}
+                showToast={showToast}
+              />
+            </div>
+          )}
+        </div>
+
         <div style={{ position: 'relative', display: 'flex', width: 'fit-content' }}>
           <button className={`xs-btn xs-icon-btn ${activePop === 'shadow' ? 'active' : ''}`} onClick={() => toggle('shadow')}><Icon name="shadow" /></button>
           {activePop === 'shadow' && (

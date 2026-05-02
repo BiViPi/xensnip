@@ -102,6 +102,9 @@ pub fn run() {
             commands::export_save_media,
             commands::select_export_folder,
             commands::settings_save,
+            commands::preset_save,
+            commands::preset_delete,
+            commands::settings_update_last_preset,
         ])
         .setup(|app| {
             app.manage(capture::CaptureSession::new());
