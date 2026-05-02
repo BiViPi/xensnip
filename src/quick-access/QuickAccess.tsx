@@ -11,7 +11,7 @@ import {
 import { QuickAccessShowPayload, Settings } from "../ipc/types";
 import { composeToCanvas } from "../compose/compose";
 import { DEFAULT_PRESET, EditorPreset } from "../compose/preset";
-import { getCompositionDimensions } from "../compose/core";
+import { getCompositionDimensions, preloadWallpaper, getOrLoadWallpaper } from "../compose/core";
 import { autoBalance } from "../editor/autoBalance";
 import { QuickBar } from "../editor/QuickBar";
 import { Toast } from "../editor/Toast";
@@ -25,6 +25,7 @@ export function QuickAccess() {
   const [isActionInFlight, setIsActionInFlight] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [settings, setSettings] = useState<Settings | null>(null);
+  const [wallpaperFlip, setWallpaperFlip] = useState(0);
 
   useEffect(() => {
     settingsLoad().then(setSettings).catch(console.error);
@@ -124,12 +125,21 @@ export function QuickAccess() {
   const draw = useCallback(() => {
     if (!canvasRef.current || !image) return;
     composeToCanvas(canvasRef.current, image, preset);
-  }, [image, preset]);
+  }, [image, preset, wallpaperFlip]);
 
   useEffect(() => {
     rafIdRef.current = requestAnimationFrame(draw);
     return () => { if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current); };
   }, [draw]);
+
+  useEffect(() => {
+    if (preset.bg_mode === "Wallpaper") {
+      if (getOrLoadWallpaper(preset.bg_value)) return;
+      preloadWallpaper(preset.bg_value).then(() => {
+        setWallpaperFlip(v => v + 1);
+      }).catch(console.error);
+    }
+  }, [preset.bg_mode, preset.bg_value]);
 
   const showToast = (message: string, type: "success" | "error" = "success") => {
     setToast({ message, type });

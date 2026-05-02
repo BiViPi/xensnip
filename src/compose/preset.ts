@@ -74,7 +74,7 @@ export const SOLID_PRESETS = [
 export const DEFAULT_PRESET: EditorPreset = {
   background: "XenSnip Blue",
   
-  bg_mode: "Wallpaper",
+  bg_mode: "Gradient",
   bg_value: "wp-1",
   bg_colors: ["#3b82f6", "#1d4ed8"],
   bg_gradient_type: "Linear",

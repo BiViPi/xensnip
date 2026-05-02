@@ -1,14 +1,11 @@
 use crate::capture::errors::CaptureError;
 use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
 
-pub fn show(app: &AppHandle) -> Result<(), CaptureError> {
+fn ensure_window(app: &AppHandle) -> Result<tauri::WebviewWindow, CaptureError> {
     let window_label = "region-overlay";
 
-    // Reuse the existing overlay window if it was previously hidden.
     if let Some(window) = app.get_webview_window(window_label) {
-        let _ = window.show();
-        let _ = window.set_focus();
-        return Ok(());
+        return Ok(window);
     }
 
     let builder =
@@ -19,7 +16,8 @@ pub fn show(app: &AppHandle) -> Result<(), CaptureError> {
             .fullscreen(true)
             .always_on_top(true)
             .skip_taskbar(true)
-            .focused(true) // Set focus to enable keyboard events (ESC key)
+            .focused(true)
+            .visible(false)
             .disable_drag_drop_handler();
 
     let window = builder.build().map_err(|e| {
@@ -32,8 +30,20 @@ pub fn show(app: &AppHandle) -> Result<(), CaptureError> {
     })?;
 
     let _ = window.set_ignore_cursor_events(false);
-    let _ = window.set_focus(); // Explicitly request focus
+    Ok(window)
+}
 
+pub fn show(app: &AppHandle) -> Result<(), CaptureError> {
+    let window = ensure_window(app)?;
+    let _ = window.show();
+    let _ = window.set_focus();
+
+    Ok(())
+}
+
+pub fn prewarm(app: &AppHandle) -> Result<(), CaptureError> {
+    let window = ensure_window(app)?;
+    let _ = window.hide();
     Ok(())
 }
 

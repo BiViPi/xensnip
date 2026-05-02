@@ -70,14 +70,28 @@ function parseRatio(ratio: RatioOption): [number, number] {
   }
 }
 
-function getOrLoadWallpaper(wpId: string): HTMLImageElement | null {
+export function getOrLoadWallpaper(wpId: string): HTMLImageElement | null {
+  return wallpaperCache[wpId] || null;
+}
+
+/**
+ * Preloads a wallpaper into the cache. 
+ * Returns a promise that resolves when the image is ready.
+ */
+export async function preloadWallpaper(wpId: string): Promise<HTMLImageElement> {
   if (wallpaperCache[wpId]) return wallpaperCache[wpId];
   const url = WALLPAPER_MAP[wpId];
-  if (!url) return null;
-  const img = new Image();
-  img.onload = () => { wallpaperCache[wpId] = img; };
-  img.src = url;
-  return null;
+  if (!url) throw new Error(`Unknown wallpaper ID: ${wpId}`);
+
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      wallpaperCache[wpId] = img;
+      resolve(img);
+    };
+    img.onerror = () => reject(new Error(`Failed to load wallpaper: ${url}`));
+    img.src = url;
+  });
 }
 
 export function drawComposition(

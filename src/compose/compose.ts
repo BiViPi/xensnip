@@ -1,4 +1,4 @@
-import { getCompositionDimensions, drawComposition } from "./core";
+import { getCompositionDimensions, drawComposition, preloadWallpaper } from "./core";
 import type { EditorPreset } from "./preset";
 
 export function composeToCanvas(canvas: HTMLCanvasElement, image: HTMLImageElement, preset: EditorPreset) {
@@ -23,6 +23,10 @@ export async function composeToBlob(image: HTMLImageElement, preset: EditorPrese
   
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Could not get canvas context");
+  
+  if (preset.bg_mode === "Wallpaper") {
+    await preloadWallpaper(preset.bg_value).catch(console.error);
+  }
   
   drawComposition(ctx, image, preset, dims);
   

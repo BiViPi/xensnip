@@ -175,6 +175,10 @@ pub fn run() {
                 log::info!(target: "app", "Log directory: {}", log_dir.display());
             }
 
+            if let Err(err) = overlay::prewarm(app_handle) {
+                log::warn!(target: "overlay", "Overlay prewarm failed: {:?}", err);
+            }
+
             log::info!(target: "app", "XenSnip initialized (Sprint 06)");
             Ok(())
         })
@@ -218,7 +222,6 @@ pub fn open_settings_window(app: &AppHandle) -> tauri::Result<()> {
 pub fn apply_window_native_style(window: &WebviewWindow) -> tauri::Result<()> {
     #[cfg(target_os = "windows")]
     {
-        use tauri::Runtime;
         if let Ok(hwnd) = window.hwnd() {
             // Force border color to Midnight Blue (#0f172a) to hide the Windows 11 accent border.
             // COLORREF is 0x00BBGGRR -> #0f172a is R:0x0f, G:0x17, B:0x2a -> 0x002a170f
