@@ -34,7 +34,7 @@ export function BackgroundControl({ preset, onChange }: Props) {
       </div>
 
       {/* 2. Preset Grid (Fixed 4 columns) */}
-      <div className="xs-bg-grid" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
+      <div className="xs-bg-grid" style={{ gridTemplateColumns: "repeat(6, 1fr)" }}>
         {bg_mode === "Wallpaper" && WALLPAPER_PRESETS.map((wp) => (
           <button
             key={wp.id}

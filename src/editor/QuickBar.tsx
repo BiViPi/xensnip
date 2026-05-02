@@ -340,6 +340,18 @@ export function QuickBar({
         </div>
 
         <div style={{ position: 'relative', display: 'flex', width: 'fit-content' }}>
+          <button className={`xs-btn xs-icon-btn ${activePop === 'shadow' ? 'active' : ''}`} onClick={() => toggle('shadow')}><Icon name="shadow" /></button>
+          {activePop === 'shadow' && (
+            <div className="xs-pop light">
+              <ShadowControl
+                preset={preset}
+                onChange={(updates) => setPreset(p => ({ ...p, ...updates }))}
+              />
+            </div>
+          )}
+        </div>
+
+        <div style={{ position: 'relative', display: 'flex', width: 'fit-content' }}>
           <button className={`xs-btn xs-icon-btn ${activePop === 'presets' ? 'active' : ''}`} onClick={() => toggle('presets')}><Icon name="preset" /></button>
           {activePop === 'presets' && (
             <div className="xs-pop">
@@ -350,18 +362,6 @@ export function QuickBar({
                 onRefresh={onRefreshSettings}
                 showToast={showToast}
                 onOpenManager={() => { onOpenPresetManager(); onActivePopChange(null); }}
-              />
-            </div>
-          )}
-        </div>
-
-        <div style={{ position: 'relative', display: 'flex', width: 'fit-content' }}>
-          <button className={`xs-btn xs-icon-btn ${activePop === 'shadow' ? 'active' : ''}`} onClick={() => toggle('shadow')}><Icon name="shadow" /></button>
-          {activePop === 'shadow' && (
-            <div className="xs-pop light">
-              <ShadowControl
-                preset={preset}
-                onChange={(updates) => setPreset(p => ({ ...p, ...updates }))}
               />
             </div>
           )}

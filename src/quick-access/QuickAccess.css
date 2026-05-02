@@ -366,17 +366,17 @@ html, body {
 
 /* Background Popover — Premium Design */
 .xs-bg-pop {
-  min-width: 280px;
+  min-width: 240px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .xs-tabs {
   display: flex;
   background: rgba(255, 255, 255, 0.04);
-  padding: 3px;
-  border-radius: 12px;
+  padding: 2px;
+  border-radius: 10px;
   gap: 2px;
 }
 
@@ -384,11 +384,11 @@ html, body {
   flex: 1;
   border: none;
   background: transparent;
-  padding: 6px 0;
-  font-size: 12px;
+  padding: 5px 0;
+  font-size: 11px;
   font-weight: 600;
   color: #64748b;
-  border-radius: 9px;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -402,32 +402,32 @@ html, body {
 
 .xs-bg-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 8px;
 }
 
 .xs-bg-tile {
   aspect-ratio: 1;
-  border-radius: 12px;
+  border-radius: 35%;
   border: 2px solid transparent;
   cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 
-.xs-bg-tile:hover { transform: scale(1.05); }
+.xs-bg-tile:hover { transform: scale(1.1); }
 .xs-bg-tile.active {
-  border-color: var(--xs-accent);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  border-color: #fff;
+  box-shadow: 0 0 0 2px var(--xs-accent), 0 4px 12px rgba(0, 0, 0, 0.3);
 }
-.xs-bg-tile.solid { border-radius: 50%; }
+.xs-bg-tile.solid { border-radius: 35%; }
 
 .xs-bg-controls {
-  padding-top: 12px;
+  padding-top: 10px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .xs-sub-toggle {
@@ -439,10 +439,10 @@ html, body {
   flex: 1;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: transparent;
-  padding: 4px 0;
+  padding: 3px 0;
   font-size: 11px;
   font-weight: 600;
-  border-radius: 8px;
+  border-radius: 7px;
   cursor: pointer;
   color: #64748b;
   transition: all 0.2s;
@@ -455,7 +455,7 @@ html, body {
 }
 
 .xs-slider-mini .xs-slider-header {
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
 .xs-slider-mini .xs-slider-label {
