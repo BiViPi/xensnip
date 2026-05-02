@@ -1435,7 +1435,7 @@ body {
   width: 30px !important;
   height: 60px !important;
   padding: 0 !important;
-  background: rgba(20, 25, 35, 0.8);
+  background: rgba(20, 25, 35, 0.95);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-right: none;
