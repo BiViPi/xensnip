@@ -68,22 +68,22 @@ export function HotkeyField({ value, onChange, error }: Props) {
       <style>{`
         .xs-hotkey-container {
           position: relative;
-          min-width: 140px;
+          min-width: 120px;
         }
 
         .xs-hotkey-input {
           background: rgba(0, 0, 0, 0.3);
           border: 1px solid rgba(255, 255, 255, 0.1);
           border-radius: 8px;
-          padding: 8px 16px;
+          padding: 6px 12px;
           cursor: pointer;
           transition: all 0.2s ease;
           display: flex;
           align-items: center;
           justify-content: center;
-          min-height: 38px;
+          min-height: 32px;
           font-family: 'JetBrains Mono', 'Cascadia Code', monospace;
-          font-size: 13px;
+          font-size: 11px;
           outline: none;
         }
 

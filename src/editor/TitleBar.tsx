@@ -144,7 +144,7 @@ export function TitleBar({
           padding-left: 14px;
           pointer-events: none;
           flex-shrink: 0;
-          width: 120px; /* Fixed width to prevent drag area overlap */
+          width: 120px;
         }
 
         .xs-titlebar-logo {
@@ -172,10 +172,10 @@ export function TitleBar({
         .xs-titlebar-controls {
           display: flex;
           height: 100%;
-          padding-right: 2px;
           flex-shrink: 0;
-          width: 144px; /* 3 buttons * 48px */
-          z-index: 10002; /* Ensure buttons stay above drag area */
+          z-index: 10002;
+          margin-left: auto;
+          width: auto;
         }
         
         .xs-titlebar-btn {
@@ -192,7 +192,7 @@ export function TitleBar({
           transition: all 0.1s ease;
           position: relative;
           z-index: 10003;
-          pointer-events: auto !important; /* Force pointer events */
+          pointer-events: auto !important;
         }
 
         .xs-titlebar-btn:hover {
