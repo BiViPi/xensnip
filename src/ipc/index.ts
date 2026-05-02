@@ -20,7 +20,7 @@ export async function settingsLoad(): Promise<Settings> {
 }
 
 export async function settingsSave(settings: Settings): Promise<SettingsSaveResult> {
-  return await invoke<SettingsSaveResult>("settings_save", { settings });
+  return await invoke<SettingsSaveResult>("settings_save", { newSettings: settings });
 }
 
 // ─── Capture commands (Sprint 02 contract — do not change) ───────────────────

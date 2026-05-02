@@ -148,6 +148,14 @@ pub fn settings_save(
     app_handle: AppHandle,
     new_settings: Settings,
 ) -> Result<crate::settings::SettingsSaveResult, crate::settings::SettingsSaveError> {
+    log::info!(
+        target: "settings",
+        "settings_save requested: region={:?}, active_window={:?}, launch_at_startup={}",
+        new_settings.hotkeys.region,
+        new_settings.hotkeys.active_window,
+        new_settings.launch_at_startup,
+    );
+
     // 1. Validate hotkeys
     let _: tauri_plugin_global_shortcut::Shortcut = new_settings
         .hotkeys
