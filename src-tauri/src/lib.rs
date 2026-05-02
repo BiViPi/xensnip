@@ -12,8 +12,11 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Manager, WebviewWindow};
 use tauri_plugin_log::{Target, TargetKind};
+use windows::Win32::Graphics::Dwm::{
+    DwmSetWindowAttribute, DWMWA_BORDER_COLOR, DWMWA_WINDOW_CORNER_PREFERENCE,
+};
 
 fn parse_asset_id_from_uri(uri: &tauri::http::Uri) -> String {
     if let Some(host) = uri.host() {
@@ -203,10 +206,44 @@ pub fn open_settings_window(app: &AppHandle) -> tauri::Result<()> {
     .inner_size(500.0, 680.0) 
     .resizable(false)
     .decorations(false)
+    .transparent(true)
     .focused(true)
     .build()?;
 
     log::info!(target: "app", "settings window opened");
+    let _ = apply_window_native_style(&_window);
+    Ok(())
+}
+
+pub fn apply_window_native_style(window: &WebviewWindow) -> tauri::Result<()> {
+    #[cfg(target_os = "windows")]
+    {
+        use tauri::Runtime;
+        if let Ok(hwnd) = window.hwnd() {
+            // Force border color to Midnight Blue (#0f172a) to hide the Windows 11 accent border.
+            // COLORREF is 0x00BBGGRR -> #0f172a is R:0x0f, G:0x17, B:0x2a -> 0x002a170f
+            let color: u32 = 0x002a170f;
+            unsafe {
+                let hwnd = windows::Win32::Foundation::HWND(hwnd.0);
+                // 1. Force border color to Midnight Blue
+                let _ = DwmSetWindowAttribute(
+                    hwnd,
+                    DWMWA_BORDER_COLOR,
+                    &color as *const u32 as *const _,
+                    std::mem::size_of::<u32>() as u32,
+                );
+
+                // 2. Force rounded corners (DWMWCP_ROUND = 2)
+                let corner_preference = 2u32;
+                let _ = DwmSetWindowAttribute(
+                    hwnd,
+                    DWMWA_WINDOW_CORNER_PREFERENCE,
+                    &corner_preference as *const u32 as *const _,
+                    std::mem::size_of::<u32>() as u32,
+                );
+            }
+        }
+    }
     Ok(())
 }
 

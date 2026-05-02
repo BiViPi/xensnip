@@ -168,11 +168,14 @@ fn spawn_window(
     .resizable(true)
     .always_on_top(false)
     .skip_taskbar(false)
+    .transparent(true)
     .focused(true)
     .inner_size(EDITOR_WIDTH as f64, EDITOR_HEIGHT as f64)
     .min_inner_size(EDITOR_MIN_WIDTH as f64, EDITOR_MIN_HEIGHT as f64)
     .position(x as f64, y as f64)
     .build()?;
+
+    let _ = crate::apply_window_native_style(&window);
 
     let app_handle = app.clone();
     let asset_id = asset_id.to_string();

@@ -38,5 +38,6 @@ windows = { version = "0.62.2", features = [
     "Win32_Foundation",
     "Win32_Graphics_Gdi",
     "Win32_UI_HiDpi",
+    "Win32_Graphics_Dwm",
 ] }
 winreg = "0.10.1"

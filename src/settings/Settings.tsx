@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { settingsLoad, settingsSave, selectExportFolder } from "../ipc/index";
 import { Settings as SettingsType, SettingsSaveError } from "../ipc/types";
 import { Toast } from "../editor/Toast";
@@ -89,6 +90,7 @@ export function Settings() {
       setDraft(loadedRef.current);
     }
     setErrors({});
+    void getCurrentWindow().close();
   };
 
   const handleChangeFolder = async () => {
