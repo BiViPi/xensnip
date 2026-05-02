@@ -8,6 +8,8 @@ mod overlay;
 mod quick_access;
 mod settings;
 
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Manager};
@@ -31,6 +33,10 @@ fn parse_asset_id_from_uri(uri: &tauri::http::Uri) -> String {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let quit_requested = Arc::new(AtomicBool::new(false));
+    let quit_requested_tray = quit_requested.clone();
+    let quit_requested_run = quit_requested.clone();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
@@ -131,6 +137,7 @@ pub fn run() {
                 .on_menu_event(move |app: &AppHandle, event| match event.id.as_ref() {
                     "quit" => {
                         log::info!(target: "app", "Quit clicked");
+                        quit_requested_tray.store(true, Ordering::Relaxed);
                         app.exit(0);
                     }
                     "region" => {
@@ -169,11 +176,13 @@ pub fn run() {
         })
         .build(tauri::generate_context!())
         .expect("error while running tauri application")
-        .run(|_app_handle, event| {
-            // Keep the tray runtime alive when all windows are closed.
-            // The user must Quit explicitly from the tray menu.
+        .run(move |_app_handle, event| {
+            // Prevent exit when all windows close so the tray stays alive.
+            // Allow exit only when the user explicitly clicks Quit from the tray.
             if let tauri::RunEvent::ExitRequested { api, .. } = event {
-                api.prevent_exit();
+                if !quit_requested_run.load(Ordering::Relaxed) {
+                    api.prevent_exit();
+                }
             }
         });
 }

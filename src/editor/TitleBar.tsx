@@ -85,14 +85,8 @@ export function TitleBar({
       </div>
 
       {/* Drag Area - Middle space */}
-      <div 
-        data-tauri-drag-region 
-        onMouseDown={(e) => {
-          // Only start dragging if it's the primary mouse button
-          if (e.button === 0) {
-            void appWindow.startDragging().catch(() => {});
-          }
-        }}
+      <div
+        data-tauri-drag-region
         onDoubleClick={handleMaximize}
         className="xs-titlebar-drag-area"
       />
