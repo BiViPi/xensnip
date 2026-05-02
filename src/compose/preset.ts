@@ -76,7 +76,7 @@ export const DEFAULT_PRESET: EditorPreset = {
   
   bg_mode: "Gradient",
   bg_value: "wp-1",
-  bg_colors: ["#3b82f6", "#1d4ed8"],
+  bg_colors: ["#4158D0", "#C850C0", "#FFCC70"],
   bg_gradient_type: "Linear",
   bg_angle: 135,
   bg_radius: 50,
