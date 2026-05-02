@@ -9,6 +9,11 @@ export interface Settings {
   version: number;
   hotkeys: Hotkeys;
   launch_at_startup: boolean;
+  play_copy_sound: boolean;
+  play_save_sound: boolean;
+  export_folder: string | null;
+  export_format: string;
+  capture_all_monitors: boolean;
 }
 
 export interface PingResponse {

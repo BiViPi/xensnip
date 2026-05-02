@@ -116,28 +116,45 @@ pub fn clipboard_write_image(app_handle: AppHandle, png_bytes: Vec<u8>) -> Resul
 }
 
 #[tauri::command]
-pub async fn export_save_png(
-    app_handle: AppHandle,
-    png_bytes: Vec<u8>,
-    default_filename: String,
+pub async fn export_save_media(
+    _app_handle: AppHandle,
+    bytes: Vec<u8>,
+    folder_path: String,
+    filename: String,
 ) -> Result<bool, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut path = std::path::PathBuf::from(folder_path);
+        path.push(filename);
+
+        let mut final_path = path.clone();
+        let mut counter = 1;
+        while final_path.exists() {
+            let stem = path.file_stem().unwrap_or_default().to_string_lossy();
+            let ext = path.extension().unwrap_or_default().to_string_lossy();
+            let new_filename = format!("{} ({}).{}", stem, counter, ext);
+            final_path = path.with_file_name(new_filename);
+            counter += 1;
+        }
+
+        std::fs::write(final_path, bytes).map_err(|e| e.to_string())?;
+        Ok(true)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub async fn select_export_folder(app_handle: AppHandle) -> Result<Option<String>, String> {
     tauri::async_runtime::spawn_blocking(move || {
         let maybe_path = app_handle
             .dialog()
             .file()
-            .add_filter("PNG Image", &["png"])
-            .set_file_name(default_filename)
-            .blocking_save_file();
+            .blocking_pick_folder();
 
-        let Some(path) = maybe_path else {
-            return Ok(false);
-        };
-
-        let path = path
-            .into_path()
-            .map_err(|_| "Selected path is not supported".to_string())?;
-        std::fs::write(path, png_bytes).map_err(|e| e.to_string())?;
-        Ok(true)
+        match maybe_path {
+            Some(path) => Ok(Some(path.into_path().map_err(|_| "Invalid path".to_string())?.to_string_lossy().into_owned())),
+            None => Ok(None),
+        }
     })
     .await
     .map_err(|e| e.to_string())?

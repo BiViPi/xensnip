@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500">
+        <!-- Nền của SVG đã được xóa để làm trong suốt -->
+
+        <defs>
+            <!-- Hiệu ứng chuyển màu (Gradient) từ Cyan sang Blue -->
+            <linearGradient id="neonGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#00d2ff" />
+                <stop offset="100%" stop-color="#0045ff" />
+            </linearGradient>
+        </defs>
+
+        <!-- Nhóm chứa các thành phần (đã bỏ hiệu ứng Glow) -->
+        <g>
+
+            <!-- Màn hình bên trái -->
+            <g stroke="url(#neonGrad)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+                <!-- Viền màn hình (Bo tròn góc) -->
+                <rect x="95" y="155" width="150" height="135" rx="15" fill="#05060b" />
+                <!-- Chân đế đứng (2 đường thẳng) -->
+                <path d="M 155 290 L 155 320 M 185 290 L 185 320" />
+                <!-- Đế ngang -->
+                <path d="M 140 325 L 200 325" stroke-width="10" />
+            </g>
+
+            <!-- Màn hình bên phải -->
+            <g stroke="url(#neonGrad)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+                <!-- Viền màn hình -->
+                <rect x="255" y="155" width="150" height="135" rx="15" fill="#05060b" />
+                <!-- Chân đế đứng -->
+                <path d="M 315 290 L 315 320 M 345 290 L 345 320" />
+                <!-- Đế ngang -->
+                <path d="M 300 325 L 360 325" stroke-width="10" />
+            </g>
+
+            <!-- Hình chữ nhật nét đứt ở giữa -->
+            <!-- Hình khối đóng vai trò làm mặt nạ che khuất các phần màn hình nằm bên dưới -->
+            <rect x="180" y="175" width="140" height="100" fill="#05060b" />
+
+            <g stroke="url(#neonGrad)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none">
+                <!-- Các góc L cố định -->
+                <path d="M 180 195 L 180 175 L 200 175" /> <!-- Góc trên trái -->
+                <path d="M 300 175 L 320 175 L 320 195" /> <!-- Góc trên phải -->
+                <path d="M 180 255 L 180 275 L 200 275" /> <!-- Góc dưới trái -->
+                <path d="M 300 275 L 320 275 L 320 255" /> <!-- Góc dưới phải (bị che một phần bởi chuột) -->
+
+                <!-- Nét đứt nằm ngang -->
+                <!-- Cạnh trên -->
+                <path d="M 215 175 L 230 175 M 245 175 L 260 175 M 275 175 L 290 175" />
+                <!-- Cạnh dưới -->
+                <path d="M 215 275 L 230 275 M 245 275 L 260 275 M 275 275 L 290 275" />
+
+                <!-- Nét đứt nằm dọc -->
+                <!-- Cạnh trái -->
+                <path d="M 180 205 L 180 220 M 180 230 L 180 245" />
+                <!-- Cạnh phải -->
+                <path d="M 320 205 L 320 220 M 320 230 L 320 245" />
+            </g>
+
+            <!-- Con trỏ chuột -->
+            <!-- Dùng fill màu nền "#05060b" để nó đè lên và che khuất phần nét đứt phía dưới -->
+            <path d="M 320 265 L 320 315 L 331 305 L 343 330 L 353 325 L 341 300 L 355 300 Z"
+                  fill="#05060b" stroke="url(#neonGrad)" stroke-width="8" stroke-linejoin="round" stroke-linecap="round" />
+        </g>
+    </svg>

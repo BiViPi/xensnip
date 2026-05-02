@@ -76,14 +76,20 @@ export async function clipboardWriteImage(pngBytes: Uint8Array): Promise<void> {
   });
 }
 
-export async function exportSavePng(
-  pngBytes: Uint8Array,
-  defaultFilename: string,
+export async function exportSaveMedia(
+  bytes: Uint8Array,
+  folderPath: string,
+  filename: string,
 ): Promise<boolean> {
-  return await invoke<boolean>("export_save_png", {
-    pngBytes,
-    defaultFilename,
+  return await invoke<boolean>("export_save_media", {
+    bytes,
+    folderPath,
+    filename,
   });
+}
+
+export async function selectExportFolder(): Promise<string | null> {
+  return await invoke<string | null>("select_export_folder");
 }
 
 // ─── Editor commands (Sprint 03) ─────────────────────────────────────────────

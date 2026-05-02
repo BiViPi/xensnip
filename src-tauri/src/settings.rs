@@ -10,22 +10,40 @@ pub struct Hotkeys {
     pub active_window: String,
 }
 
+fn default_true() -> bool { true }
+fn default_format() -> String { "PNG".to_string() }
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Settings {
     pub version: u32,
     pub hotkeys: Hotkeys,
     pub launch_at_startup: bool,
+    #[serde(default = "default_true")]
+    pub play_copy_sound: bool,
+    #[serde(default = "default_true")]
+    pub play_save_sound: bool,
+    #[serde(default)]
+    pub export_folder: Option<String>,
+    #[serde(default = "default_format")]
+    pub export_format: String,
+    #[serde(default = "default_true")]
+    pub capture_all_monitors: bool,
 }
 
 impl Default for Settings {
     fn default() -> Self {
         Self {
-            version: 2,
+            version: 3,
             hotkeys: Hotkeys {
                 region: "Ctrl+Shift+S".to_string(),
                 active_window: "Ctrl+Alt+W".to_string(),
             },
             launch_at_startup: false,
+            play_copy_sound: true,
+            play_save_sound: true,
+            export_folder: None,
+            export_format: "PNG".to_string(),
+            capture_all_monitors: true,
         }
     }
 }
@@ -38,6 +56,12 @@ fn migrate_settings_if_needed(settings: &mut Settings) -> bool {
             settings.hotkeys.active_window = "Ctrl+Alt+W".to_string();
         }
         settings.version = 2;
+        changed = true;
+    }
+
+    if settings.version < 3 {
+        settings.version = 3;
+        // Serde default handlers will have already populated the struct with default values during parsing
         changed = true;
     }
 

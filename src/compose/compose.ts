@@ -14,7 +14,7 @@ export function composeToCanvas(canvas: HTMLCanvasElement, image: HTMLImageEleme
   drawComposition(ctx, image, preset, dims);
 }
 
-export async function composeToBlob(image: HTMLImageElement, preset: EditorPreset): Promise<Uint8Array> {
+export async function composeToBlob(image: HTMLImageElement, preset: EditorPreset, format: string = "image/png", quality: number = 1.0): Promise<Uint8Array> {
   const canvas = document.createElement("canvas");
   const dims = getCompositionDimensions(image.width, image.height, preset);
   
@@ -40,7 +40,7 @@ export async function composeToBlob(image: HTMLImageElement, preset: EditorPrese
       };
       reader.onerror = () => reject(new Error("FileReader failed"));
       reader.readAsArrayBuffer(blob);
-    }, "image/png");
+    }, format, quality);
   });
 }
 

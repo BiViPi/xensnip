@@ -96,7 +96,8 @@ pub fn run() {
             commands::quick_access_dismiss,
             commands::quick_access_set_busy,
             commands::clipboard_write_image,
-            commands::export_save_png,
+            commands::export_save_media,
+            commands::select_export_folder,
             commands::settings_save,
         ])
         .setup(|app| {

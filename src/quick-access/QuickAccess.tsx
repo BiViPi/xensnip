@@ -6,8 +6,9 @@ import {
   assetRelease,
   assetResolve,
   quickAccessSetBusy,
+  settingsLoad,
 } from "../ipc/index";
-import { QuickAccessShowPayload } from "../ipc/types";
+import { QuickAccessShowPayload, Settings } from "../ipc/types";
 import { composeToCanvas } from "../compose/compose";
 import { DEFAULT_PRESET, EditorPreset } from "../compose/preset";
 import { getCompositionDimensions } from "../compose/core";
@@ -23,6 +24,11 @@ export function QuickAccess() {
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [isActionInFlight, setIsActionInFlight] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [settings, setSettings] = useState<Settings | null>(null);
+
+  useEffect(() => {
+    settingsLoad().then(setSettings).catch(console.error);
+  }, []);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafIdRef = useRef<number | null>(null);
@@ -103,6 +109,7 @@ export function QuickAccess() {
   useEffect(() => {
     let unlisten: (() => void) | null = null;
     listen<QuickAccessShowPayload>("quick-access-show", (event) => {
+      settingsLoad().then(setSettings).catch(console.error);
       void bootstrapAsset(event.payload.asset_id);
     }).then((fn) => { unlisten = fn; });
     return () => { unlisten?.(); };
@@ -261,6 +268,7 @@ export function QuickAccess() {
             showToast={showToast}
             activePop={activePop}
             onActivePopChange={setActivePop}
+            settings={settings}
           />
         </div>
       )}

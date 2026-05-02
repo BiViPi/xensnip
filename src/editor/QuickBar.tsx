@@ -1,6 +1,9 @@
 import { EditorPreset } from "../compose/preset";
 import { composeToBlob } from "../compose/compose";
-import { clipboardWriteImage, exportSavePng } from "../ipc/index";
+import copySound from "../assets/sounds/copy.ogg";
+import exportSound from "../assets/sounds/export.ogg";
+import { clipboardWriteImage, exportSaveMedia } from "../ipc/index";
+import { Settings } from "../ipc/types";
 import { RatioControl } from "./controls/Ratio";
 import { SliderControl } from "./controls/Slider";
 import { ShadowControl } from "./controls/Shadow";
@@ -15,6 +18,7 @@ interface Props {
   showToast: (m: string, t?: "success" | "error") => void;
   activePop: string | null;
   onActivePopChange: (n: string | null) => void;
+  settings: Settings | null;
 }
 
 const Icon = ({ name }: { name: string }) => {
@@ -159,7 +163,7 @@ const Icon = ({ name }: { name: string }) => {
 
 export function QuickBar({
   preset, setPreset, image, isActionInFlight, setIsActionInFlight, showToast,
-  activePop, onActivePopChange
+  activePop, onActivePopChange, settings
 }: Props) {
   const toggle = (n: string) => onActivePopChange(activePop === n ? null : n);
 
@@ -169,17 +173,36 @@ export function QuickBar({
     try {
       const blob = await composeToBlob(image, preset);
       await clipboardWriteImage(blob);
+      if (settings?.play_copy_sound) {
+        new Audio(copySound).play().catch(() => {});
+      }
       showToast("Copied", "success");
     } finally { setIsActionInFlight(false); }
   };
 
   const handleExport = async () => {
     if (isActionInFlight) return;
+    if (!settings?.export_folder) {
+      showToast("Please select a save folder in Settings first", "error");
+      return;
+    }
+    
     setIsActionInFlight(true);
     try {
-      const blob = await composeToBlob(image, preset);
-      const saved = await exportSavePng(blob, `xensnip-${Date.now()}.png`);
-      if (saved) showToast("Saved", "success");
+      const format = settings.export_format === "JPEG" ? "image/jpeg" : "image/png";
+      const ext = settings.export_format === "JPEG" ? "jpg" : "png";
+      const blob = await composeToBlob(image, preset, format, 1.0);
+      
+      const saved = await exportSaveMedia(blob, settings.export_folder, `xensnip-${Date.now()}.${ext}`);
+      if (saved) {
+        if (settings.play_save_sound) {
+          new Audio(exportSound).play().catch(() => {});
+        }
+        showToast("Saved", "success");
+      }
+    } catch (err) {
+      showToast("Failed to save image", "error");
+      console.error(err);
     } finally { setIsActionInFlight(false); }
   };
 
