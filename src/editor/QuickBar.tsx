@@ -316,7 +316,7 @@ export function QuickBar({
             <Icon name="background" />
           </button>
           {activePop === 'background' && (
-            <div className="xs-pop">
+            <div className="xs-pop background-pop">
               <BackgroundControl
                 preset={preset}
                 onChange={(updates) => setPreset(p => ({ ...p, ...updates }))}
