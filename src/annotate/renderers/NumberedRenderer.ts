@@ -15,6 +15,7 @@ export function createNumberedNode(obj: NumberedObject): Konva.Group {
     fill: obj.fill,
     stroke: '#fff',
     strokeWidth: 2,
+    hitStrokeWidth: 10,
   });
 
   const text = new Konva.Text({

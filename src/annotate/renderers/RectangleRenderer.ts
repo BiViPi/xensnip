@@ -14,6 +14,7 @@ export function createRectangleNode(obj: RectangleObject): Konva.Rect {
     cornerRadius: obj.cornerRadius,
     draggable: obj.draggable,
     strokeScaleEnabled: false,
+    hitStrokeWidth: 20,
     name: 'selectable-object'
   });
 }

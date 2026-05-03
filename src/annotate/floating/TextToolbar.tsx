@@ -13,8 +13,7 @@ const COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#a855f7'
 const FONT_SIZES = [14, 18, 24, 32, 48, 64];
 
 export function TextToolbar({ anchor, obj }: Props) {
-  const { updateObject } = useAnnotationStore();
-  const [collapsed, setCollapsed] = useState(false);
+  const { updateObject, toolbarCollapsed, setToolbarCollapsed } = useAnnotationStore();
   const [showSizes, setShowSizes] = useState(false);
 
   const overlay = document.getElementById('annotation-ui-overlay');
@@ -25,7 +24,7 @@ export function TextToolbar({ anchor, obj }: Props) {
 
   return createPortal(
     <div 
-      className={`xs-floating-toolbar ${collapsed ? 'collapsed' : ''}`}
+      className={`xs-floating-toolbar ${toolbarCollapsed ? 'collapsed' : ''}`}
       style={{
         position: 'absolute',
         left: `${left}px`,
@@ -36,12 +35,12 @@ export function TextToolbar({ anchor, obj }: Props) {
     >
       <button 
         className="xs-toolbar-btn xs-toolbar-toggle"
-        onClick={() => setCollapsed(!collapsed)}
+        onClick={() => setToolbarCollapsed(!toolbarCollapsed)}
       >
-        {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+        {toolbarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
       </button>
 
-      {!collapsed && (
+      {!toolbarCollapsed && (
         <div className="xs-toolbar-section">
           <div className="xs-toolbar-divider" />
           

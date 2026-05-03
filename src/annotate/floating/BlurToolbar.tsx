@@ -10,8 +10,7 @@ interface Props {
 }
 
 export function BlurToolbar({ anchor, obj }: Props) {
-  const { updateObject } = useAnnotationStore();
-  const [collapsed, setCollapsed] = useState(false);
+  const { updateObject, toolbarCollapsed, setToolbarCollapsed } = useAnnotationStore();
   const [showSlider, setShowSlider] = useState(false);
 
   const overlay = document.getElementById('annotation-ui-overlay');
@@ -22,7 +21,7 @@ export function BlurToolbar({ anchor, obj }: Props) {
 
   return createPortal(
     <div 
-      className={`xs-floating-toolbar ${collapsed ? 'collapsed' : ''}`}
+      className={`xs-floating-toolbar ${toolbarCollapsed ? 'collapsed' : ''}`}
       style={{
         position: 'absolute',
         left: `${left}px`,
@@ -33,12 +32,12 @@ export function BlurToolbar({ anchor, obj }: Props) {
     >
       <button 
         className="xs-toolbar-btn xs-toolbar-toggle"
-        onClick={() => setCollapsed(!collapsed)}
+        onClick={() => setToolbarCollapsed(!toolbarCollapsed)}
       >
-        {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+        {toolbarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
       </button>
 
-      {!collapsed && (
+      {!toolbarCollapsed && (
         <div className="xs-toolbar-section">
           <div className="xs-toolbar-divider" />
           

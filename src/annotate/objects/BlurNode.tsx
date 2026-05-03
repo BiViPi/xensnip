@@ -70,6 +70,7 @@ export function BlurNode({ obj, onSelect, onUpdate, compositionCanvasRef }: Blur
       blurRadius={obj.blurRadius}
       onClick={() => onSelect(obj.id)}
       onTap={() => onSelect(obj.id)}
+      hitStrokeWidth={20}
       onDragEnd={(e) => {
         onUpdate(obj.id, { x: e.target.x(), y: e.target.y() });
       }}

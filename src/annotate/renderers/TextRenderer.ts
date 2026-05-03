@@ -12,6 +12,7 @@ export function createTextNode(obj: TextObject): Konva.Text {
     fill: obj.fill,
     padding: obj.padding,
     draggable: obj.draggable,
+    hitStrokeWidth: 10,
     name: 'selectable-object'
   });
 }

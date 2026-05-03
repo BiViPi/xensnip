@@ -14,6 +14,7 @@ export function createArrowNode(obj: ArrowObject): Konva.Arrow {
     draggable: obj.draggable,
     dash: obj.style === 'dashed' ? [10, 5] : undefined,
     strokeScaleEnabled: false,
+    hitStrokeWidth: 25,
     name: 'selectable-object'
   });
 }
