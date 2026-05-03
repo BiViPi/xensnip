@@ -1,7 +1,8 @@
+import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useAnnotationStore } from '../state/store';
 import { TextObject } from '../state/types';
-import { Trash2, Type } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Type } from 'lucide-react';
 
 interface Props {
   anchor: { left: number; top: number; width: number; height: number };
@@ -12,17 +13,19 @@ const COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#a855f7'
 const FONT_SIZES = [14, 18, 24, 32, 48, 64];
 
 export function TextToolbar({ anchor, obj }: Props) {
-  const { updateObject, removeObject } = useAnnotationStore();
+  const { updateObject } = useAnnotationStore();
+  const [collapsed, setCollapsed] = useState(false);
+  const [showSizes, setShowSizes] = useState(false);
 
   const overlay = document.getElementById('annotation-ui-overlay');
   if (!overlay) return null;
 
   const left = anchor.left + anchor.width / 2;
-  const top = anchor.top - 50;
+  const top = anchor.top - 40;
 
   return createPortal(
     <div 
-      className="xs-floating-toolbar"
+      className={`xs-floating-toolbar ${collapsed ? 'collapsed' : ''}`}
       style={{
         position: 'absolute',
         left: `${left}px`,
@@ -31,30 +34,58 @@ export function TextToolbar({ anchor, obj }: Props) {
         pointerEvents: 'auto'
       }}
     >
-      <div className="xs-toolbar-row">
-        {COLORS.map(c => (
-          <button 
-            key={c}
-            className={`xs-color-chip ${obj.fill === c ? 'active' : ''}`}
-            style={{ background: c }}
-            onClick={() => updateObject(obj.id, { fill: c })}
-          />
-        ))}
-        <div className="xs-toolbar-divider" />
-        <button className="xs-toolbar-btn" onClick={() => removeObject(obj.id)}><Trash2 size={14} /></button>
-      </div>
-      <div className="xs-toolbar-row">
-        <Type size={14} color="#64748b" />
-        <select 
-          value={obj.fontSize}
-          onChange={(e) => updateObject(obj.id, { fontSize: parseInt(e.target.value) })}
-          className="xs-toolbar-select"
-        >
-          {FONT_SIZES.map(s => <option key={s} value={s}>{s}px</option>)}
-        </select>
-        <div className="xs-toolbar-divider" />
-        <span className="xs-toolbar-text" style={{ fontFamily: obj.fontFamily }}>Aa</span>
-      </div>
+      <button 
+        className="xs-toolbar-btn xs-toolbar-toggle"
+        onClick={() => setCollapsed(!collapsed)}
+      >
+        {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+      </button>
+
+      {!collapsed && (
+        <div className="xs-toolbar-section">
+          <div className="xs-toolbar-divider" />
+          
+          {COLORS.map(c => (
+            <button 
+              key={c}
+              className={`xs-color-chip ${obj.fill === c ? 'active' : ''}`}
+              style={{ background: c }}
+              onClick={() => updateObject(obj.id, { fill: c })}
+            />
+          ))}
+
+          <div className="xs-toolbar-divider" />
+
+          <div style={{ position: 'relative' }}>
+            <button 
+              className="xs-toolbar-text"
+              onClick={() => setShowSizes(!showSizes)}
+            >
+              {obj.fontSize}px
+            </button>
+            {showSizes && (
+              <div className="xs-toolbar-slider-popover" style={{ minWidth: '60px' }}>
+                {FONT_SIZES.map(s => (
+                  <button 
+                    key={s}
+                    className={`xs-toolbar-btn ${obj.fontSize === s ? 'active' : ''}`}
+                    style={{ width: '100%', borderRadius: '4px', fontSize: '10px' }}
+                    onClick={() => { updateObject(obj.id, { fontSize: s }); setShowSizes(false); }}
+                  >
+                    {s}px
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="xs-toolbar-divider" />
+
+          <button className="xs-toolbar-btn active" title="Font Style">
+            <Type size={14} />
+          </button>
+        </div>
+      )}
     </div>,
     overlay
   );
