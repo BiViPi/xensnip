@@ -1,0 +1,75 @@
+import { useAnnotationStore } from './state/store';
+import { ArrowNode } from './objects/ArrowNode';
+import { RectangleNode } from './objects/RectangleNode';
+import { TextNode } from './objects/TextNode';
+import { BlurNode } from './objects/BlurNode';
+import { NumberedNode } from './objects/NumberedNode';
+
+interface Props {
+  scale: number;
+  compositionCanvasRef: React.RefObject<HTMLCanvasElement | null>;
+}
+
+export function ObjectsLayer({ scale, compositionCanvasRef }: Props) {
+  const { objects, select, updateObject } = useAnnotationStore();
+
+  return (
+    <>
+      {objects.map((obj) => {
+        if (obj.type === 'arrow') {
+          return (
+            <ArrowNode
+              key={obj.id}
+              obj={obj}
+              onSelect={select}
+              onUpdate={updateObject}
+            />
+          );
+        }
+        if (obj.type === 'rectangle') {
+          return (
+            <RectangleNode
+              key={obj.id}
+              obj={obj}
+              onSelect={select}
+              onUpdate={updateObject}
+            />
+          );
+        }
+        if (obj.type === 'text') {
+          return (
+            <TextNode
+              key={obj.id}
+              obj={obj as any}
+              onSelect={select}
+              onUpdate={updateObject}
+              stageScale={scale}
+            />
+          );
+        }
+        if (obj.type === 'blur') {
+          return (
+            <BlurNode
+              key={obj.id}
+              obj={obj as any}
+              onSelect={select}
+              onUpdate={updateObject}
+              compositionCanvasRef={compositionCanvasRef}
+            />
+          );
+        }
+        if (obj.type === 'numbered') {
+          return (
+            <NumberedNode
+              key={obj.id}
+              obj={obj as any}
+              onSelect={select}
+              onUpdate={updateObject}
+            />
+          );
+        }
+        return null;
+      })}
+    </>
+  );
+}

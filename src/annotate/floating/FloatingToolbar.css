@@ -1,0 +1,106 @@
+/* Floating Toolbar Styles */
+
+.xs-floating-toolbar {
+  background: rgba(15, 23, 42, 0.9);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  min-width: 180px;
+}
+
+.xs-toolbar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.xs-color-chip {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.1s ease;
+}
+
+.xs-color-chip:hover {
+  transform: scale(1.2);
+}
+
+.xs-color-chip.active {
+  box-shadow: 0 0 0 2px #3b82f6;
+  border-color: white;
+}
+
+.xs-toolbar-divider {
+  width: 1px;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.xs-toolbar-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.xs-toolbar-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #f1f5f9;
+}
+
+.xs-toolbar-btn.active {
+  background: rgba(59, 130, 246, 0.2);
+  color: #3b82f6;
+}
+
+.xs-toolbar-slider {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  outline: none;
+}
+
+.xs-toolbar-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  background: #3b82f6;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.xs-toolbar-text {
+  font-size: 10px;
+  color: #94a3b8;
+  min-width: 24px;
+}
+
+.xs-toolbar-select {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f1f5f9;
+  font-size: 10px;
+  border-radius: 4px;
+  padding: 2px 4px;
+  outline: none;
+}
+
+.xs-toolbar-select option {
+  background: #0f172a;
+  color: #f1f5f9;
+}

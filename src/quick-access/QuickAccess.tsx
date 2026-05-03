@@ -5,19 +5,26 @@ import {
   assetReadPng,
   assetRelease,
   assetResolve,
-  quickAccessSetBusy,
   settingsLoad,
-  settingsUpdateLastPreset,
 } from "../ipc/index";
 import { QuickAccessShowPayload, Settings } from "../ipc/types";
 import { composeToCanvas } from "../compose/compose";
 import { DEFAULT_PRESET, EditorPreset } from "../compose/preset";
-import { getCompositionDimensions, preloadWallpaper, getOrLoadWallpaper } from "../compose/core";
+import { preloadWallpaper, getOrLoadWallpaper } from "../compose/core";
 import { autoBalance } from "../editor/autoBalance";
 import { QuickBar } from "../editor/QuickBar";
 import { Toast } from "../editor/Toast";
 import { TitleBar } from "../editor/TitleBar";
 import { PresetManager } from "../editor/controls/PresetManager";
+import { RightSidebar } from "../sidebar/RightSidebar";
+import { usePreviewMetrics } from "../editor/usePreviewMetrics";
+import { AnnotationStage } from "../annotate/AnnotationStage";
+import { useKeyboardShortcuts } from "../editor/useKeyboardShortcuts";
+import { FloatingToolbarManager } from "../annotate/floating/FloatingToolbarManager";
+import { useAnnotationStore } from "../annotate/state/store";
+import { useCropTool } from "../editor/useCropTool";
+import { CropOverlay } from "../editor/CropOverlay";
+import "./QuickAccess.css";
 
 export function QuickAccess() {
   const [viewportSize, setViewportSize] = useState(() => ({
@@ -33,19 +40,26 @@ export function QuickAccess() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [wallpaperFlip, setWallpaperFlip] = useState(0);
   const [isPresetManagerOpen, setIsPresetManagerOpen] = useState(false);
+  const [activePop, setActivePop] = useState<string | null>(null);
+
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const stageRef = useRef<any>(null);
+  const bootstrappedAssetIdRef = useRef<string | null>(null);
+  const resolvedAssetIdRef = useRef<string | null>(null);
+  const blobUrlRef = useRef<string | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useKeyboardShortcuts();
 
   useEffect(() => {
     settingsLoad().then(setSettings).catch(console.error);
-  }, []);
-
-  useEffect(() => {
+    
     const handleResize = () => {
       setViewportSize({
         width: window.innerWidth,
         height: window.innerHeight,
       });
     };
-
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
@@ -54,28 +68,27 @@ export function QuickAccess() {
     settingsLoad().then(setSettings).catch(console.error);
   }, []);
 
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const rafIdRef = useRef<number | null>(null);
-  const bootstrappedAssetIdRef = useRef<string | null>(null);
-  const resolvedAssetIdRef = useRef<string | null>(null);
-  const blobUrlRef = useRef<string | null>(null);
-  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showToast = (message: string, type: "success" | "error" = "success") => {
+    setToast({ message, type });
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => setToast(null), 3000);
+  };
+
+  const { activeTool, setActiveTool } = useAnnotationStore();
+  const { 
+    cropBounds, 
+    setCropBounds, 
+    startCrop, 
+    cancelCrop, 
+    commitCrop,
+    hasAnnotations
+  } = useCropTool(image, preset, setImage, setActiveTool);
 
   useEffect(() => {
-    if (assetId) {
-      void quickAccessSetBusy(assetId, isActionInFlight).catch(() => {});
+    if (activeTool === 'crop') {
+      startCrop();
     }
-  }, [assetId, isActionInFlight]);
-
-  const handleDismiss = useCallback(async () => {
-    const targetId = assetId;
-    if (!targetId) return;
-    try {
-      await quickAccessDismiss(targetId);
-    } catch {
-      // Native window close hook handles actual destruction
-    }
-  }, [assetId]);
+  }, [activeTool, startCrop]);
 
   const bootstrapAsset = useCallback(async (nextAssetId: string) => {
     if (bootstrappedAssetIdRef.current === nextAssetId) return;
@@ -115,35 +128,21 @@ export function QuickAccess() {
       setImage(img);
       setAssetId(nextAssetId);
 
-      let currentSettings: Settings | null = null;
-      try {
-        currentSettings = await settingsLoad();
-        setSettings(currentSettings);
-      } catch {
-        currentSettings = null;
-      }
+      let currentSettings = await settingsLoad();
+      setSettings(currentSettings);
 
       if (currentSettings?.last_preset) {
         setPreset({ ...DEFAULT_PRESET, ...currentSettings.last_preset });
       } else if (currentSettings?.default_preset_id) {
         const def = currentSettings.saved_presets.find(p => p.id === currentSettings.default_preset_id);
-        if (def) {
-          setPreset({ ...DEFAULT_PRESET, ...def.preset });
-        } else {
-          const balancedPadding = autoBalance(img.width, img.height, DEFAULT_PRESET.ratio);
-          setPreset({ ...DEFAULT_PRESET, padding: balancedPadding });
-        }
+        if (def) setPreset({ ...DEFAULT_PRESET, ...def.preset });
+        else setPreset({ ...DEFAULT_PRESET, padding: autoBalance(img.width, img.height, DEFAULT_PRESET.ratio) });
       } else {
-        const balancedPadding = autoBalance(img.width, img.height, DEFAULT_PRESET.ratio);
-        setPreset({ ...DEFAULT_PRESET, padding: balancedPadding });
+        setPreset({ ...DEFAULT_PRESET, padding: autoBalance(img.width, img.height, DEFAULT_PRESET.ratio) });
       }
     } catch (e) {
       console.error("Bootstrap failed", e);
       bootstrappedAssetIdRef.current = null;
-      if (resolvedAssetIdRef.current === nextAssetId) {
-        void assetRelease(nextAssetId, "quick_access_ui").catch(() => {});
-        resolvedAssetIdRef.current = null;
-      }
       showToast("Capture is no longer available.", "error");
     } finally {
       setIsLoading(false);
@@ -151,13 +150,13 @@ export function QuickAccess() {
   }, []);
 
   useEffect(() => {
-    let unlisten: (() => void) | null = null;
+    let unlisten: any = null;
     listen<QuickAccessShowPayload>("quick-access-show", (event) => {
-      settingsLoad().then(setSettings).catch(console.error);
+      refreshSettings();
       void bootstrapAsset(event.payload.asset_id);
-    }).then((fn) => { unlisten = fn; });
-    return () => { unlisten?.(); };
-  }, [bootstrapAsset]);
+    }).then(fn => unlisten = fn);
+    return () => unlisten?.();
+  }, [bootstrapAsset, refreshSettings]);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
@@ -165,62 +164,31 @@ export function QuickAccess() {
     if (initialId) void bootstrapAsset(initialId);
   }, [bootstrapAsset]);
 
-  const draw = useCallback(() => {
+  const { dims, previewScale, previewW, previewH, centerX, centerY } = usePreviewMetrics(image, preset, viewportSize);
+
+  useEffect(() => {
     if (!canvasRef.current || !image) return;
     composeToCanvas(canvasRef.current, image, preset);
-  }, [image, preset, wallpaperFlip]);
-
-  useEffect(() => {
-    rafIdRef.current = requestAnimationFrame(draw);
-    return () => { if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current); };
-  }, [draw]);
-
-  // Persist last preset on change (debounced)
-  useEffect(() => {
-    if (isLoading || !image) return;
-    const timer = setTimeout(() => {
-      void settingsUpdateLastPreset(preset).catch(console.error);
-    }, 1500);
-    return () => clearTimeout(timer);
-  }, [preset, isLoading, image]);
+  }, [image, preset, wallpaperFlip, dims]);
 
   useEffect(() => {
     if (preset.bg_mode === "Wallpaper") {
       if (getOrLoadWallpaper(preset.bg_value)) return;
-      preloadWallpaper(preset.bg_value).then(() => {
-        setWallpaperFlip(v => v + 1);
-      }).catch(console.error);
+      preloadWallpaper(preset.bg_value).then(() => setWallpaperFlip(v => v + 1)).catch(console.error);
     }
   }, [preset.bg_mode, preset.bg_value]);
 
-  const showToast = (message: string, type: "success" | "error" = "success") => {
-    setToast({ message, type });
-    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    toastTimerRef.current = setTimeout(() => setToast(null), 3000);
-  };
+  const handleDismiss = useCallback(async () => {
+    if (assetId) void quickAccessDismiss(assetId).catch(() => {});
+  }, [assetId]);
 
-  const [activePop, setActivePop] = useState<string | null>(null);
-
-  // Math for Shadow Dot
-  const dims = image ? getCompositionDimensions(image.width, image.height, preset) : { canvasW: 0, canvasH: 0, drawX: 0, drawY: 0, drawW: 0, drawH: 0 };
-  const previewBudgetW = viewportSize.width * 0.74;
-  const previewBudgetH = viewportSize.height * 0.66;
-  const previewScale = dims.canvasW > 0 ? Math.min(previewBudgetW / dims.canvasW, previewBudgetH / dims.canvasH, 1) : 1;
-  const previewW = Math.floor(dims.canvasW * previewScale);
-  const previewH = Math.floor(dims.canvasH * previewScale);
-
-  const handleShadowDrag = useCallback((e: React.MouseEvent | MouseEvent) => {
+  const handleShadowDrag = useCallback((e: any) => {
     if (!image || !canvasRef.current) return;
     const rect = canvasRef.current.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
-
-    const centerX = (dims.drawX + dims.drawW / 2) * previewScale;
-    const centerY = (dims.drawY + dims.drawH / 2) * previewScale;
-
     const dx = mouseX - centerX;
     const dy = mouseY - centerY;
-
     const angleRad = Math.atan2(dy, dx);
     const angleDeg = (angleRad * 180 / Math.PI) + 90;
     const distance = Math.sqrt(dx * dx + dy * dy) / previewScale;
@@ -228,9 +196,9 @@ export function QuickAccess() {
     setPreset(prev => ({
       ...prev,
       shadow_angle: Math.round((angleDeg + 360) % 360),
-      shadow_offset: Math.round(Math.min(distance, 150)) // Cap distance
+      shadow_offset: Math.round(Math.min(distance, 150))
     }));
-  }, [image, dims, previewScale]);
+  }, [image, centerX, centerY, previewScale]);
 
   const onMouseDownShadow = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -244,17 +212,15 @@ export function QuickAccess() {
   };
 
   const angleRad = (preset.shadow_angle - 90) * (Math.PI / 180);
-  const dotX = (dims.drawX + dims.drawW / 2) * previewScale + Math.cos(angleRad) * (preset.shadow_offset * previewScale);
-  const dotY = (dims.drawY + dims.drawH / 2) * previewScale + Math.sin(angleRad) * (preset.shadow_offset * previewScale);
-  const centerX = (dims.drawX + dims.drawW / 2) * previewScale;
-  const centerY = (dims.drawY + dims.drawH / 2) * previewScale;
+  const dotX = centerX + Math.cos(angleRad) * (preset.shadow_offset * previewScale);
+  const dotY = centerY + Math.sin(angleRad) * (preset.shadow_offset * previewScale);
 
   return (
-    <div className="xs-shell">
+    <div className="xs-shell" style={{ backgroundColor: '#05070a' }}>
       <TitleBar title="Xensnip" onClose={handleDismiss} />
       
-      {assetId && image ? (
-        <div className="xs-viewport">
+      <div className="xs-viewport">
+        {assetId && image ? (
           <div className="xs-canvas-area" style={{ position: 'relative' }}>
             <div style={{ position: 'relative', width: `${previewW}px`, height: `${previewH}px` }}>
               <canvas
@@ -265,73 +231,68 @@ export function QuickAccess() {
                 className="xs-canvas"
                 style={{ width: '100%', height: '100%' }}
               />
+              <AnnotationStage 
+                width={previewW} 
+                height={previewH} 
+                scale={previewScale} 
+                compositionCanvasRef={canvasRef} 
+                stageRef={stageRef}
+              />
+              <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1000 }}>
+                <FloatingToolbarManager scale={previewScale} stageRef={stageRef} />
+              </div>
+
+              {activeTool === 'crop' && cropBounds && (
+                <CropOverlay
+                  bounds={cropBounds}
+                  onUpdate={setCropBounds}
+                  onCommit={commitCrop}
+                  onCancel={cancelCrop}
+                  scale={previewScale}
+                  imageWidth={image.width}
+                  imageHeight={image.height}
+                  hasAnnotations={hasAnnotations}
+                />
+              )}
               
-              {/* Shadow Dot Controller */}
               {activePop === "shadow" && preset.shadow_enabled && (
                 <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-                  {/* Line from center */}
                   <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
-                    <line 
-                      x1={centerX} y1={centerY} x2={dotX} y2={dotY} 
-                      stroke="#3b82f6" strokeWidth="1.5" strokeDasharray="4 2" opacity="0.5"
-                    />
+                    <line x1={centerX} y1={centerY} x2={dotX} y2={dotY} stroke="#3b82f6" strokeWidth="1.5" strokeDasharray="4 2" opacity="0.5" />
                   </svg>
-                  {/* The Dot */}
                   <div 
                     onMouseDown={onMouseDownShadow}
                     style={{
-                      position: 'absolute',
-                      left: `${dotX}px`,
-                      top: `${dotY}px`,
-                      width: '16px', height: '16px',
-                      background: '#3b82f6',
-                      border: '2px solid white',
-                      borderRadius: '50%',
-                      transform: 'translate(-50%, -50%)',
-                      cursor: 'move',
-                      pointerEvents: 'auto',
-                      boxShadow: '0 2px 10px rgba(0,0,0,0.3)',
-                      zIndex: 2000
+                      position: 'absolute', left: `${dotX}px`, top: `${dotY}px`,
+                      width: '16px', height: '16px', background: '#3b82f6', border: '2px solid white',
+                      borderRadius: '50%', transform: 'translate(-50%, -50%)', cursor: 'move',
+                      pointerEvents: 'auto', boxShadow: '0 2px 10px rgba(0,0,0,0.3)', zIndex: 2000
                     }}
                   />
-                  {/* Center Anchor */}
                   <div style={{
-                    position: 'absolute',
-                    left: `${centerX}px`,
-                    top: `${centerY}px`,
-                    width: '6px', height: '6px',
-                    background: '#fff',
-                    border: '1.5px solid #3b82f6',
-                    borderRadius: '50%',
-                    transform: 'translate(-50%, -50%)'
+                    position: 'absolute', left: `${centerX}px`, top: `${centerY}px`,
+                    width: '6px', height: '6px', background: '#fff', border: '1.5px solid #3b82f6',
+                    borderRadius: '50%', transform: 'translate(-50%, -50%)'
                   }} />
                 </div>
               )}
             </div>
           </div>
-          <div className="xs-dock-spacer" />
-        </div>
-      ) : (
-        <div className="xs-viewport">
+        ) : (
           <div className="xs-loading">
             {isLoading ? "Loading capture..." : "Capture unavailable."}
           </div>
-        </div>
-      )}
+        )}
+        <div className="xs-dock-spacer" />
+      </div>
 
       {assetId && image && (
         <div className="xs-dock-container">
           <QuickBar
-            preset={preset}
-            setPreset={setPreset}
-            image={image}
-            isActionInFlight={isActionInFlight}
-            setIsActionInFlight={setIsActionInFlight}
-            showToast={showToast}
-            activePop={activePop}
-            onActivePopChange={setActivePop}
-            settings={settings}
-            onRefreshSettings={refreshSettings}
+            preset={preset} setPreset={setPreset} image={image}
+            isActionInFlight={isActionInFlight} setIsActionInFlight={setIsActionInFlight}
+            showToast={showToast} activePop={activePop} onActivePopChange={setActivePop}
+            settings={settings} onRefreshSettings={refreshSettings}
             onOpenPresetManager={() => setIsPresetManagerOpen(true)}
           />
         </div>
@@ -339,14 +300,13 @@ export function QuickAccess() {
 
       {isPresetManagerOpen && (
         <PresetManager 
-          settings={settings}
-          onRefresh={refreshSettings}
-          onClose={() => setIsPresetManagerOpen(false)}
-          showToast={showToast}
+          settings={settings} onRefresh={refreshSettings}
+          onClose={() => setIsPresetManagerOpen(false)} showToast={showToast}
         />
       )}
 
       {toast && <Toast message={toast.message} type={toast.type} />}
+      <RightSidebar />
     </div>
   );
 }

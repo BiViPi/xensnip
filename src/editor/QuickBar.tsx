@@ -1,5 +1,7 @@
 import { EditorPreset } from "../compose/preset";
 import { composeToBlob } from "../compose/compose";
+import { composeWithAnnotations } from "../compose/composeWithAnnotations";
+import { useAnnotationStore, useHasAnnotations } from "../annotate/state/store";
 import copySound from "../assets/sounds/copy.ogg";
 import exportSound from "../assets/sounds/export.ogg";
 import { clipboardWriteImage, exportSaveMedia } from "../ipc/index";
@@ -260,14 +262,20 @@ export function QuickBar({
   preset, setPreset, image, isActionInFlight, setIsActionInFlight, showToast,
   activePop, onActivePopChange, settings, onRefreshSettings, onOpenPresetManager
 }: Props) {
+  const hasAnnotations = useHasAnnotations();
   const toggle = (n: string) => onActivePopChange(activePop === n ? null : n);
+
+  const objects = useAnnotationStore(s => s.objects);
 
   const handleCopy = async () => {
     if (isActionInFlight) return;
     setIsActionInFlight(true);
     try {
-      const blob = await composeToBlob(image, preset);
-      await clipboardWriteImage(blob);
+      const bytes = objects.length > 0 
+        ? await composeWithAnnotations(image, preset, objects)
+        : await composeToBlob(image, preset);
+      
+      await clipboardWriteImage(bytes);
       if (settings?.play_copy_sound) {
         new Audio(copySound).play().catch(() => {});
       }
@@ -286,9 +294,12 @@ export function QuickBar({
     try {
       const format = settings.export_format === "JPEG" ? "image/jpeg" : "image/png";
       const ext = settings.export_format === "JPEG" ? "jpg" : "png";
-      const blob = await composeToBlob(image, preset, format, 1.0);
       
-      const saved = await exportSaveMedia(blob, settings.export_folder, `xensnip-${Date.now()}.${ext}`);
+      const bytes = objects.length > 0
+        ? await composeWithAnnotations(image, preset, objects, format, 1.0)
+        : await composeToBlob(image, preset, format, 1.0);
+      
+      const saved = await exportSaveMedia(bytes, settings.export_folder, `xensnip-${Date.now()}.${ext}`);
       if (saved) {
         if (settings.play_save_sound) {
           new Audio(exportSound).play().catch(() => {});
@@ -305,7 +316,12 @@ export function QuickBar({
     <div className="xs-dock">
       <div style={{ display: 'flex', gap: '8px' }}>
         <div style={{ position: "relative", display: 'flex', width: 'fit-content' }}>
-          <button className={`xs-btn xs-pill-btn ${activePop === 'ratio' ? 'active' : ''}`} onClick={() => toggle('ratio')}>
+          <button 
+            className={`xs-btn xs-pill-btn ${activePop === 'ratio' ? 'active' : ''} ${hasAnnotations ? 'locked' : ''}`} 
+            onClick={() => !hasAnnotations && toggle('ratio')}
+            title={hasAnnotations ? "Xóa tất cả annotation để đổi tỷ lệ" : undefined}
+            style={hasAnnotations ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+          >
             <Icon name="ratio" /> {preset.ratio} <Icon name="chevron" />
           </button>
           {activePop === 'ratio' && <div className="xs-pop"><RatioControl value={preset.ratio} onChange={(v) => { setPreset(p => ({ ...p, ratio: v })); onActivePopChange(null); }} /></div>}
