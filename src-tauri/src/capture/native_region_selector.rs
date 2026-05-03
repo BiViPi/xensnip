@@ -22,6 +22,7 @@ use windows::Win32::UI::WindowsAndMessaging::{
     WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MOUSEMOVE, WM_NCCREATE, WNDCLASSW, WS_EX_LAYERED,
     WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_POPUP,
 };
+use xcap::Monitor;
 
 const WINDOW_CLASS: windows::core::PCWSTR = w!("XenSnipNativeRegionSelector");
 
@@ -41,6 +42,13 @@ struct SelectorWindowState {
     current_x: i32,
     current_y: i32,
     outcome: SelectionOutcome,
+}
+
+struct SelectorSurfaceBounds {
+    x: i32,
+    y: i32,
+    w: i32,
+    h: i32,
 }
 
 static CLASS_REGISTERED: Once = Once::new();
@@ -129,6 +137,39 @@ fn register_class() -> Result<(), String> {
     result
 }
 
+fn resolve_selector_surface_bounds(app: &AppHandle) -> SelectorSurfaceBounds {
+    let settings = crate::settings::load_or_create_default(app);
+    if settings.capture_all_monitors {
+        return SelectorSurfaceBounds {
+            x: unsafe { GetSystemMetrics(SM_XVIRTUALSCREEN) },
+            y: unsafe { GetSystemMetrics(SM_YVIRTUALSCREEN) },
+            w: unsafe { GetSystemMetrics(SM_CXVIRTUALSCREEN) },
+            h: unsafe { GetSystemMetrics(SM_CYVIRTUALSCREEN) },
+        };
+    }
+
+    if let Ok(monitors) = Monitor::all() {
+        if let Some(primary) = monitors
+            .into_iter()
+            .find(|monitor| monitor.is_primary().unwrap_or(false))
+        {
+            return SelectorSurfaceBounds {
+                x: primary.x().unwrap_or(0),
+                y: primary.y().unwrap_or(0),
+                w: primary.width().unwrap_or(1920) as i32,
+                h: primary.height().unwrap_or(1080) as i32,
+            };
+        }
+    }
+
+    SelectorSurfaceBounds {
+        x: unsafe { GetSystemMetrics(SM_XVIRTUALSCREEN) },
+        y: unsafe { GetSystemMetrics(SM_YVIRTUALSCREEN) },
+        w: unsafe { GetSystemMetrics(SM_CXVIRTUALSCREEN) },
+        h: unsafe { GetSystemMetrics(SM_CYVIRTUALSCREEN) },
+    }
+}
+
 pub fn close_active() {
     let hwnd = {
         let guard = active_window_slot().lock().unwrap();
@@ -169,10 +210,11 @@ pub fn show_selector(app: &AppHandle) -> Result<SelectionOutcome, CaptureError> 
 }
 
 fn run_native_selector(app: AppHandle) -> Result<SelectionOutcome, String> {
-    let virtual_x = unsafe { GetSystemMetrics(SM_XVIRTUALSCREEN) };
-    let virtual_y = unsafe { GetSystemMetrics(SM_YVIRTUALSCREEN) };
-    let virtual_w = unsafe { GetSystemMetrics(SM_CXVIRTUALSCREEN) };
-    let virtual_h = unsafe { GetSystemMetrics(SM_CYVIRTUALSCREEN) };
+    let surface = resolve_selector_surface_bounds(&app);
+    let virtual_x = surface.x;
+    let virtual_y = surface.y;
+    let virtual_w = surface.w;
+    let virtual_h = surface.h;
 
     log::info!(
         target: "capture::native_selector",
