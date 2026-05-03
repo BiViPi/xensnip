@@ -400,7 +400,7 @@ input:checked+.xs-slider:before {
 /* Premium Toast Styles */
 .xs-toast {
   position: fixed;
-  bottom: 84px;
+  bottom: 48px;
   left: 16px;
   right: 16px;
   background: rgba(15, 23, 42, 0.95);
@@ -445,7 +445,7 @@ input:checked+.xs-slider:before {
   color: #64748b;
   cursor: pointer;
   padding: 4px;
-  margin-left: 4px;
+  margin-left: auto;
   display: flex;
   transition: color 0.2s ease;
 }
