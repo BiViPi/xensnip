@@ -25,7 +25,7 @@ const TOOL_CURSOR: Record<string, string> = {
 };
 
 export function AnnotationStage({ width, height, scale, compositionCanvasRef, stageRef }: AnnotationStageProps) {
-  const { activeTool, select, addObject, setActiveTool, objects } = useAnnotationStore();
+  const { activeTool, select, addObject, setActiveTool, objects, setEditingTextId } = useAnnotationStore();
   const [drawingObject, setDrawingObject] = useState<any>(null);
 
   const handleMouseDown = (e: any) => {
@@ -59,6 +59,7 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
         type: 'text',
         x: stageX,
         y: stageY,
+        rotation: 0,
         text: 'Type here...',
         fontSize: 24,
         fontFamily: 'Inter, sans-serif',
@@ -70,6 +71,7 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
       };
       addObject(text);
       select(newId);
+      setEditingTextId(newId);
       setActiveTool('select');
     } else if (activeTool === 'numbered') {
       const nextNum = objects.filter(o => o.type === 'numbered').length + 1;
@@ -79,6 +81,7 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
         type: 'numbered',
         x: stageX,
         y: stageY,
+        rotation: 0,
         displayNumber: nextNum,
         fill: '#ef4444',
         radius: 14,
@@ -91,6 +94,7 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
       const clickedOnEmpty = e.target === stage;
       if (clickedOnEmpty && activeTool === 'select') {
         select(null);
+        setEditingTextId(null);
       }
     }
   };
@@ -123,6 +127,7 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
           type: 'arrow',
           x: drawingObject.start.x,
           y: drawingObject.start.y,
+          rotation: 0,
           points: [0, 0, dx, dy],
           stroke: '#ef4444',
           strokeWidth: 4,
@@ -138,6 +143,7 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
           type: 'rectangle',
           x: Math.min(drawingObject.start.x, drawingObject.end.x),
           y: Math.min(drawingObject.start.y, drawingObject.end.y),
+          rotation: 0,
           width: Math.abs(dx),
           height: Math.abs(dy),
           stroke: '#ef4444',
@@ -153,6 +159,7 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
           type: 'blur',
           x: Math.min(drawingObject.start.x, drawingObject.end.x),
           y: Math.min(drawingObject.start.y, drawingObject.end.y),
+          rotation: 0,
           width: Math.abs(dx),
           height: Math.abs(dy),
           blurRadius: 10,

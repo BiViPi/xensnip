@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useAnnotationStore } from '../state/store';
 import { TextObject } from '../state/types';
-import { ChevronRight, ChevronLeft, Type } from 'lucide-react';
+import { ChevronRight, ChevronLeft } from 'lucide-react';
 
 interface Props {
   anchor: { left: number; top: number; width: number; height: number };
@@ -77,12 +77,6 @@ export function TextToolbar({ anchor, obj }: Props) {
               </div>
             )}
           </div>
-
-          <div className="xs-toolbar-divider" />
-
-          <button className="xs-toolbar-btn active" title="Font Style">
-            <Type size={14} />
-          </button>
         </div>
       )}
     </div>,

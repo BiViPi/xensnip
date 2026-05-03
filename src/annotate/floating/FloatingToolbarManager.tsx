@@ -14,10 +14,10 @@ interface Props {
 }
 
 export function FloatingToolbarManager({ scale, stageRef }: Props) {
-  const { selectedId, objects } = useAnnotationStore();
+  const { selectedId, objects, editingTextId } = useAnnotationStore();
   const anchor = useObjectAnchor(scale, stageRef);
   
-  if (!selectedId || !anchor) return null;
+  if (!selectedId || !anchor || editingTextId === selectedId) return null;
 
   const selectedObject = objects.find(o => o.id === selectedId);
   if (!selectedObject) return null;

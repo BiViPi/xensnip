@@ -11,7 +11,7 @@ interface Props {
 }
 
 export function ObjectsLayer({ scale, compositionCanvasRef }: Props) {
-  const { objects, select, updateObject } = useAnnotationStore();
+  const { objects, select, updateObject, selectedId } = useAnnotationStore();
 
   return (
     <>
@@ -41,6 +41,7 @@ export function ObjectsLayer({ scale, compositionCanvasRef }: Props) {
             <TextNode
               key={obj.id}
               obj={obj as any}
+              isSelected={selectedId === obj.id}
               onSelect={select}
               onUpdate={updateObject}
               stageScale={scale}
