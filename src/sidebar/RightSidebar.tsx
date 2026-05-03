@@ -27,10 +27,15 @@ export function RightSidebar() {
     }
   };
 
+  const activeIndex = FEATURES.findIndex(f => f.id === activeFeatureId);
+  // Rail layout: padding-top(6) + toggle(32) + gap(4) + divider(1) + gap(4) = 47px before first item
+  // Each item is 34px with a 4px gap.
+  const popoverOffset = activeIndex >= 0 ? 47 + (activeIndex * (34 + 4)) : 0;
+
   return (
     <div className="xs-sidebar-root">
       <div className={`xs-sidebar-rail ${collapsed ? 'collapsed' : ''}`}>
-        {/* Toggle: closes/opens the rail itself */}
+        {/* ... existing rail content ... */}
         <button
           className={`xs-rail-toggle ${!collapsed ? 'active' : ''}`}
           onClick={toggle}
@@ -63,7 +68,9 @@ export function RightSidebar() {
       </div>
 
       {activeFeatureId && !collapsed && (
-        <FeaturePopover featureId={activeFeatureId} onClose={closeFeature} />
+        <div style={{ marginTop: `${popoverOffset}px` }}>
+          <FeaturePopover featureId={activeFeatureId} onClose={closeFeature} />
+        </div>
       )}
     </div>
   );
