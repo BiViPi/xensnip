@@ -62,6 +62,7 @@ export function BlurNode({ obj, onSelect, onUpdate, compositionCanvasRef }: Blur
       id={obj.id}
       x={obj.x}
       y={obj.y}
+      rotation={obj.rotation}
       width={obj.width}
       height={obj.height}
       image={snapshot}

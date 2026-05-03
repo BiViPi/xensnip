@@ -6,6 +6,7 @@ export function createTextNode(obj: TextObject): Konva.Text {
     id: obj.id,
     x: obj.x,
     y: obj.y,
+    rotation: obj.rotation,
     text: obj.text,
     fontSize: obj.fontSize,
     fontFamily: obj.fontFamily,

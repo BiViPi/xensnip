@@ -177,9 +177,9 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       ref={stageRef}
-      style={{ 
-        position: 'absolute', 
-        top: 0, 
+      style={{
+        position: 'absolute',
+        top: 0,
         left: 0,
         pointerEvents: 'auto',
         cursor: TOOL_CURSOR[activeTool] ?? 'default',
@@ -188,7 +188,7 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
       <Layer>
         <ObjectsLayer scale={scale} compositionCanvasRef={compositionCanvasRef} />
         <SelectionTransformer />
-        
+
         {drawingObject?.type === 'arrow' && (
           <Arrow
             points={[

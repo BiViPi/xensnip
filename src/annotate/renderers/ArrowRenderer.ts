@@ -7,6 +7,7 @@ export function createArrowNode(obj: ArrowObject): Konva.Arrow {
     points: obj.points,
     x: obj.x,
     y: obj.y,
+    rotation: obj.rotation,
     stroke: obj.stroke,
     strokeWidth: obj.strokeWidth,
     pointerLength: obj.pointerLength,

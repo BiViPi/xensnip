@@ -23,7 +23,7 @@ export function ArrowToolbar({ anchor, obj }: Props) {
   const top = anchor.top - 40;
 
   return createPortal(
-    <div 
+    <div
       className={`xs-floating-toolbar ${toolbarCollapsed ? 'collapsed' : ''}`}
       style={{
         position: 'absolute',
@@ -33,7 +33,7 @@ export function ArrowToolbar({ anchor, obj }: Props) {
         pointerEvents: 'auto'
       }}
     >
-      <button 
+      <button
         className="xs-toolbar-btn xs-toolbar-toggle"
         onClick={() => setToolbarCollapsed(!toolbarCollapsed)}
       >
@@ -43,9 +43,9 @@ export function ArrowToolbar({ anchor, obj }: Props) {
       {!toolbarCollapsed && (
         <div className="xs-toolbar-section">
           <div className="xs-toolbar-divider" />
-          
+
           {COLORS.map(c => (
-            <button 
+            <button
               key={c}
               className={`xs-color-chip ${obj.stroke === c ? 'active' : ''}`}
               style={{ background: c }}
@@ -56,7 +56,7 @@ export function ArrowToolbar({ anchor, obj }: Props) {
           <div className="xs-toolbar-divider" />
 
           <div style={{ position: 'relative' }}>
-            <button 
+            <button
               className="xs-toolbar-text"
               onClick={() => setShowSlider(!showSlider)}
             >
@@ -64,9 +64,9 @@ export function ArrowToolbar({ anchor, obj }: Props) {
             </button>
             {showSlider && (
               <div className="xs-toolbar-slider-popover">
-                <input 
-                  type="range" 
-                  min="2" max="20" 
+                <input
+                  type="range"
+                  min="2" max="20"
                   value={obj.strokeWidth}
                   onChange={(e) => updateObject(obj.id, { strokeWidth: parseInt(e.target.value) })}
                   className="xs-toolbar-slider"
@@ -77,7 +77,7 @@ export function ArrowToolbar({ anchor, obj }: Props) {
 
           <div className="xs-toolbar-divider" />
 
-          <button 
+          <button
             className={`xs-toolbar-btn ${obj.style === 'dashed' ? 'active' : ''}`}
             onClick={() => updateObject(obj.id, { style: obj.style === 'dashed' ? 'solid' : 'dashed' })}
             title="Toggle Line Style"

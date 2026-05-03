@@ -5,6 +5,7 @@ export interface BaseObject {
   type: ToolId;
   x: number;
   y: number;
+  rotation: number;
   draggable: boolean;
 }
 

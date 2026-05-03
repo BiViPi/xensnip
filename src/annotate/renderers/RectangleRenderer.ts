@@ -6,6 +6,7 @@ export function createRectangleNode(obj: RectangleObject): Konva.Rect {
     id: obj.id,
     x: obj.x,
     y: obj.y,
+    rotation: obj.rotation,
     width: obj.width,
     height: obj.height,
     stroke: obj.stroke,
