@@ -66,6 +66,7 @@ pub fn capture_region_confirm(
 
 #[tauri::command]
 pub fn capture_cancel(app_handle: AppHandle) -> Result<(), String> {
+    crate::capture::native_region_spike::close_active();
     crate::overlay::close(&app_handle);
     if let Some(session) = app_handle.try_state::<CaptureSession>() {
         session.finish();

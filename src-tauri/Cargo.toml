@@ -35,10 +35,12 @@ tokio = { version = "1", features = ["full"] }
 xcap = { version = "0.9.4", features = ["image", "wgc"] }
 windows = { version = "0.62.2", features = [
     "Win32_UI_WindowsAndMessaging",
+    "Win32_UI_Input_KeyboardAndMouse",
     "Win32_Foundation",
     "Win32_Graphics_Gdi",
     "Win32_UI_HiDpi",
     "Win32_Graphics_Dwm",
+    "Win32_System_LibraryLoader",
 ] }
 winreg = "0.10.1"
 uuid = { version = "1", features = ["v4", "serde"] }

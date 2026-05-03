@@ -102,7 +102,7 @@ export default function Overlay() {
           style={{ left: x, top: y, width: w, height: h }}
         >
           <div className="overlay-dimensions">
-            {Math.round(w * (window.devicePixelRatio ?? 1))} ×{" "}
+            {Math.round(w * (window.devicePixelRatio ?? 1))} x{" "}
             {Math.round(h * (window.devicePixelRatio ?? 1))} px
           </div>
         </div>

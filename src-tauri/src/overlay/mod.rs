@@ -1,6 +1,7 @@
 use crate::capture::errors::CaptureError;
 use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
 
+#[allow(dead_code)]
 fn ensure_window(
     app: &AppHandle,
     monitor: &xcap::Monitor,
@@ -26,7 +27,7 @@ fn ensure_window(
     }
 
     let scale_factor = monitor.scale_factor().unwrap_or(1.0) as f64;
-
+    
     // xcap returns physical pixels. Tauri builder expects logical pixels.
     let x = (monitor.x().unwrap_or(0) as f64 / scale_factor).round();
     let y = (monitor.y().unwrap_or(0) as f64 / scale_factor).round();
@@ -60,6 +61,7 @@ fn ensure_window(
     Ok(window)
 }
 
+#[allow(dead_code)]
 pub fn show_all(app: &AppHandle, monitors: Vec<xcap::Monitor>) -> Result<(), CaptureError> {
     for monitor in monitors {
         let window = ensure_window(app, &monitor)?;
