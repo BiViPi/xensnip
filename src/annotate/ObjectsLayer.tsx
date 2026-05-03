@@ -6,11 +6,10 @@ import { BlurNode } from './objects/BlurNode';
 import { NumberedNode } from './objects/NumberedNode';
 
 interface Props {
-  scale: number;
   compositionCanvasRef: React.RefObject<HTMLCanvasElement | null>;
 }
 
-export function ObjectsLayer({ scale, compositionCanvasRef }: Props) {
+export function ObjectsLayer({ compositionCanvasRef }: Props) {
   const { objects, select, updateObject, selectedId } = useAnnotationStore();
 
   return (
@@ -44,7 +43,6 @@ export function ObjectsLayer({ scale, compositionCanvasRef }: Props) {
               isSelected={selectedId === obj.id}
               onSelect={select}
               onUpdate={updateObject}
-              stageScale={scale}
             />
           );
         }

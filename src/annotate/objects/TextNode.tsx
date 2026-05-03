@@ -1,7 +1,6 @@
 import { Group, Rect, Text } from 'react-konva';
 import { TextObject } from '../state/types';
 import { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { useAnnotationStore } from '../state/store';
 
 interface TextNodeProps {
@@ -9,15 +8,14 @@ interface TextNodeProps {
   isSelected: boolean;
   onSelect: (id: string) => void;
   onUpdate: (id: string, patch: any) => void;
-  stageScale: number;
 }
 
-export function TextNode({ obj, isSelected, onSelect, onUpdate, stageScale }: TextNodeProps) {
+export function TextNode({ obj, isSelected, onSelect, onUpdate }: TextNodeProps) {
   const { editingTextId, setEditingTextId } = useAnnotationStore();
   const [bounds, setBounds] = useState({ width: 100, height: obj.fontSize + obj.padding * 2 });
   const textRef = useRef<any>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const clickAtRef = useRef(0);
+  const resizeRef = useRef<{ width: number; height: number; fontSize: number } | null>(null);
   const isEditing = editingTextId === obj.id;
 
   useEffect(() => {
@@ -30,15 +28,6 @@ export function TextNode({ obj, isSelected, onSelect, onUpdate, stageScale }: Te
     });
   }, [obj.text, obj.fontSize, obj.fontFamily, obj.padding]);
 
-  // Tự động focus và select text khi bắt đầu edit
-  useEffect(() => {
-    if (isEditing && textareaRef.current) {
-      textareaRef.current.focus();
-      textareaRef.current.select();
-    }
-  }, [isEditing]);
-
-  // Tự động mở edit khi vừa tạo (nếu text là mặc định)
   useEffect(() => {
     if (!isSelected && isEditing) {
       setEditingTextId(null);
@@ -65,12 +54,26 @@ export function TextNode({ obj, isSelected, onSelect, onUpdate, stageScale }: Te
     }
   };
 
-  const handleBlur = (e: any) => {
-    setEditingTextId(null);
-    onUpdate(obj.id, { text: e.target.value || 'Type here...' });
+  const beginResize = () => {
+    resizeRef.current = {
+      width: bounds.width,
+      height: bounds.height,
+      fontSize: obj.fontSize,
+    };
   };
 
-  const overlay = document.getElementById('annotation-ui-overlay');
+  const resizeFont = (e: any) => {
+    const start = resizeRef.current;
+    if (!start) return;
+
+    const position = e.target.position();
+    const nextWidth = Math.max(24, Math.abs(position.x));
+    const nextHeight = Math.max(16, Math.abs(position.y));
+    const scale = Math.max(nextWidth / start.width, nextHeight / start.height);
+    const nextFontSize = Math.max(8, Math.min(96, Math.round(start.fontSize * scale)));
+
+    onUpdate(obj.id, { fontSize: nextFontSize });
+  };
 
   return (
     <>
@@ -133,55 +136,27 @@ export function TextNode({ obj, isSelected, onSelect, onUpdate, stageScale }: Te
                 stroke="#3b82f6"
                 strokeWidth={1}
                 cornerRadius={2}
-                listening={false}
+                draggable
+                onMouseDown={(e) => {
+                  e.cancelBubble = true;
+                }}
+                onDragStart={(e) => {
+                  e.cancelBubble = true;
+                  beginResize();
+                }}
+                onDragMove={(e) => {
+                  e.cancelBubble = true;
+                  resizeFont(e);
+                }}
+                onDragEnd={(e) => {
+                  e.cancelBubble = true;
+                  resizeRef.current = null;
+                }}
               />
             ))}
           </>
         )}
       </Group>
-      {isEditing && overlay && createPortal(
-        <textarea
-          ref={textareaRef}
-          defaultValue={obj.text}
-          onBlur={handleBlur}
-          onMouseDown={(e) => e.stopPropagation()}
-          onClick={(e) => e.stopPropagation()}
-          onKeyDown={(e) => {
-            e.stopPropagation();
-            if (e.key === 'Escape') {
-              e.currentTarget.blur();
-            }
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              e.currentTarget.blur();
-            }
-          }}
-          style={{
-            position: 'absolute',
-            left: `${obj.x * stageScale}px`,
-            top: `${obj.y * stageScale}px`,
-            width: `${bounds.width * stageScale}px`,
-            minHeight: `${bounds.height * stageScale}px`,
-            fontSize: `${obj.fontSize * stageScale}px`,
-            fontFamily: obj.fontFamily,
-            color: obj.fill,
-            background: 'transparent',
-            border: '1px dashed rgba(59, 130, 246, 0.5)',
-            padding: `${obj.padding * stageScale}px`,
-            margin: 0,
-            outline: 'none',
-            resize: 'none',
-            overflow: 'hidden',
-            pointerEvents: 'auto',
-            zIndex: 1001,
-            lineHeight: 1.1,
-            whiteSpace: 'pre',
-            wordWrap: 'break-word',
-            display: 'block',
-          }}
-        />,
-        overlay
-      )}
     </>
   );
 }

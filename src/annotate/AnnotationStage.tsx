@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Stage, Layer, Arrow, Rect } from 'react-konva';
 import { useAnnotationStore } from './state/store';
 import { ObjectsLayer } from './ObjectsLayer';
 import { ArrowObject, RectangleObject, TextObject, BlurObject, NumberedObject } from './state/types';
 import { SelectionTransformer } from './SelectionTransformer';
+import { createPortal } from 'react-dom';
 
 interface AnnotationStageProps {
   width: number;
@@ -25,8 +26,19 @@ const TOOL_CURSOR: Record<string, string> = {
 };
 
 export function AnnotationStage({ width, height, scale, compositionCanvasRef, stageRef }: AnnotationStageProps) {
-  const { activeTool, select, addObject, setActiveTool, objects, setEditingTextId } = useAnnotationStore();
+  const { activeTool, select, addObject, updateObject, setActiveTool, objects, editingTextId, setEditingTextId } = useAnnotationStore();
   const [drawingObject, setDrawingObject] = useState<any>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const editingText = objects.find((obj): obj is TextObject => obj.type === 'text' && obj.id === editingTextId);
+  const overlay = document.getElementById('annotation-ui-overlay');
+
+  useEffect(() => {
+    if (!editingText || !textareaRef.current) return;
+
+    textareaRef.current.focus();
+    textareaRef.current.select();
+  }, [editingText?.id]);
 
   const handleMouseDown = (e: any) => {
     const stage = e.target.getStage();
@@ -97,6 +109,13 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
         setEditingTextId(null);
       }
     }
+  };
+
+  const closeTextEditor = (value: string) => {
+    if (!editingText) return;
+
+    updateObject(editingText.id, { text: value || 'Type here...' });
+    setEditingTextId(null);
   };
 
   const handleMouseMove = (e: any) => {
@@ -175,57 +194,101 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
   };
 
   return (
-    <Stage
-      width={width}
-      height={height}
-      scaleX={scale}
-      scaleY={scale}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      ref={stageRef}
-      style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        pointerEvents: 'auto',
-        cursor: TOOL_CURSOR[activeTool] ?? 'default',
-      }}
-    >
-      <Layer>
-        <ObjectsLayer scale={scale} compositionCanvasRef={compositionCanvasRef} />
-        <SelectionTransformer />
+    <>
+      <Stage
+        width={width}
+        height={height}
+        scaleX={scale}
+        scaleY={scale}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        ref={stageRef}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          pointerEvents: 'auto',
+          cursor: TOOL_CURSOR[activeTool] ?? 'default',
+        }}
+      >
+        <Layer>
+          <ObjectsLayer compositionCanvasRef={compositionCanvasRef} />
+          <SelectionTransformer />
 
-        {drawingObject?.type === 'arrow' && (
-          <Arrow
-            points={[
-              0, 0,
-              drawingObject.end.x - drawingObject.start.x,
-              drawingObject.end.y - drawingObject.start.y
-            ]}
-            x={drawingObject.start.x}
-            y={drawingObject.start.y}
-            stroke="#ef4444"
-            strokeWidth={4}
-            opacity={0.6}
-            pointerLength={12}
-            pointerWidth={12}
-          />
-        )}
+          {drawingObject?.type === 'arrow' && (
+            <Arrow
+              points={[
+                0, 0,
+                drawingObject.end.x - drawingObject.start.x,
+                drawingObject.end.y - drawingObject.start.y
+              ]}
+              x={drawingObject.start.x}
+              y={drawingObject.start.y}
+              stroke="#ef4444"
+              strokeWidth={4}
+              opacity={0.6}
+              pointerLength={12}
+              pointerWidth={12}
+            />
+          )}
 
-        {(drawingObject?.type === 'rectangle' || drawingObject?.type === 'blur') && (
-          <Rect
-            x={Math.min(drawingObject.start.x, drawingObject.end.x)}
-            y={Math.min(drawingObject.start.y, drawingObject.end.y)}
-            width={Math.abs(drawingObject.end.x - drawingObject.start.x)}
-            height={Math.abs(drawingObject.end.y - drawingObject.start.y)}
-            stroke={drawingObject?.type === 'blur' ? "rgba(255,255,255,0.5)" : "#ef4444"}
-            strokeWidth={drawingObject?.type === 'blur' ? 1 : 4}
-            fill={drawingObject?.type === 'blur' ? "rgba(255,255,255,0.2)" : "transparent"}
-            opacity={0.6}
-          />
-        )}
-      </Layer>
-    </Stage>
+          {(drawingObject?.type === 'rectangle' || drawingObject?.type === 'blur') && (
+            <Rect
+              x={Math.min(drawingObject.start.x, drawingObject.end.x)}
+              y={Math.min(drawingObject.start.y, drawingObject.end.y)}
+              width={Math.abs(drawingObject.end.x - drawingObject.start.x)}
+              height={Math.abs(drawingObject.end.y - drawingObject.start.y)}
+              stroke={drawingObject?.type === 'blur' ? "rgba(255,255,255,0.5)" : "#ef4444"}
+              strokeWidth={drawingObject?.type === 'blur' ? 1 : 4}
+              fill={drawingObject?.type === 'blur' ? "rgba(255,255,255,0.2)" : "transparent"}
+              opacity={0.6}
+            />
+          )}
+        </Layer>
+      </Stage>
+      {editingText && overlay && createPortal(
+        <textarea
+          ref={textareaRef}
+          defaultValue={editingText.text === 'Type here...' ? '' : editingText.text}
+          onBlur={(e) => closeTextEditor(e.target.value)}
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => {
+            e.stopPropagation();
+            if (e.key === 'Escape') {
+              setEditingTextId(null);
+            }
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              closeTextEditor(e.currentTarget.value);
+            }
+          }}
+          placeholder="Type here..."
+          style={{
+            position: 'absolute',
+            left: `${editingText.x * scale}px`,
+            top: `${editingText.y * scale}px`,
+            minWidth: `${120 * scale}px`,
+            minHeight: `${32 * scale}px`,
+            fontSize: `${editingText.fontSize * scale}px`,
+            fontFamily: editingText.fontFamily,
+            color: editingText.fill,
+            background: 'transparent',
+            border: '1px dashed rgba(59, 130, 246, 0.65)',
+            padding: `${editingText.padding * scale}px`,
+            margin: 0,
+            outline: 'none',
+            resize: 'none',
+            overflow: 'hidden',
+            pointerEvents: 'auto',
+            zIndex: 1001,
+            lineHeight: 1.1,
+            display: 'block',
+          }}
+        />,
+        overlay
+      )}
+    </>
   );
 }
