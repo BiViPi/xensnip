@@ -35,7 +35,7 @@ struct SelectorWindowState {
     app: AppHandle,
     virtual_x: i32,
     virtual_y: i32,
-    dragging: bool,
+    selecting: bool,
     start_x: i32,
     start_y: i32,
     current_x: i32,
@@ -187,7 +187,7 @@ fn run_native_selector(app: AppHandle) -> Result<SelectionOutcome, String> {
         app,
         virtual_x,
         virtual_y,
-        dragging: false,
+        selecting: false,
         start_x: 0,
         start_y: 0,
         current_x: 0,
@@ -260,40 +260,30 @@ unsafe extern "system" fn window_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lpar
         WM_ERASEBKGND => LRESULT(1),
         WM_LBUTTONDOWN => {
             if let Some(state) = state_mut(hwnd) {
-                state.dragging = true;
-                state.start_x = get_x_lparam(lparam);
-                state.start_y = get_y_lparam(lparam);
-                state.current_x = state.start_x;
-                state.current_y = state.start_y;
-                let _ = SetCapture(hwnd);
-                invalidate_selection_bounds(
-                    hwnd,
-                    selection_bounds(state.start_x, state.start_y, state.current_x, state.current_y),
-                );
-            }
-            LRESULT(0)
-        }
-        WM_MOUSEMOVE => {
-            if let Some(state) = state_mut(hwnd) {
-                if state.dragging {
+                if !state.selecting {
+                    state.selecting = true;
+                    state.start_x = get_x_lparam(lparam);
+                    state.start_y = get_y_lparam(lparam);
+                    state.current_x = state.start_x;
+                    state.current_y = state.start_y;
+                    let _ = SetCapture(hwnd);
+                    log::info!(
+                        target: "capture::native_selector",
+                        "native selector anchor set at {},{}",
+                        state.virtual_x + state.start_x,
+                        state.virtual_y + state.start_y
+                    );
+                } else {
                     let old_bounds =
                         selection_bounds(state.start_x, state.start_y, state.current_x, state.current_y);
                     state.current_x = get_x_lparam(lparam);
                     state.current_y = get_y_lparam(lparam);
-                    let new_bounds =
-                        selection_bounds(state.start_x, state.start_y, state.current_x, state.current_y);
                     invalidate_selection_bounds(hwnd, old_bounds);
-                    invalidate_selection_bounds(hwnd, new_bounds);
-                }
-            }
-            LRESULT(0)
-        }
-        WM_LBUTTONUP => {
-            if let Some(state) = state_mut(hwnd) {
-                if state.dragging {
-                    state.dragging = false;
-                    state.current_x = get_x_lparam(lparam);
-                    state.current_y = get_y_lparam(lparam);
+                    invalidate_selection_bounds(
+                        hwnd,
+                        selection_bounds(state.start_x, state.start_y, state.current_x, state.current_y),
+                    );
+                    state.selecting = false;
                     let _ = ReleaseCapture();
 
                     let gx = state.virtual_x + state.start_x.min(state.current_x);
@@ -308,14 +298,37 @@ unsafe extern "system" fn window_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lpar
                         state.outcome = SelectionOutcome::Cancelled;
                         log::info!(target: "capture::native_selector", "native selector cancelled: rect too small");
                     }
+
+                    let _ = DestroyWindow(hwnd);
                 }
             }
-            let _ = DestroyWindow(hwnd);
+            LRESULT(0)
+        }
+        WM_MOUSEMOVE => {
+            if let Some(state) = state_mut(hwnd) {
+                if state.selecting {
+                    let old_bounds =
+                        selection_bounds(state.start_x, state.start_y, state.current_x, state.current_y);
+                    state.current_x = get_x_lparam(lparam);
+                    state.current_y = get_y_lparam(lparam);
+                    let new_bounds =
+                        selection_bounds(state.start_x, state.start_y, state.current_x, state.current_y);
+                    invalidate_selection_bounds(hwnd, old_bounds);
+                    invalidate_selection_bounds(hwnd, new_bounds);
+                }
+            }
+            LRESULT(0)
+        }
+        WM_LBUTTONUP => {
             LRESULT(0)
         }
         WM_KEYDOWN => {
             if wparam.0 as u16 == VK_ESCAPE.0 {
                 if let Some(state) = state_mut(hwnd) {
+                    if state.selecting {
+                        state.selecting = false;
+                        let _ = ReleaseCapture();
+                    }
                     state.outcome = SelectionOutcome::Cancelled;
                 }
                 log::info!(target: "capture::native_selector", "native selector cancelled with Escape");
@@ -412,6 +425,9 @@ unsafe extern "system" fn window_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lpar
                 as *mut SelectorWindowState;
             if !ptr.is_null() {
                 let state = Box::from_raw(ptr);
+                if state.selecting {
+                    let _ = ReleaseCapture();
+                }
                 
                 LAST_OUTCOME.with(|cell| {
                     let mut guard = cell.lock().unwrap();
