@@ -74,20 +74,34 @@ pub fn finish_region_capture(
         monitors
             .iter()
             .find(|m| m.name().unwrap_or_default() == monitor_id)
+            .ok_or_else(|| {
+                let err = CaptureError::new(
+                    crate::capture::errors::CaptureErrorClass::InvalidTarget,
+                    "monitor_not_found",
+                    &format!("Monitor with id '{}' not found.", monitor_id),
+                );
+                emit_failure(
+                    app,
+                    &err,
+                    &start_time,
+                    crate::diagnostics::CaptureMethod::WgcMonitor,
+                );
+                cleanup();
+                err
+            })?
     } else {
-        monitors.first()
-    }
-    .ok_or_else(|| {
-        let err = CaptureError::InvalidTarget();
-        emit_failure(
-            app,
-            &err,
-            &start_time,
-            crate::diagnostics::CaptureMethod::WgcMonitor,
-        );
-        cleanup();
-        err
-    })?;
+        monitors.first().ok_or_else(|| {
+            let err = CaptureError::InvalidTarget();
+            emit_failure(
+                app,
+                &err,
+                &start_time,
+                crate::diagnostics::CaptureMethod::WgcMonitor,
+            );
+            cleanup();
+            err
+        })?
+    };
 
     let actual_monitor_id = target_monitor.name().unwrap_or_default();
     let actual_dpi = target_monitor.scale_factor().unwrap_or(1.0);

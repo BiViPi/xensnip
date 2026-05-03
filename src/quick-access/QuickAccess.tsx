@@ -20,6 +20,10 @@ import { TitleBar } from "../editor/TitleBar";
 import { PresetManager } from "../editor/controls/PresetManager";
 
 export function QuickAccess() {
+  const [viewportSize, setViewportSize] = useState(() => ({
+    width: window.innerWidth,
+    height: window.innerHeight,
+  }));
   const [assetId, setAssetId] = useState<string | null>(null);
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [preset, setPreset] = useState<EditorPreset>(DEFAULT_PRESET);
@@ -32,6 +36,18 @@ export function QuickAccess() {
 
   useEffect(() => {
     settingsLoad().then(setSettings).catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setViewportSize({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   const refreshSettings = useCallback(() => {
@@ -187,8 +203,8 @@ export function QuickAccess() {
 
   // Math for Shadow Dot
   const dims = image ? getCompositionDimensions(image.width, image.height, preset) : { canvasW: 0, canvasH: 0, drawX: 0, drawY: 0, drawW: 0, drawH: 0 };
-  const previewBudgetW = window.innerWidth * 0.74;
-  const previewBudgetH = window.innerHeight * 0.66;
+  const previewBudgetW = viewportSize.width * 0.74;
+  const previewBudgetH = viewportSize.height * 0.66;
   const previewScale = dims.canvasW > 0 ? Math.min(previewBudgetW / dims.canvasW, previewBudgetH / dims.canvasH, 1) : 1;
   const previewW = Math.floor(dims.canvasW * previewScale);
   const previewH = Math.floor(dims.canvasH * previewScale);
