@@ -184,10 +184,6 @@ pub fn run() {
                 log::info!(target: "app", "Log directory: {}", log_dir.display());
             }
 
-            if let Err(err) = overlay::prewarm(app_handle) {
-                log::warn!(target: "overlay", "Overlay prewarm failed: {:?}", err);
-            }
-
             log::info!(target: "app", "XenSnip initialized (Sprint 06)");
             Ok(())
         })

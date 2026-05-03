@@ -13,8 +13,30 @@ use windows::Win32::Graphics::Gdi::{
 };
 use windows::Win32::UI::WindowsAndMessaging::GetDesktopWindow;
 
+fn finish_session(app: &AppHandle) {
+    if let Some(session) = app.try_state::<crate::capture::CaptureSession>() {
+        session.finish();
+    }
+}
+
 pub fn capture_region(app: &AppHandle) -> Result<(), CaptureError> {
-    crate::overlay::show(app)
+    let settings = crate::settings::load_or_create_default(app);
+    let monitors = Monitor::all().map_err(|e| {
+        log::error!(target: "capture", "Monitor::all() failed: {:?}", e);
+        CaptureError::WgcFailure()
+    })?;
+
+    if settings.capture_all_monitors {
+        crate::overlay::show_all(app, monitors)
+    } else {
+        // Fallback to primary monitor only
+        let primary = monitors
+            .iter()
+            .find(|m| m.is_primary().unwrap_or(false))
+            .or_else(|| monitors.first())
+            .ok_or_else(|| CaptureError::InvalidTarget())?;
+        crate::overlay::show_all(app, vec![primary.clone()])
+    }
 }
 
 /// Confirm region selection from the overlay webview.
@@ -28,20 +50,11 @@ pub fn finish_region_capture(
     monitor_id: String,
 ) -> Result<(), CaptureError> {
     let start_time = std::time::Instant::now();
-    log::info!(target: "capture", "finish_region_capture: rect={}x{} at {},{}", w, h, x, y);
+    log::info!(target: "capture", "finish_region_capture: rect={}x{} at {},{} monitor_id={}", w, h, x, y, monitor_id);
 
-    crate::overlay::hide(app);
-
-    // Settle delay
-    std::thread::sleep(std::time::Duration::from_millis(200));
-
-    let cleanup = || {
-        if let Some(session) = app.try_state::<crate::capture::CaptureSession>() {
-            session.finish();
-        }
-    };
-
+    // 1. Basic validation: rect too small
     if w < 10 || h < 10 {
+        log::warn!(target: "capture", "finish_region_capture rejected: rect too small ({}x{})", w, h);
         let err = CaptureError::new(
             crate::capture::errors::CaptureErrorClass::InvalidTarget,
             "rect_too_small",
@@ -53,10 +66,11 @@ pub fn finish_region_capture(
             &start_time,
             crate::diagnostics::CaptureMethod::WgcMonitor,
         );
-        cleanup();
+        // DO NOT finish session here; let other overlays try.
         return Err(err);
     }
 
+    // 2. Resolve target monitor
     let monitors = Monitor::all().map_err(|e| {
         log::error!(target: "capture", "Monitor::all() failed: {:?}", e);
         let err = CaptureError::WgcFailure();
@@ -66,14 +80,19 @@ pub fn finish_region_capture(
             &start_time,
             crate::diagnostics::CaptureMethod::WgcMonitor,
         );
-        cleanup();
         err
     })?;
 
     let target_monitor = if !monitor_id.is_empty() {
         monitors
             .iter()
-            .find(|m| m.name().unwrap_or_default() == monitor_id)
+            .find(|m| {
+                m.id()
+                    .map(|id| id.to_string())
+                    .ok()
+                    .as_ref()
+                    == Some(&monitor_id)
+            })
             .ok_or_else(|| {
                 let err = CaptureError::new(
                     crate::capture::errors::CaptureErrorClass::InvalidTarget,
@@ -86,7 +105,6 @@ pub fn finish_region_capture(
                     &start_time,
                     crate::diagnostics::CaptureMethod::WgcMonitor,
                 );
-                cleanup();
                 err
             })?
     } else {
@@ -98,14 +116,52 @@ pub fn finish_region_capture(
                 &start_time,
                 crate::diagnostics::CaptureMethod::WgcMonitor,
             );
-            cleanup();
             err
         })?
     };
 
+    // 3. First-successful-confirm-wins guard: reserve the session for one in-flight confirm
+    if let Some(session) = app.try_state::<crate::capture::CaptureSession>() {
+        let mut intent = session.intent.lock().unwrap();
+        match intent.clone() {
+            crate::capture::CaptureIntent::None => {
+                log::info!(target: "capture", "finish_region_capture: Session already finalized, ignoring.");
+                return Ok(());
+            }
+            crate::capture::CaptureIntent::RegionConfirming => {
+                log::info!(target: "capture", "finish_region_capture: Another confirm is already in-flight, ignoring.");
+                return Ok(());
+            }
+            crate::capture::CaptureIntent::Region => {
+                *intent = crate::capture::CaptureIntent::RegionConfirming;
+                log::info!(target: "capture", "Session reserved by in-flight region confirm.");
+            }
+            other => {
+                log::warn!(target: "capture", "finish_region_capture: Unexpected session state {:?}, ignoring.", other);
+                return Ok(());
+            }
+        }
+    }
+
+    // 4. Proceed with capture
+    crate::overlay::hide_all(app);
+
+    // Settle delay (allow overlay to disappear before GDI/WGC starts)
+    std::thread::sleep(std::time::Duration::from_millis(200));
+
     let actual_monitor_id = target_monitor.name().unwrap_or_default();
     let actual_dpi = target_monitor.scale_factor().unwrap_or(1.0);
     let dpi_pct = (actual_dpi * 100.0).round() as u32;
+
+    let target_monitor_x = target_monitor.x().unwrap_or(0);
+    let target_monitor_y = target_monitor.y().unwrap_or(0);
+
+    // Coordinate conversion: monitor-local physical -> desktop-global physical
+    let global_x = target_monitor_x + x;
+    let global_y = target_monitor_y + y;
+
+    log::info!(target: "capture", "Coordinate translation: local({}, {}) -> global({}, {}) via monitor offset({}, {})", 
+        x, y, global_x, global_y, target_monitor_x, target_monitor_y);
 
     let mut capture_method = crate::diagnostics::CaptureMethod::WgcMonitor;
 
@@ -131,7 +187,7 @@ pub fn finish_region_capture(
             } else {
                 let err = CaptureError::WgcFailure();
                 emit_failure(app, &err, &start_time, capture_method);
-                cleanup();
+                finish_session(app);
                 return Err(err);
             }
         }
@@ -139,11 +195,11 @@ pub fn finish_region_capture(
             log::warn!(target: "capture", "WGC Monitor capture failed ({:?}), falling back to GDI BitBlt...", e);
             capture_method = crate::diagnostics::CaptureMethod::GdiBitblt;
 
-            capture_region_gdi(x, y, w, h).map_err(|ge| {
+            capture_region_gdi(global_x, global_y, w, h).map_err(|ge| {
                 log::error!(target: "capture", "GDI fallback failed: {}", ge);
                 let err = CaptureError::WgcFailure();
                 emit_failure(app, &err, &start_time, capture_method.clone());
-                cleanup();
+                finish_session(app);
                 err
             })?
         }
@@ -159,7 +215,7 @@ pub fn finish_region_capture(
             log::error!(target: "capture", "Failed to encode region capture as PNG: {:?}", e);
             let err = CaptureError::WgcFailure();
             emit_failure(app, &err, &start_time, capture_method.clone());
-            cleanup();
+            finish_session(app);
             err
         })?;
 
@@ -173,7 +229,8 @@ pub fn finish_region_capture(
         ));
     }
 
-    cleanup();
+    finish_session(app);
+
     app.emit("capture.result", serde_json::json!({ "asset_id": id }))
         .ok();
 
@@ -181,8 +238,8 @@ pub fn finish_region_capture(
     let monitor_work_area_logical = unsafe {
         // Use the center of the captured region to find the monitor.
         let center = POINT {
-            x: x + (w as i32 / 2),
-            y: y + (h as i32 / 2),
+            x: global_x + (w as i32 / 2),
+            y: global_y + (h as i32 / 2),
         };
         let hmonitor = MonitorFromPoint(center, MONITOR_DEFAULTTONEAREST);
         let mut mi = MONITORINFO {
@@ -213,8 +270,8 @@ pub fn finish_region_capture(
         monitor_dpi: dpi_pct,
         capture_kind: "region".to_string(),
         capture_rect_logical: Some(crate::quick_access::CaptureRectLogical {
-            x: logical_i32(x, dpi_pct),
-            y: logical_i32(y, dpi_pct),
+            x: logical_i32(global_x, dpi_pct),
+            y: logical_i32(global_y, dpi_pct),
             w: logical_u32(final_w, dpi_pct),
             h: logical_u32(final_h, dpi_pct),
         }),
@@ -244,8 +301,8 @@ pub fn finish_region_capture(
         process_name: None,
         window_title: None,
         bounds_physical: crate::diagnostics::PhysicalBounds {
-            x,
-            y,
+            x: global_x,
+            y: global_y,
             w: final_w,
             h: final_h,
         },

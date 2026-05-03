@@ -251,14 +251,13 @@ export function Settings() {
                 <span className="xs-label-text">Allow region capture on all monitors</span>
                 <span className="xs-label-desc">Enable region capture on secondary monitors</span>
               </div>
-              <label className="xs-switch" style={{ cursor: "not-allowed" }}>
+              <label className="xs-switch">
                 <input
                   type="checkbox"
                   checked={draft.capture_all_monitors}
-                  disabled={true}
                   onChange={(e) => setDraft({ ...draft, capture_all_monitors: e.target.checked })}
                 />
-                <span className="xs-slider" style={{ opacity: 0.5, cursor: "not-allowed" }}></span>
+                <span className="xs-slider"></span>
               </label>
             </div>
           </div>

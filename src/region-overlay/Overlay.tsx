@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { captureRegionConfirm, captureCancel } from "../ipc";
 import "./Overlay.css";
 
@@ -6,8 +7,13 @@ export default function Overlay() {
   const [isDragging, setIsDragging] = useState(false);
   const [startPoint, setStartPoint] = useState({ x: 0, y: 0 });
   const [currentPoint, setCurrentPoint] = useState({ x: 0, y: 0 });
+  const [monitorId, setMonitorId] = useState("");
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const mId = params.get("monitor") || "";
+    setMonitorId(mId);
+
     const handleKeyDown = async (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         await captureCancel();
@@ -19,6 +25,7 @@ export default function Overlay() {
 
   const handlePointerDown = (e: React.PointerEvent) => {
     if (e.button !== 0) return;
+    void getCurrentWindow().setFocus();
     setIsDragging(true);
     setStartPoint({ x: e.clientX, y: e.clientY });
     setCurrentPoint({ x: e.clientX, y: e.clientY });
@@ -27,7 +34,12 @@ export default function Overlay() {
 
   const handlePointerMove = (e: React.PointerEvent) => {
     if (!isDragging) return;
-    setCurrentPoint({ x: e.clientX, y: e.clientY });
+
+    // Seam clamp: clamp into monitor-local viewport
+    const clampedX = Math.max(0, Math.min(e.clientX, window.innerWidth));
+    const clampedY = Math.max(0, Math.min(e.clientY, window.innerHeight));
+
+    setCurrentPoint({ x: clampedX, y: clampedY });
   };
 
   const handlePointerUp = async (e: React.PointerEvent) => {
@@ -40,21 +52,17 @@ export default function Overlay() {
     const w = Math.abs(currentPoint.x - startPoint.x);
     const h = Math.abs(currentPoint.y - startPoint.y);
 
-    if (w < 10 || h < 10) {
-      // Too small — cancel cleanly; Rust will release the session lock.
-      await captureCancel();
-      return;
-    }
-
-    // NOTE: clientX/clientY in a fullscreen transparent webview on the primary monitor
-    // correspond 1:1 to physical pixels only when devicePixelRatio === 1.
-    // At higher DPI, Webview2 reports logical pixels (CSS pixels), so we scale by devicePixelRatio
-    // to convert to physical pixels before handing off to Rust.
     const dpr = window.devicePixelRatio ?? 1;
     const physX = Math.round(x * dpr);
     const physY = Math.round(y * dpr);
     const physW = Math.round(w * dpr);
     const physH = Math.round(h * dpr);
+
+    if (physW < 10 || physH < 10) {
+      // Too small — cancel cleanly; Rust will release the session lock.
+      await captureCancel();
+      return;
+    }
 
     try {
       await captureRegionConfirm({
@@ -62,10 +70,7 @@ export default function Overlay() {
         y: physY,
         w: physW,
         h: physH,
-        // monitor_id: empty string — Rust falls back to first monitor with a logged warning.
-        // Sprint 02 known limitation: Tauri 2 API for querying the current monitor from the
-        // overlay window is deferred until the @tauri-apps/api version in use exposes it reliably.
-        monitor_id: "",
+        monitor_id: monitorId,
       });
     } catch (err) {
       console.error("capture_region_confirm failed:", err);
@@ -81,6 +86,10 @@ export default function Overlay() {
   return (
     <div
       className="overlay-container"
+      onPointerEnter={() => {
+        // Ensure Esc works on any overlay the user is interacting with
+        void getCurrentWindow().setFocus();
+      }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}

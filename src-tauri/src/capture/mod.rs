@@ -9,6 +9,7 @@ pub mod window;
 pub enum CaptureIntent {
     None,
     Region,
+    RegionConfirming,
     ActiveWindow,
 }
 
