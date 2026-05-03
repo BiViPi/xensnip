@@ -13,6 +13,17 @@ interface AnnotationStageProps {
   stageRef: React.RefObject<any>;
 }
 
+const TOOL_CURSOR: Record<string, string> = {
+  select: 'default',
+  arrow: 'crosshair',
+  rectangle: 'crosshair',
+  blur: 'crosshair',
+  text: 'text',
+  numbered: 'cell',
+  crop: 'default',
+  canvas: 'default',
+};
+
 export function AnnotationStage({ width, height, scale, compositionCanvasRef, stageRef }: AnnotationStageProps) {
   const { activeTool, select, addObject, setActiveTool, objects } = useAnnotationStore();
   const [drawingObject, setDrawingObject] = useState<any>(null);
@@ -170,7 +181,8 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
         position: 'absolute', 
         top: 0, 
         left: 0,
-        pointerEvents: 'auto'
+        pointerEvents: 'auto',
+        cursor: TOOL_CURSOR[activeTool] ?? 'default',
       }}
     >
       <Layer>

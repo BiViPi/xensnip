@@ -1,167 +1,199 @@
-/* Sidebar Styles — Spatial Liquid Glass Shell */
+/* Sidebar Styles — Compact Icon Rail + Narrow Popover */
 
 .xs-sidebar-root {
   position: absolute;
-  right: 16px;
-  top: 56px; /* Below TitleBar */
-  bottom: 84px; /* Above Bottom Dock */
+  right: 12px;
+  top: 50px;
+  bottom: 80px;
   display: flex;
   flex-direction: row-reverse;
   align-items: flex-start;
-  gap: 12px;
-  z-index: 100;
+  gap: 8px;
+  z-index: 200;
   pointer-events: none;
 }
 
+/* ── Rail ── */
 .xs-sidebar-rail {
-  width: 56px;
-  background: rgba(15, 23, 42, 0.85);
+  width: 44px;
+  min-height: 44px;
+  background: rgba(13, 19, 34, 0.9);
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 28px;
-  padding: 12px 0;
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 22px;
+  padding: 6px 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  gap: 4px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
   pointer-events: auto;
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
 }
 
-.xs-rail-item {
-  width: 40px;
-  height: 40px;
+.xs-sidebar-rail.collapsed {
+  height: 44px;
+  padding: 6px 0;
+}
+
+.xs-rail-toggle {
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: transparent;
   border: none;
-  color: #94a3b8;
+  color: #64748b;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s ease;
-  position: relative;
+  transition: all 0.15s ease;
+  margin-bottom: 2px;
 }
 
-.xs-rail-item:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.05);
+.xs-rail-toggle:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #f1f5f9;
+}
+
+.xs-rail-toggle.active {
+  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.xs-rail-divider {
+  width: 22px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 2px 0;
+}
+
+.xs-rail-item {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: transparent;
+  border: none;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+  animation: railItemIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes railItemIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.xs-rail-item:hover:not(:disabled):not(.locked) {
+  background: rgba(255, 255, 255, 0.06);
   color: #f1f5f9;
 }
 
 .xs-rail-item.active {
-  background: #3b82f6;
-  color: #fff;
-  box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.3);
 }
 
-.xs-rail-item:disabled {
-  opacity: 0.3;
+.xs-rail-item:disabled,
+.xs-rail-item.locked {
+  opacity: 0.35;
   cursor: not-allowed;
 }
 
-.xs-rail-divider {
-  width: 24px;
-  height: 1px;
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.xs-sidebar-popover {
-  width: 260px;
-  background: rgba(15, 23, 42, 0.95);
-  backdrop-filter: blur(24px);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  border-radius: 20px;
-  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
-  pointer-events: auto;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  animation: popoverIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.xs-popover-header {
-  padding: 16px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+.xs-lock-dot {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  background: #1e293b;
+  border-radius: 50%;
+  width: 12px;
+  height: 12px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  color: #475569;
 }
 
-.xs-popover-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: #f1f5f9;
-  letter-spacing: -0.01em;
+/* ── Popover ── */
+.xs-sidebar-popover {
+  width: 48px;
+  background: rgba(13, 19, 34, 0.95);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 16px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+  pointer-events: auto;
+  overflow: hidden;
+  animation: popoverIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
 
 .xs-popover-content {
-  padding: 12px;
-  flex: 1;
-  overflow-y: auto;
-  max-height: 500px;
+  padding: 6px;
 }
 
-/* Tool List Styles */
-.xs-tool-grid {
-  display: grid;
-  grid-template-columns: 1fr;
+/* ── Compact icon-only tool list ── */
+.xs-tool-icon-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: 4px;
 }
 
-.xs-tool-item {
+.xs-tool-icon-btn {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  border-radius: 10px;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   background: transparent;
   border: 1px solid transparent;
   color: #94a3b8;
   cursor: pointer;
-  transition: all 0.2s ease;
-  text-align: left;
-  width: 100%;
+  transition: all 0.15s ease;
 }
 
-.xs-tool-item:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.03);
-  border-color: rgba(255, 255, 255, 0.05);
+.xs-tool-icon-btn:hover:not(:disabled):not(.disabled) {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.06);
   color: #f1f5f9;
 }
 
-.xs-tool-item.active {
-  background: rgba(59, 130, 246, 0.1);
-  border-color: rgba(59, 130, 246, 0.2);
-  color: #3b82f6;
+.xs-tool-icon-btn.active {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.25);
+  color: #60a5fa;
 }
 
-.xs-tool-icon {
-  width: 18px;
-  height: 18px;
+.xs-tool-icon-btn.disabled,
+.xs-tool-icon-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
 }
 
-.xs-tool-label {
-  font-size: 13px;
-  font-weight: 500;
-}
 
-.xs-lock-badge {
-  margin-left: auto;
-  background: rgba(255, 255, 255, 0.05);
-  color: #64748b;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 9px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+.xs-locked-msg {
+  padding: 16px 8px;
+  text-align: center;
+  font-size: 11px;
+  color: #475569;
+  font-style: italic;
 }
 
 @keyframes popoverIn {
   from {
     opacity: 0;
-    transform: translateX(10px) scale(0.98);
+    transform: translateX(8px) scale(0.97);
   }
   to {
     opacity: 1;

@@ -1,6 +1,6 @@
 import { Image } from 'react-konva';
 import { BlurObject } from '../state/types';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Konva from 'konva';
 
 interface BlurNodeProps {
@@ -10,18 +10,51 @@ interface BlurNodeProps {
   compositionCanvasRef: React.RefObject<HTMLCanvasElement | null>;
 }
 
+/**
+ * BlurNode — explicit snapshot-based blur.
+ * 
+ * On mount and on bounds/blur change, we:
+ * 1. Take a snapshot of the composition canvas region into an offscreen canvas.
+ * 2. Feed the snapshot (not the live canvas) to a Konva Image node.
+ * 3. Apply Konva.Filters.Blur on top of the snapshot.
+ * 
+ * This avoids fragile live-canvas pass-through and produces reliable on-screen blur.
+ */
 export function BlurNode({ obj, onSelect, onUpdate, compositionCanvasRef }: BlurNodeProps) {
   const imageRef = useRef<any>(null);
+  const [snapshot, setSnapshot] = useState<HTMLCanvasElement | null>(null);
 
+  // Rebuild snapshot whenever position/size/blurRadius changes
   useEffect(() => {
-    if (imageRef.current) {
-      // We must cache to apply filters in Konva
-      imageRef.current.cache();
-    }
-  }, [obj.x, obj.y, obj.width, obj.height, obj.blurRadius]);
+    const src = compositionCanvasRef.current;
+    if (!src) return;
 
-  const canvas = compositionCanvasRef.current;
-  if (!canvas) return null;
+    // The composition canvas is drawn at its native resolution.
+    // obj coords are in composition-space (unscaled), so we can sample directly.
+    const snap = document.createElement('canvas');
+    snap.width = Math.max(1, obj.width);
+    snap.height = Math.max(1, obj.height);
+    const ctx = snap.getContext('2d');
+    if (!ctx) return;
+
+    ctx.drawImage(
+      src,
+      obj.x, obj.y, obj.width, obj.height,  // source region (composition space)
+      0, 0, obj.width, obj.height            // dest (fills snapshot canvas)
+    );
+
+    setSnapshot(snap);
+  }, [compositionCanvasRef, obj.x, obj.y, obj.width, obj.height]);
+
+  // Re-cache whenever snapshot or blurRadius changes
+  useEffect(() => {
+    if (imageRef.current && snapshot) {
+      imageRef.current.cache();
+      imageRef.current.getLayer()?.batchDraw();
+    }
+  }, [snapshot, obj.blurRadius]);
+
+  if (!snapshot) return null;
 
   return (
     <Image
@@ -31,13 +64,7 @@ export function BlurNode({ obj, onSelect, onUpdate, compositionCanvasRef }: Blur
       y={obj.y}
       width={obj.width}
       height={obj.height}
-      image={canvas}
-      crop={{
-        x: obj.x,
-        y: obj.y,
-        width: obj.width,
-        height: obj.height
-      }}
+      image={snapshot}
       draggable={obj.draggable}
       filters={[Konva.Filters.Blur]}
       blurRadius={obj.blurRadius}

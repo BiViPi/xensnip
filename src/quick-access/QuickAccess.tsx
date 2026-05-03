@@ -238,7 +238,7 @@ export function QuickAccess() {
                 compositionCanvasRef={canvasRef} 
                 stageRef={stageRef}
               />
-              <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1000 }}>
+              <div id="annotation-ui-overlay" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1000 }}>
                 <FloatingToolbarManager scale={previewScale} stageRef={stageRef} />
               </div>
 
