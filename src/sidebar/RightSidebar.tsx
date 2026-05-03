@@ -2,14 +2,14 @@
 import { useSidebarStore, FeatureId } from './store';
 import { useAnnotationStore } from '../annotate/state/store';
 import { FEATURES } from './features.config';
-import { 
+import {
   ChevronDown,
   ChevronUp,
   Lock,
-  ArrowRight, 
-  Square as SquareIcon, 
-  Type, 
-  Ghost, 
+  ArrowRight,
+  Square as SquareIcon,
+  Type,
+  Ghost,
   Hash,
   Crop as CropIcon,
 } from 'lucide-react';
@@ -107,8 +107,8 @@ function ToolGrid({ tools, onClose }: { tools: any[]; onClose: () => void }) {
   return (
     <div className="xs-tool-icon-stack">
       {tools.map(tool => (
-        <button 
-          key={tool.id} 
+        <button
+          key={tool.id}
           className={`xs-tool-icon-btn ${activeTool === tool.id ? 'active' : ''} ${tool.disabled ? 'disabled' : ''}`}
           onClick={() => !tool.disabled && handleToolClick(tool.id)}
           title={tool.hint || tool.label}
@@ -123,9 +123,9 @@ function ToolGrid({ tools, onClose }: { tools: any[]; onClose: () => void }) {
 
 function AnnotateTools({ onClose }: { onClose: () => void }) {
   const tools = [
-    { id: 'arrow',     label: 'Arrow',     icon: ArrowRight,  hint: 'Arrow — drag on canvas' },
-    { id: 'rectangle', label: 'Rectangle', icon: SquareIcon,  hint: 'Rectangle — drag on canvas' },
-    { id: 'text',      label: 'Text',      icon: Type,        hint: 'Text — click on canvas' },
+    { id: 'arrow', label: 'Arrow', icon: ArrowRight, hint: 'Arrow — drag on canvas' },
+    { id: 'rectangle', label: 'Rectangle', icon: SquareIcon, hint: 'Rectangle — drag on canvas' },
+    { id: 'text', label: 'Text', icon: Type, hint: 'Text — click on canvas' },
   ];
   return <ToolGrid tools={tools} onClose={onClose} />;
 }
@@ -146,7 +146,7 @@ function StepsTools({ onClose }: { onClose: () => void }) {
 
 function CropTools({ onClose }: { onClose: () => void }) {
   const tools = [
-    { id: 'crop',   label: 'Crop',        icon: CropIcon, hint: 'Crop — drag handles to crop' },
+    { id: 'crop', label: 'Crop', icon: CropIcon, hint: 'Crop — drag handles to crop' },
     { id: 'canvas', label: 'Canvas Size', icon: SquareIcon, hint: 'Canvas Size — coming soon', disabled: true },
   ];
   return <ToolGrid tools={tools} onClose={onClose} />;
