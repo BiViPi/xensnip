@@ -4,7 +4,6 @@ mod capture;
 mod commands;
 mod diagnostics;
 mod hotkeys;
-mod overlay;
 mod quick_access;
 mod settings;
 
@@ -90,7 +89,6 @@ pub fn run() {
             commands::settings_load,
             commands::capture_start_window,
             commands::capture_start_region,
-            commands::capture_region_confirm,
             commands::capture_cancel,
             // Sprint 03
             commands::asset_resolve,

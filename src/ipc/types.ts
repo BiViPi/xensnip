@@ -47,15 +47,6 @@ export interface CaptureFailure {
   message: string;
 }
 
-/** Payload for capture_region_confirm */
-export interface RegionConfirmPayload {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  monitor_id: string;
-}
-
 // ─── Sprint 03: Asset registry ────────────────────────────────────────────────
 
 /** Returned by asset_resolve — the URI frontend uses to load the asset. */

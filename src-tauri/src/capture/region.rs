@@ -20,10 +20,16 @@ fn finish_session(app: &AppHandle) {
 }
 
 pub fn capture_region(app: &AppHandle) -> Result<(), CaptureError> {
-    crate::capture::native_region_spike::show_virtual_screen_selector(app)
+    let outcome = crate::capture::native_region_selector::show_selector(app)?;
+    match outcome {
+        crate::capture::native_region_selector::SelectionOutcome::Confirmed { gx, gy, gw, gh } => {
+            finish_region_capture(app, gx, gy, gw, gh)
+        }
+        crate::capture::native_region_selector::SelectionOutcome::Cancelled => Ok(()),
+    }
 }
 
-/// Confirm region selection from the overlay webview.
+/// Finalize region capture and trigger the backend capture logic.
 /// Implements WGC Monitor capture with a GDI BitBlt fallback as per 02-WGC-TIMEOUT-FIX-PROPOSAL.md.
 pub fn finish_region_capture(
     app: &AppHandle,
@@ -31,10 +37,9 @@ pub fn finish_region_capture(
     gy: i32,
     gw: u32,
     gh: u32,
-    origin_monitor_id: String,
 ) -> Result<(), CaptureError> {
     let start_time = std::time::Instant::now();
-    log::info!(target: "capture", "finish_region_capture (V2): global_rect={}x{} at {},{} origin_monitor={}", gw, gh, gx, gy, origin_monitor_id);
+    log::info!(target: "capture", "finish_region_capture (Native): global_rect={}x{} at {},{}", gw, gh, gx, gy);
 
     // 1. Basic validation: rect too small
     if gw < 10 || gh < 10 {
@@ -50,6 +55,7 @@ pub fn finish_region_capture(
             &start_time,
             crate::diagnostics::CaptureMethod::WgcMonitor,
         );
+        finish_session(app);
         return Err(err);
     }
 
@@ -63,6 +69,7 @@ pub fn finish_region_capture(
             &start_time,
             crate::diagnostics::CaptureMethod::WgcMonitor,
         );
+        finish_session(app);
         err
     })?;
 
@@ -93,6 +100,7 @@ pub fn finish_region_capture(
             &start_time,
             crate::diagnostics::CaptureMethod::WgcMonitor,
         );
+        finish_session(app);
         return Err(err);
     }
 
@@ -109,9 +117,7 @@ pub fn finish_region_capture(
         }
     }
 
-    // 4. Capture prep
-    crate::overlay::hide_all(app);
-    std::thread::sleep(std::time::Duration::from_millis(200));
+    // 4. Capture prep (native selector is already closed, no need for hide_all/sleep)
 
     let center_gx = gx + (gw as i32 / 2);
     let center_gy = gy + (gh as i32 / 2);
@@ -178,8 +184,8 @@ pub fn finish_region_capture(
         // Path 2: Multi-monitor selection -> Global GDI BitBlt
         log::info!(target: "capture", "Multi-monitor branch: GDI Desktop Capture ({} monitors intersected)", intersecting_monitors.len());
         capture_method = crate::diagnostics::CaptureMethod::GdiBitblt;
-        capture_region_gdi(gx, gy, gw, gh).map_err(|ge| {
-            log::error!(target: "capture", "Multi-monitor GDI failed: {}", ge);
+        capture_region_gdi(gx, gy, gw, gh).map_err(|_ge| {
+            log::error!(target: "capture", "Multi-monitor GDI failed: {}", _ge);
             let err = CaptureError::WgcFailure();
             emit_failure(app, &err, &start_time, capture_method.clone());
             finish_session(app);

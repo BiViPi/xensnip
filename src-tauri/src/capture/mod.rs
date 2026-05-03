@@ -2,7 +2,7 @@ use crate::capture::errors::CaptureError;
 use std::sync::Mutex;
 
 pub mod errors;
-pub mod native_region_spike;
+pub mod native_region_selector;
 pub mod region;
 pub mod window;
 

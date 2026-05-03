@@ -4,7 +4,6 @@ import {
   Settings,
   CaptureResult,
   CaptureFailure,
-  RegionConfirmPayload,
   AssetResolveResult,
   SettingsSaveResult,
   SavedPreset,
@@ -33,16 +32,6 @@ export async function captureStartRegion(): Promise<void> {
 
 export async function captureStartWindow(): Promise<void> {
   return await invoke<void>("capture_start_window");
-}
-
-export async function captureRegionConfirm(payload: RegionConfirmPayload): Promise<void> {
-  return await invoke<void>("capture_region_confirm", {
-    x: payload.x,
-    y: payload.y,
-    w: payload.w,
-    h: payload.h,
-    monitorId: payload.monitor_id,
-  });
 }
 
 export async function captureCancel(): Promise<void> {

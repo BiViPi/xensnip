@@ -52,22 +52,8 @@ pub fn capture_start_window(app_handle: AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn capture_region_confirm(
-    app_handle: AppHandle,
-    x: i32,
-    y: i32,
-    w: u32,
-    h: u32,
-    monitor_id: String,
-) -> Result<(), String> {
-    crate::capture::region::finish_region_capture(&app_handle, x, y, w, h, monitor_id)
-        .map_err(|e| format!("{:?}", e))
-}
-
-#[tauri::command]
 pub fn capture_cancel(app_handle: AppHandle) -> Result<(), String> {
-    crate::capture::native_region_spike::close_active();
-    crate::overlay::close(&app_handle);
+    crate::capture::native_region_selector::close_active();
     if let Some(session) = app_handle.try_state::<CaptureSession>() {
         session.finish();
     }
