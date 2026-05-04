@@ -289,9 +289,9 @@ body {
 /* Aspect Ratio Grid — Polish v2 */
 .xs-ratio-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 6px;
-  min-width: 240px;
+  min-width: 220px;
 }
 
 .xs-ratio-item {
@@ -320,10 +320,7 @@ body {
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
 }
 
-/* Second row handling if needed */
-.xs-ratio-grid>*:nth-child(n+6) {
-  grid-column: span 1;
-}
+
 
 /* Slider Popover — Premium Polish */
 .xs-slider-pop {
