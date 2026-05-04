@@ -11,13 +11,13 @@ interface Props {
   dark?: boolean;
 }
 
-export function TitleBar({ 
-  title = "Xensnip", 
-  onClose, 
-  showMinimize = true, 
-  showMaximize = true, 
+export function TitleBar({
+  title = "Xensnip",
+  onClose,
+  showMinimize = true,
+  showMaximize = true,
   showClose = true,
-  dark = true 
+  dark = true
 }: Props) {
   const appWindow = getCurrentWindow();
   const [isMaximized, setIsMaximized] = useState(false);
@@ -35,7 +35,7 @@ export function TitleBar({
       const maximized = await appWindow.isMaximized();
       setIsMaximized(maximized);
     });
-    
+
     return () => { void unlisten.then(fn => fn()); };
   }, [appWindow]);
 
@@ -43,12 +43,12 @@ export function TitleBar({
     console.log("[TitleBar] Action: Minimize");
     void appWindow.minimize();
   };
-  
+
   const handleMaximize = async () => {
     console.log("[TitleBar] Action: Maximize/Restore Toggle. Current UI State:", isMaximized);
     // Explicitly check current state from OS before acting
     const currentlyMaximized = await appWindow.isMaximized();
-    
+
     try {
       if (currentlyMaximized) {
         console.log("[TitleBar] Command: unmaximize()");
@@ -57,7 +57,7 @@ export function TitleBar({
         console.log("[TitleBar] Command: maximize()");
         await appWindow.maximize();
       }
-      
+
       // Update state after action
       setTimeout(async () => {
         const newState = await appWindow.isMaximized();
@@ -69,7 +69,7 @@ export function TitleBar({
       void appWindow.toggleMaximize();
     }
   };
-  
+
   const handleClose = () => {
     console.log("[TitleBar] Action: Close");
     if (onClose) onClose();
@@ -90,7 +90,7 @@ export function TitleBar({
         onDoubleClick={handleMaximize}
         className="xs-titlebar-drag-area"
       />
-      
+
       {/* Controls Area - Fixed width to prevent overlap */}
       <div className="xs-titlebar-controls">
         {showMinimize && (
