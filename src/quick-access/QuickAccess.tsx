@@ -1,4 +1,5 @@
 import { listen } from "@tauri-apps/api/event";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   assetReadPng,
@@ -53,6 +54,10 @@ export function QuickAccess() {
   const stageRef = useRef<any>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
+  const initialAssetHandledRef = useRef(false);
+  const undoStackRef = useRef<DocumentUndoSnapshot[]>([]);
+  const bootstrapAssetRef = useRef<(assetId: string) => Promise<void> | void>(() => {});
+
   const { 
     documents, 
     activeDocumentId, 
@@ -63,11 +68,11 @@ export function QuickAccess() {
     updateCheckbox, 
     patchActiveDocument,
     clearAll,
-    setActiveDocumentId
+    setActiveDocumentId,
+    docsRef,
+    activeIdRef
   } = useScreenshotDocuments();
 
-  const undoStackRef = useRef<DocumentUndoSnapshot[]>([]);
-  
   // Cleanup helper for assets and blob URLs
   const releaseDocument = useCallback((doc: ScreenshotDocument) => {
     URL.revokeObjectURL(doc.blobUrl);
@@ -206,7 +211,8 @@ export function QuickAccess() {
   }, [loadSnapshotImage, setCropBounds]);
 
   const handleSwitchDocument = useCallback((nextId: string) => {
-    if (nextId === activeDocumentId) return;
+    const activeId = activeIdRef.current;
+    if (nextId === activeId) return;
 
     // 1. Cancel active crop if running
     if (activeTool === 'crop') cancelCrop();
@@ -216,19 +222,20 @@ export function QuickAccess() {
       annotation: buildAnnotationSnapshot(),
       cropBounds: cropBounds ?? null,
       undoStack: [...undoStackRef.current],
+      image: image ?? undefined,
     };
 
     // 3. Persist into current doc + set activeDocumentId atomically
     switchToDocument(nextId, snapshot);
 
     // 4. Restore incoming doc into editor shell
-    const nextDoc = documents.find(d => d.id === nextId);
+    const nextDoc = docsRef.current.find(d => d.id === nextId);
     if (!nextDoc) return;
     setImage(nextDoc.image);
     useAnnotationStore.getState().restoreSnapshot(nextDoc.annotation);
     setCropBounds(nextDoc.cropBounds);
     undoStackRef.current = [...nextDoc.undoStack];
-  }, [activeDocumentId, activeTool, cancelCrop, cropBounds, documents, switchToDocument, setCropBounds]);
+  }, [activeTool, cancelCrop, cropBounds, switchToDocument, setCropBounds, docsRef, activeIdRef]);
 
   useKeyboardShortcuts({ onUndo: () => void handleUndo() });
 
@@ -244,9 +251,10 @@ export function QuickAccess() {
   }, [activeTool, cropBounds, startCrop]);
 
   const bootstrapAsset = useCallback(async (nextAssetId: string) => {
-    // Check if we already have this asset to avoid duplicates in the session list
-    if (documents.some(d => d.assetId === nextAssetId)) {
-      handleSwitchDocument(documents.find(d => d.assetId === nextAssetId)!.id);
+    // Check if we already have this asset using stable docsRef
+    if (docsRef.current.some(d => d.assetId === nextAssetId)) {
+      const existing = docsRef.current.find(d => d.assetId === nextAssetId)!;
+      handleSwitchDocument(existing.id);
       return;
     }
 
@@ -318,7 +326,8 @@ export function QuickAccess() {
     } finally {
       setIsLoading(false);
     }
-  }, [documents, addDocument, releaseDocument, handleSwitchDocument, setActiveDocumentId, setCropBounds]);
+  }, [addDocument, releaseDocument, handleSwitchDocument, setActiveDocumentId, setCropBounds, docsRef]);
+  bootstrapAssetRef.current = bootstrapAsset;
 
   const clearAllInSession = useCallback(() => {
     documents.forEach(doc => {
@@ -335,19 +344,35 @@ export function QuickAccess() {
   }, [documents]);
 
   useEffect(() => {
-    let unlisten: any = null;
-    listen<QuickAccessShowPayload>("quick-access-show", (event) => {
+    let mounted = true;
+    let unlisten: null | (() => void) = null;
+    void listen<QuickAccessShowPayload>("quick-access-show", (event) => {
       refreshSettings();
-      void bootstrapAsset(event.payload.asset_id);
-    }).then(fn => unlisten = fn);
-    return () => unlisten?.();
-  }, [bootstrapAsset, refreshSettings]);
+      void bootstrapAssetRef.current(event.payload.asset_id);
+    }).then((fn) => {
+      if (mounted) {
+        unlisten = fn;
+      } else {
+        fn();
+      }
+    });
+    return () => {
+      mounted = false;
+      unlisten?.();
+    };
+  }, [refreshSettings]);
 
   useEffect(() => {
+    if (initialAssetHandledRef.current) {
+      return;
+    }
     const searchParams = new URLSearchParams(window.location.search);
     const initialId = searchParams.get("asset_id");
-    if (initialId) void bootstrapAsset(initialId);
-  }, [bootstrapAsset]);
+    if (initialId) {
+      initialAssetHandledRef.current = true;
+      void bootstrapAssetRef.current(initialId);
+    }
+  }, []);
 
   const panelWidth = isLeftPanelCollapsed ? 52 : 272;
   const { dims, previewScale, previewRenderScale, previewW, previewH, centerX, centerY, previewCenterOffsetX, layout } = usePreviewMetrics(image, preset, viewportSize, panelWidth);
@@ -367,7 +392,7 @@ export function QuickAccess() {
   const handleDismiss = useCallback(async () => {
     const allDocs = clearAll();
     allDocs.forEach(releaseDocument);
-    // Note: Rust window close will handle UI termination
+    await getCurrentWindow().close();
   }, [clearAll, releaseDocument]);
 
   const handleShadowDrag = useCallback((e: any) => {
@@ -415,23 +440,30 @@ export function QuickAccess() {
           onCollapsedChange={setIsLeftPanelCollapsed}
           onSelect={handleSwitchDocument}
           onCheckboxToggle={(id) => {
-            const doc = documents.find(d => d.id === id);
+            const doc = docsRef.current.find(d => d.id === id);
             if (doc) updateCheckbox(id, !doc.isExportChecked);
           }}
           onDelete={(id) => {
-            const removed = removeDocument(id);
-            if (removed) {
+            const result = removeDocument(id);
+            if (result) {
+              const { removed, nextActiveId, remainingDocs } = result;
               releaseDocument(removed);
-              // If we deleted the active document, switch to the first remaining one
-              if (id === activeDocumentId && documents.length > 1) {
-                const remaining = documents.filter(d => d.id !== id);
-                if (remaining.length > 0) {
-                  // Pass empty snapshot since we're deleting the current state anyway
-                  handleSwitchDocument(remaining[0].id);
+              
+              if (nextActiveId) {
+                // Restore the next document into editor shell
+                const nextDoc = remainingDocs.find(d => d.id === nextActiveId);
+                if (nextDoc) {
+                  setImage(nextDoc.image);
+                  useAnnotationStore.getState().restoreSnapshot(nextDoc.annotation);
+                  setCropBounds(nextDoc.cropBounds);
+                  undoStackRef.current = [...nextDoc.undoStack];
                 }
-              } else if (id === activeDocumentId && documents.length === 1) {
+              } else if (remainingDocs.length === 0) {
+                // Empty session
                 setImage(null);
-                setActiveDocumentId(null);
+                useAnnotationStore.getState().clearAll();
+                setCropBounds(null);
+                undoStackRef.current = [];
               }
             }
           }}

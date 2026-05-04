@@ -84,10 +84,20 @@ export function useScreenshotDocuments() {
 
   const removeDocument = useCallback((id: string) => {
     const prev = docsRef.current;
+    const activeId = activeIdRef.current;
     const target = prev.find((d) => d.id === id);
+    
     if (target) {
-      setDocuments(prev.filter((d) => d.id !== id));
-      return target;
+      const nextDocs = prev.filter((d) => d.id !== id);
+      setDocuments(nextDocs);
+      
+      let nextActiveId = activeId;
+      if (activeId === id) {
+        nextActiveId = nextDocs.length > 0 ? nextDocs[0].id : null;
+        setActiveDocumentId(nextActiveId);
+      }
+      
+      return { removed: target, nextActiveId, remainingDocs: nextDocs };
     }
     return null;
   }, []);
@@ -98,6 +108,8 @@ export function useScreenshotDocuments() {
    */
   const switchToDocument = useCallback((nextId: string, currentSnapshot: DocumentStateSnapshot) => {
     const activeId = activeIdRef.current;
+    
+    // Update the list and the active ID in one batch (React flushes these together)
     setDocuments((prev) => 
       prev.map((doc) => 
         doc.id === activeId 
@@ -106,7 +118,7 @@ export function useScreenshotDocuments() {
               annotation: { ...currentSnapshot.annotation }, 
               cropBounds: currentSnapshot.cropBounds,
               undoStack: [...currentSnapshot.undoStack],
-              image: currentSnapshot.image || doc.image, // Persist image if provided
+              image: currentSnapshot.image || doc.image,
             } 
           : doc
       )
@@ -145,5 +157,7 @@ export function useScreenshotDocuments() {
     patchActiveDocument,
     clearAll,
     setActiveDocumentId,
+    docsRef,
+    activeIdRef
   };
 }
