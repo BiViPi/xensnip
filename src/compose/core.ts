@@ -174,12 +174,23 @@ export function drawComposition(
   if (shadow_enabled) {
     ctx.save();
     const angleRad = (shadow_angle - 90) * (Math.PI / 180);
-    ctx.shadowOffsetX = Math.cos(angleRad) * shadow_offset;
-    ctx.shadowOffsetY = Math.sin(angleRad) * shadow_offset;
+    const shadowX = Math.cos(angleRad) * shadow_offset;
+    const shadowY = Math.sin(angleRad) * shadow_offset;
+    
+    const offscreenOffset = 10000;
+    ctx.shadowOffsetX = shadowX + offscreenOffset;
+    ctx.shadowOffsetY = shadowY;
     ctx.shadowBlur = shadow_blur;
     ctx.shadowColor = `rgba(0, 0, 0, ${shadow_opacity})`;
     
-    ctx.fillStyle = preset.border_color || "rgba(15, 23, 42, 0.8)"; // Dynamic glass material
+    ctx.fillStyle = "black"; 
+    roundedRect(ctx, fx - offscreenOffset, fy, fw, fh, fr);
+    ctx.fill();
+    ctx.restore();
+
+    // 3b. Draw the actual Border/Glass material
+    ctx.save();
+    ctx.fillStyle = preset.border_color || "rgba(15, 23, 42, 0.8)"; 
     roundedRect(ctx, fx, fy, fw, fh, fr);
     ctx.fill();
     ctx.restore();
@@ -199,31 +210,27 @@ export function drawComposition(
 
     roundedRect(ctx, fx, fy, fw, fh, fr);
     
-    // Layer 1: Bloom (Soft glow spreading outwards)
     ctx.globalAlpha = 0.3;
     ctx.strokeStyle = frameGrad;
     ctx.lineWidth = 14; 
     ctx.stroke();
 
-    // Layer 2: Medium Rim (The main body of light)
     ctx.globalAlpha = 0.5;
     ctx.lineWidth = 6;
     ctx.stroke();
 
-    // Layer 3: Sharp Edge (Final crisp catch-light)
     ctx.globalAlpha = 1.0;
     ctx.lineWidth = 1.5;
     ctx.stroke();
-    
     ctx.restore();
   } else {
     // Flat background mode
     ctx.save();
-    ctx.fillStyle = "#1e293b"; // Solid dark color
+    ctx.fillStyle = preset.border_color || "#1e293b"; 
     roundedRect(ctx, fx, fy, fw, fh, fr);
     ctx.fill();
-    // Subtle solid border
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
+    
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
     ctx.lineWidth = 1;
     ctx.stroke();
     ctx.restore();
