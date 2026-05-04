@@ -40,10 +40,10 @@ export function getCompositionDimensions(
     }
   }
 
-  // Padding now insets the screenshot inside a fixed canvas instead of
-  // resizing the canvas itself.
-  const safeW = Math.max(1, canvasW - padding * 2);
-  const safeH = Math.max(1, canvasH - padding * 2);
+  // Padding and border now inset the screenshot inside a fixed canvas.
+  const borderTotal = preset.border_width * 2;
+  const safeW = Math.max(1, canvasW - padding * 2 - borderTotal);
+  const safeH = Math.max(1, canvasH - padding * 2 - borderTotal);
   const scale = Math.min(safeW / imageW, safeH / imageH, 1);
   
   const drawW = imageW * scale;
@@ -164,7 +164,7 @@ export function drawComposition(
   const finalH = drawH;
 
   // 3. 3D Glass Frame & Dynamic Lighting (The "Volumetric" effect)
-  const framePadding = 12; // Thickness of the glass frame
+  const framePadding = preset.border_width; // Dynamic thickness of the glass frame
   const fx = finalX - framePadding;
   const fy = finalY - framePadding;
   const fw = finalW + framePadding * 2;

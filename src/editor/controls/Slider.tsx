@@ -42,11 +42,6 @@ export function SliderControl({ label, value, min, max, onChange }: Props) {
         <button className="xs-slider-action" onClick={() => step(4)}>+</button>
       </div>
 
-      <div className="xs-slider-ticks">
-        {ticks.map((t, i) => (
-          <span key={i} className="xs-slider-tick">{Math.round(t)}</span>
-        ))}
-      </div>
     </div>
   );
 }

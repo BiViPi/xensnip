@@ -156,7 +156,15 @@ export function QuickBar({
 
         <div style={{ position: 'relative', display: 'flex', width: 'fit-content' }}>
           <button className={`xs-btn xs-icon-btn ${activePop === 'radius' ? 'active' : ''}`} onClick={() => toggle('radius')}><RadiusIcon /></button>
-          {activePop === 'radius' && <div className="xs-pop"><SliderControl label="Radius" min={0} max={48} value={preset.radius} onChange={v => setPreset(p => ({ ...p, radius: v }))} /></div>}
+          {activePop === 'radius' && (
+            <div className="xs-pop" style={{ minWidth: '240px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <SliderControl label="Radius" min={0} max={48} value={preset.radius} onChange={v => setPreset(p => ({ ...p, radius: v }))} />
+                <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '8px 4px' }} />
+                <SliderControl label="Border" min={0} max={32} value={preset.border_width} onChange={v => setPreset(p => ({ ...p, border_width: v }))} />
+              </div>
+            </div>
+          )}
         </div>
 
         <div style={{ position: 'relative', display: 'flex', width: 'fit-content' }}>

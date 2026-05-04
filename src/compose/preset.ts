@@ -32,6 +32,8 @@ export interface EditorPreset {
   shadow_opacity: number;
   shadow_angle: number;
   shadow_offset: number;
+
+  border_width: number;
 }
 
 export const WALLPAPER_MAP: Record<string, string> = {
@@ -90,4 +92,5 @@ export const DEFAULT_PRESET: EditorPreset = {
   shadow_opacity: 0.5,
   shadow_angle: 135,
   shadow_offset: 20,
+  border_width: 12,
 };
