@@ -3,11 +3,26 @@ import { NumberedObject } from '../state/types';
 
 interface NumberedNodeProps {
   obj: NumberedObject;
+  isSelected: boolean;
   onSelect: (id: string) => void;
   onUpdate: (id: string, patch: any) => void;
 }
 
-export function NumberedNode({ obj, onSelect, onUpdate }: NumberedNodeProps) {
+export function NumberedNode({ obj, isSelected, onSelect, onUpdate }: NumberedNodeProps) {
+  const handleWheel = (e: any) => {
+    if (!isSelected) return;
+
+    e.evt.preventDefault();
+    e.cancelBubble = true;
+
+    const delta = e.evt.deltaY < 0 ? 2 : -2;
+    const nextRadius = Math.max(8, Math.min(48, obj.radius + delta));
+
+    if (nextRadius !== obj.radius) {
+      onUpdate(obj.id, { radius: nextRadius });
+    }
+  };
+
   return (
     <Group
       id={obj.id}
@@ -16,6 +31,7 @@ export function NumberedNode({ obj, onSelect, onUpdate }: NumberedNodeProps) {
       draggable={obj.draggable}
       onClick={() => onSelect(obj.id)}
       onTap={() => onSelect(obj.id)}
+      onWheel={handleWheel}
       onDragEnd={(e) => {
         onUpdate(obj.id, { x: e.target.x(), y: e.target.y() });
       }}

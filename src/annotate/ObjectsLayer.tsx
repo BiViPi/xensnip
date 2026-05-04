@@ -64,6 +64,7 @@ export function ObjectsLayer({ compositionCanvasRef }: Props) {
             <NumberedNode
               key={obj.id}
               obj={obj as any}
+              isSelected={selectedId === obj.id}
               onSelect={select}
               onUpdate={updateObject}
             />

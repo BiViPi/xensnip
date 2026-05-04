@@ -23,7 +23,7 @@ export function SelectionTransformer() {
       return;
     }
 
-    if (selectedObject?.type === 'text' || editingTextId === selectedId) {
+    if (selectedObject?.type === 'text' || selectedObject?.type === 'numbered' || editingTextId === selectedId) {
       transformerRef.current.nodes([]);
       transformerRef.current.getLayer().batchDraw();
       return;

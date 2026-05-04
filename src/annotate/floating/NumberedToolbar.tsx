@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useAnnotationStore } from '../state/store';
 import { NumberedObject } from '../state/types';
-import { ChevronRight, ChevronLeft, Hash } from 'lucide-react';
+import { ChevronRight, ChevronLeft } from 'lucide-react';
+import { PaletteIcon } from './ToolbarIcons';
 
 interface Props {
   anchor: { left: number; top: number; width: number; height: number };
@@ -13,7 +14,7 @@ const COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#a855f7'
 
 export function NumberedToolbar({ anchor, obj }: Props) {
   const { updateObject, toolbarCollapsed, setToolbarCollapsed } = useAnnotationStore();
-  const [showSlider, setShowSlider] = useState(false);
+  const [showColors, setShowColors] = useState(false);
 
   const overlay = document.getElementById('annotation-ui-overlay');
   if (!overlay) return null;
@@ -42,39 +43,25 @@ export function NumberedToolbar({ anchor, obj }: Props) {
       {!toolbarCollapsed && (
         <div className="xs-toolbar-section">
           <div className="xs-toolbar-divider" />
-          
-          {COLORS.map(c => (
-            <button 
-              key={c}
-              className={`xs-color-chip ${obj.fill === c ? 'active' : ''}`}
-              style={{ background: c }}
-              onClick={() => updateObject(obj.id, { fill: c })}
-            />
-          ))}
-
-          <div className="xs-toolbar-divider" />
-
           <div style={{ position: 'relative' }}>
-            <button 
-              className="xs-toolbar-text"
-              style={{ minWidth: '40px' }}
-              onClick={() => setShowSlider(!showSlider)}
+            <button
+              className={`xs-toolbar-btn ${showColors ? 'active' : ''}`}
+              onClick={() => setShowColors(!showColors)}
+              title="Marker Color"
             >
-              #{obj.displayNumber} · {obj.radius}px
+              <PaletteIcon />
             </button>
-            {showSlider && (
-              <div className="xs-toolbar-slider-popover">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                  <Hash size={10} color="#64748b" />
-                  <span style={{ fontSize: 10, color: '#64748b' }}>Size</span>
-                </div>
-                <input 
-                  type="range" 
-                  min="8" max="40" 
-                  value={obj.radius}
-                  onChange={(e) => updateObject(obj.id, { radius: parseInt(e.target.value) })}
-                  className="xs-toolbar-slider"
-                />
+            {showColors && (
+              <div className="xs-toolbar-slider-popover xs-color-popover">
+                {COLORS.map(c => (
+                  <button
+                    key={c}
+                    className={`xs-color-chip ${obj.fill === c ? 'active' : ''}`}
+                    style={{ background: c }}
+                    onClick={() => updateObject(obj.id, { fill: c })}
+                    title={c}
+                  />
+                ))}
               </div>
             )}
           </div>
