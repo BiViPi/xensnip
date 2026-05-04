@@ -1,4 +1,3 @@
-import React from 'react';
 import { useScopedIds } from "../useScopedIds";
 
 interface IconProps {

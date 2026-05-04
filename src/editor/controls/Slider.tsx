@@ -14,7 +14,6 @@ export function SliderControl({ label, value, min, max, onChange }: Props) {
     onChange(next);
   };
 
-  const ticks = [min, min + (max - min) / 4, min + (max - min) / 2, min + (max - min) * 3 / 4, max];
 
   return (
     <div className="xs-slider-pop">

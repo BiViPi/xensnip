@@ -23,7 +23,8 @@ export function useCropTool(
   image: HTMLImageElement | null,
   preset: EditorPreset,
   setImage: (img: HTMLImageElement) => void,
-  setActiveTool: (tool: any) => void
+  setActiveTool: (tool: any) => void,
+  onCommit?: (img: HTMLImageElement) => void
 ) {
   const { objects, clearAll } = useAnnotationStore();
   const [cropBounds, setCropBounds] = useState<CropBounds | null>(null);
@@ -82,10 +83,11 @@ export function useCropTool(
     await new Promise<void>((resolve) => { newImg.onload = () => resolve(); });
 
     setImage(newImg);
+    if (onCommit) onCommit(newImg);
     withHistorySuspended(() => clearAll());
     setCropBounds(null);
     setActiveTool('select');
-  }, [image, cropBounds, preset, setImage, clearAll, setActiveTool]);
+  }, [image, cropBounds, preset, setImage, clearAll, setActiveTool, onCommit]);
 
   return {
     cropBounds,

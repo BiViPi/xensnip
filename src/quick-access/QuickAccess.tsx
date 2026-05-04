@@ -6,7 +6,6 @@ import {
   assetResolve,
   settingsLoad,
 } from "../ipc/index";
-import { quickAccessSetBusy } from "../ipc/index";
 import { QuickAccessShowPayload, Settings } from "../ipc/types";
 import { composeToCanvas } from "../compose/compose";
 import { DEFAULT_PRESET, EditorPreset } from "../compose/preset";
@@ -62,6 +61,7 @@ export function QuickAccess() {
     removeDocument, 
     switchToDocument, 
     updateCheckbox, 
+    patchActiveDocument,
     clearAll,
     setActiveDocumentId
   } = useScreenshotDocuments();
@@ -107,7 +107,35 @@ export function QuickAccess() {
     cancelCrop, 
     commitCrop,
     hasAnnotations
-  } = useCropTool(image, preset, setImage, setActiveTool);
+  } = useCropTool(image, preset, setImage, setActiveTool, async (newImg) => {
+    // Persist to document list
+    if (activeDocumentId) {
+      const thumb = await generateThumbnail(newImg);
+      patchActiveDocument({ 
+        image: newImg, 
+        blobUrl: newImg.src,
+        thumbnailSrc: thumb
+      });
+    }
+  });
+
+  const flushActiveDocument = useCallback(() => {
+    if (!activeDocumentId) return;
+    const s = useAnnotationStore.getState();
+    const snap = {
+      annotation: {
+        activeTool: s.activeTool,
+        objects: s.objects.map(obj => ({ ...obj })),
+        selectedId: s.selectedId,
+        editingTextId: s.editingTextId,
+        toolbarCollapsed: s.toolbarCollapsed,
+      },
+      cropBounds: cropBounds ? { ...cropBounds } : null,
+      undoStack: [...undoStackRef.current],
+      image: image || undefined
+    };
+    switchToDocument(activeDocumentId, snap);
+  }, [activeDocumentId, cropBounds, image, switchToDocument]);
 
   const buildAnnotationSnapshot = useCallback(() => {
     const s = useAnnotationStore.getState();
@@ -500,6 +528,7 @@ export function QuickAccess() {
             documents={documents}
             activeDocument={activeDoc}
             onClearAllSession={clearAllInSession}
+            onFlush={flushActiveDocument}
           />
         </div>
       )}

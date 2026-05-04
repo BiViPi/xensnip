@@ -6,13 +6,6 @@ interface Props {
   onChange: (updates: Partial<EditorPreset>) => void;
 }
 export function ShadowControl({ preset, onChange }: Props) {
-  const getTrackStyle = (val: number, min: number, max: number) => {
-    const pct = ((val - min) / (max - min)) * 100;
-    return {
-      background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${pct}%, rgba(255,255,255,0.1) ${pct}%, rgba(255,255,255,0.1) 100%)`
-    };
-  };
-
   return (
     <div className="shadow-control-panel" style={{ width: "260px", padding: "8px" }}>
       {/* Header */}

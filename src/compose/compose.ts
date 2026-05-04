@@ -77,10 +77,7 @@ export async function composeDocumentToBytes(
   format: string = "image/png",
   quality: number = 1.0
 ): Promise<Uint8Array> {
-  const img = new Image();
-  img.src = doc.blobUrl;
-  await new Promise((resolve) => { img.onload = resolve; });
-
+  const img = doc.image;
   if (doc.annotation.objects.length > 0) {
     return composeWithAnnotations(img, preset, doc.annotation.objects, format, quality);
   } else {

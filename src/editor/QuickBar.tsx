@@ -32,12 +32,13 @@ interface Props {
   documents: ScreenshotDocument[];
   activeDocument: ScreenshotDocument | null;
   onClearAllSession: () => void;
+  onFlush: () => void;
 }
 
 export function QuickBar({
   preset, setPreset, image, isActionInFlight, setIsActionInFlight, showToast,
   activePop, onActivePopChange, settings, onRefreshSettings, onOpenPresetManager,
-  documents, activeDocument, onClearAllSession
+  documents, activeDocument, onClearAllSession, onFlush
 }: Props) {
   const hasAnnotations = useHasAnnotations();
   const clearAll = useAnnotationStore(s => s.clearAll);
@@ -49,6 +50,7 @@ export function QuickBar({
   const handleCopy = async () => {
     if (isActionInFlight) return;
     setIsActionInFlight(true);
+    onFlush();
     try {
       const bytes = objects.length > 0 
         ? await composeWithAnnotations(image, preset, objects)
@@ -77,7 +79,8 @@ export function QuickBar({
       const docsToExport = documents.filter(d => d.isExportChecked);
       
       if (docsToExport.length === 0 && activeDocument) {
-        // Fallback to active document
+        // Single export (active doc) - use live state
+        onFlush();
         const bytes = objects.length > 0
           ? await composeWithAnnotations(image, preset, objects, format, 1.0)
           : await composeToBlob(image, preset, format, 1.0);
@@ -86,10 +89,19 @@ export function QuickBar({
         showToast("Saved", "success");
       } else {
         // Batch export
+        onFlush();
         let successCount = 0;
         for (const doc of docsToExport) {
           try {
-            const bytes = await composeDocumentToBytes(doc, preset, format, 1.0);
+            let bytes;
+            if (doc.id === activeDocument?.id) {
+              // Use live state for active doc
+              bytes = objects.length > 0
+                ? await composeWithAnnotations(image, preset, objects, format, 1.0)
+                : await composeToBlob(image, preset, format, 1.0);
+            } else {
+              bytes = await composeDocumentToBytes(doc, preset, format, 1.0);
+            }
             await exportSaveMedia(bytes, settings.export_folder, `xensnip-${doc.id}.${ext}`);
             successCount++;
           } catch (e) {

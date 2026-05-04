@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { AnnotationSnapshot } from '../annotate/state/store';
 import { CropBounds } from './useCropTool';
 
@@ -35,64 +35,61 @@ export interface DocumentStateSnapshot {
   annotation: AnnotationSnapshot;
   cropBounds: CropBounds | null;
   undoStack: DocumentUndoSnapshot[];
+  image?: HTMLImageElement; // Added to support persisting image changes (crops)
 }
 
 export function useScreenshotDocuments() {
   const [documents, setDocuments] = useState<ScreenshotDocument[]>([]);
   const [activeDocumentId, setActiveDocumentId] = useState<string | null>(null);
 
+  // Use refs to track latest state for synchronous metadata calculation
+  const docsRef = useRef<ScreenshotDocument[]>([]);
+  docsRef.current = documents;
+  const activeIdRef = useRef<string | null>(null);
+  activeIdRef.current = activeDocumentId;
+
   const activeDoc = documents.find((d) => d.id === activeDocumentId) || null;
 
   /**
    * Adds a new document to the top of the list.
    * Enforces a 20-item cache limit.
-   * Returns evicted documents for cleanup (blob URL revocation, asset release).
+   * Returns evicted documents for cleanup.
    */
   const addDocument = useCallback((doc: ScreenshotDocument) => {
+    const prev = docsRef.current;
+    let next = [doc, ...prev];
     let evicted: ScreenshotDocument[] = [];
-    
-    setDocuments((prev) => {
-      const next = [doc, ...prev];
-      if (next.length > 20) {
-        // Cache eviction policy: 
-        // 1. Try to find the oldest unchecked item
-        // 2. If all are checked, remove the oldest item regardless
-        const uncheckedIndices = next
-          .map((d, i) => (!d.isExportChecked ? i : -1))
-          .filter((i) => i !== -1);
 
-        let indexToRemove = -1;
-        if (uncheckedIndices.length > 0) {
-          // Remove oldest unchecked (last in uncheckedIndices because next is newest-first)
-          indexToRemove = uncheckedIndices[uncheckedIndices.length - 1];
-        } else {
-          // Remove absolute oldest
-          indexToRemove = next.length - 1;
-        }
+    if (next.length > 20) {
+      const uncheckedIndices = next
+        .map((d, i) => (!d.isExportChecked ? i : -1))
+        .filter((i) => i !== -1);
 
-        if (indexToRemove !== -1) {
-          evicted = [next[indexToRemove]];
-          return next.filter((_, i) => i !== indexToRemove);
-        }
+      let indexToRemove = -1;
+      if (uncheckedIndices.length > 0) {
+        indexToRemove = uncheckedIndices[uncheckedIndices.length - 1];
+      } else {
+        indexToRemove = next.length - 1;
       }
-      return next;
-    });
 
+      if (indexToRemove !== -1) {
+        evicted = [next[indexToRemove]];
+        next = next.filter((_, i) => i !== indexToRemove);
+      }
+    }
+
+    setDocuments(next);
     return evicted;
   }, []);
 
   const removeDocument = useCallback((id: string) => {
-    let removed: ScreenshotDocument | null = null;
-    setDocuments((prev) => {
-      const target = prev.find((d) => d.id === id);
-      if (target) {
-        removed = target;
-        const next = prev.filter((d) => d.id !== id);
-        return next;
-      }
-      return prev;
-    });
-    return removed;
+    const prev = docsRef.current;
+    const target = prev.find((d) => d.id === id);
+    if (target) {
+      setDocuments(prev.filter((d) => d.id !== id));
+      return target;
+    }
+    return null;
   }, []);
 
   /**
@@ -100,20 +97,22 @@ export function useScreenshotDocuments() {
    * Persists current editor state into the departing document before switching.
    */
   const switchToDocument = useCallback((nextId: string, currentSnapshot: DocumentStateSnapshot) => {
+    const activeId = activeIdRef.current;
     setDocuments((prev) => 
       prev.map((doc) => 
-        doc.id === activeDocumentId 
+        doc.id === activeId 
           ? { 
               ...doc, 
               annotation: { ...currentSnapshot.annotation }, 
               cropBounds: currentSnapshot.cropBounds,
-              undoStack: [...currentSnapshot.undoStack]
+              undoStack: [...currentSnapshot.undoStack],
+              image: currentSnapshot.image || doc.image, // Persist image if provided
             } 
           : doc
       )
     );
     setActiveDocumentId(nextId);
-  }, [activeDocumentId]);
+  }, []);
 
   const updateCheckbox = useCallback((id: string, checked: boolean) => {
     setDocuments((prev) =>
@@ -122,17 +121,15 @@ export function useScreenshotDocuments() {
   }, []);
 
   const patchActiveDocument = useCallback((patch: Partial<ScreenshotDocument>) => {
+    const activeId = activeIdRef.current;
     setDocuments((prev) =>
-      prev.map((doc) => (doc.id === activeDocumentId ? { ...doc, ...patch } : doc))
+      prev.map((doc) => (doc.id === activeId ? { ...doc, ...patch } : doc))
     );
-  }, [activeDocumentId]);
+  }, []);
 
   const clearAll = useCallback(() => {
-    let all: ScreenshotDocument[] = [];
-    setDocuments((prev) => {
-      all = [...prev];
-      return [];
-    });
+    const all = [...docsRef.current];
+    setDocuments([]);
     setActiveDocumentId(null);
     return all;
   }, []);
@@ -147,6 +144,6 @@ export function useScreenshotDocuments() {
     updateCheckbox,
     patchActiveDocument,
     clearAll,
-    setActiveDocumentId, // sometimes needed for initial set
+    setActiveDocumentId,
   };
 }
