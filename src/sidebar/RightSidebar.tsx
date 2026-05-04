@@ -30,7 +30,7 @@ export function RightSidebar() {
   const activeIndex = FEATURES.findIndex(f => f.id === activeFeatureId);
   // Rail layout: padding-top(6) + toggle(32) + gap(4) + divider(1) + gap(4) = 47px before first item
   // Each item is 34px with a 4px gap.
-  const popoverOffset = activeIndex >= 0 ? 47 + (activeIndex * (34 + 4)) : 0;
+  const popoverOffset = activeIndex >= 0 ? 47 + (activeIndex * (44 + 4)) : 0;
 
   return (
     <div className="xs-sidebar-root">
@@ -55,7 +55,7 @@ export function RightSidebar() {
                 disabled={!feature.enabled}
                 title={feature.label}
               >
-                <feature.icon size={20} />
+                <feature.icon size={32} />
                 {feature.locked && (
                   <div className="xs-lock-dot">
                     <Lock size={7} />
@@ -114,7 +114,7 @@ function ToolGrid({ tools, onClose }: { tools: any[]; onClose: () => void }) {
           title={tool.hint || tool.label}
           disabled={tool.disabled}
         >
-          <tool.icon size={18} />
+          <tool.icon size={24} />
         </button>
       ))}
     </div>

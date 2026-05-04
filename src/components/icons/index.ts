@@ -24,3 +24,11 @@ export * from './settings/SavedToIcon';
 export * from './settings/OutputFormatIcon';
 export * from './settings/MediaQualityIcon';
 export * from './settings/MultipleMonitorsIcon';
+
+// Sidebar Icons
+export * from './sidebar/AnnotateIcon';
+export * from './sidebar/PrivacyIcon';
+export * from './sidebar/CropCanvasIcon';
+export * from './sidebar/StepsCalloutIcon';
+export * from './sidebar/FocusPolishIcon';
+export * from './sidebar/MeasureExtractIcon';

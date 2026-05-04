@@ -1,12 +1,12 @@
 import { FeatureId } from './store';
 import { 
-  Pencil, 
-  ShieldAlert, 
-  Crop, 
-  ListOrdered, 
-  Sparkles, 
-  Ruler 
-} from 'lucide-react';
+  AnnotateIcon, 
+  PrivacyIcon, 
+  CropCanvasIcon, 
+  StepsCalloutIcon, 
+  FocusPolishIcon, 
+  MeasureExtractIcon 
+} from '../components/icons';
 
 export interface SidebarFeature {
   id: FeatureId;
@@ -17,10 +17,10 @@ export interface SidebarFeature {
 }
 
 export const FEATURES: SidebarFeature[] = [
-  { id: 'annotate', label: 'Annotate', icon: Pencil, enabled: true },
-  { id: 'privacy', label: 'Privacy', icon: ShieldAlert, enabled: true },
-  { id: 'crop_canvas', label: 'Crop & Canvas', icon: Crop, enabled: true },
-  { id: 'steps_callouts', label: 'Steps & Callouts', icon: ListOrdered, enabled: true },
-  { id: 'focus_polish', label: 'Focus & Polish', icon: Sparkles, enabled: true, locked: true },
-  { id: 'measure_extract', label: 'Measure & Extract', icon: Ruler, enabled: true, locked: true },
+  { id: 'annotate', label: 'Annotate', icon: AnnotateIcon, enabled: true },
+  { id: 'privacy', label: 'Privacy', icon: PrivacyIcon, enabled: true },
+  { id: 'crop_canvas', label: 'Crop & Canvas', icon: CropCanvasIcon, enabled: true },
+  { id: 'steps_callouts', label: 'Steps & Callouts', icon: StepsCalloutIcon, enabled: true },
+  { id: 'focus_polish', label: 'Focus & Polish', icon: FocusPolishIcon, enabled: true, locked: true },
+  { id: 'measure_extract', label: 'Measure & Extract', icon: MeasureExtractIcon, enabled: true, locked: true },
 ];
