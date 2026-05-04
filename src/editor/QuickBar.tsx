@@ -162,6 +162,25 @@ export function QuickBar({
                 <SliderControl label="Radius" min={0} max={48} value={preset.radius} onChange={v => setPreset(p => ({ ...p, radius: v }))} />
                 <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '8px 4px' }} />
                 <SliderControl label="Border" min={0} max={12} value={preset.border_width} onChange={v => setPreset(p => ({ ...p, border_width: v }))} />
+                <div style={{ display: 'flex', gap: '8px', marginTop: '4px', padding: '4px 2px' }}>
+                  {[
+                    { label: 'Dark', color: 'rgba(15, 23, 42, 0.8)' },
+                    { label: 'White', color: 'rgba(255, 255, 255, 0.3)' },
+                    { label: 'Glass', color: 'rgba(255, 255, 255, 0.1)' }
+                  ].map(c => (
+                    <button
+                      key={c.color}
+                      className={`xs-color-swatch ${preset.border_color === c.color ? 'active' : ''}`}
+                      style={{ 
+                        width: '24px', height: '24px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.1)',
+                        background: c.color, cursor: 'pointer', transition: 'all 0.2s',
+                        boxShadow: preset.border_color === c.color ? '0 0 0 2px #3b82f6' : 'none'
+                      }}
+                      onClick={() => setPreset(p => ({ ...p, border_color: c.color }))}
+                      title={c.label}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
           )}

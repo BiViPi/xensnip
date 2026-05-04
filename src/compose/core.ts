@@ -179,7 +179,7 @@ export function drawComposition(
     ctx.shadowBlur = shadow_blur;
     ctx.shadowColor = `rgba(0, 0, 0, ${shadow_opacity})`;
     
-    ctx.fillStyle = "rgba(15, 23, 42, 0.8)"; // Dark glass material
+    ctx.fillStyle = preset.border_color || "rgba(15, 23, 42, 0.8)"; // Dynamic glass material
     roundedRect(ctx, fx, fy, fw, fh, fr);
     ctx.fill();
     ctx.restore();

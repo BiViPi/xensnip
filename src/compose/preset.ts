@@ -34,6 +34,7 @@ export interface EditorPreset {
   shadow_offset: number;
 
   border_width: number;
+  border_color: string;
 }
 
 export const WALLPAPER_MAP: Record<string, string> = {
@@ -93,4 +94,5 @@ export const DEFAULT_PRESET: EditorPreset = {
   shadow_angle: 135,
   shadow_offset: 20,
   border_width: 12,
+  border_color: "rgba(15, 23, 42, 0.8)",
 };
