@@ -39,6 +39,20 @@ export function TextNode({ obj, isSelected, onSelect, onUpdate }: TextNodeProps)
     setEditingTextId(obj.id);
   };
 
+  const handleWheel = (e: any) => {
+    if (!isSelected || isEditing) return;
+
+    e.evt.preventDefault();
+    e.cancelBubble = true;
+
+    const delta = e.evt.deltaY < 0 ? 2 : -2;
+    const nextFontSize = Math.max(8, Math.min(96, obj.fontSize + delta));
+
+    if (nextFontSize !== obj.fontSize) {
+      onUpdate(obj.id, { fontSize: nextFontSize });
+    }
+  };
+
   const handleClick = () => {
     const now = Date.now();
     const isDoubleIntent = now - clickAtRef.current < 300;
@@ -86,6 +100,7 @@ export function TextNode({ obj, isSelected, onSelect, onUpdate }: TextNodeProps)
         onTap={handleClick}
         onDblClick={openEditor}
         onDblTap={openEditor}
+        onWheel={handleWheel}
         onDragEnd={(e) => {
           onUpdate(obj.id, { x: e.target.x(), y: e.target.y() });
         }}
