@@ -247,12 +247,12 @@ export function QuickAccess() {
     if (initialId) void bootstrapAsset(initialId);
   }, [bootstrapAsset]);
 
-  const { dims, previewScale, previewW, previewH, centerX, centerY, layout } = usePreviewMetrics(image, preset, viewportSize);
+  const { dims, previewScale, previewRenderScale, previewW, previewH, centerX, centerY, previewCenterOffsetX, layout } = usePreviewMetrics(image, preset, viewportSize);
 
   useEffect(() => {
     if (!canvasRef.current || !image) return;
-    composeToCanvas(canvasRef.current, image, preset);
-  }, [image, preset, wallpaperFlip, dims]);
+    composeToCanvas(canvasRef.current, image, preset, previewRenderScale);
+  }, [image, preset, wallpaperFlip, dims, previewRenderScale]);
 
   useEffect(() => {
     if (preset.bg_mode === "Wallpaper") {
@@ -314,12 +314,17 @@ export function QuickAccess() {
               paddingLeft: `${layout.leftPanelReserve}px`,
             }}
           >
-            <div style={{ position: 'relative', width: `${previewW}px`, height: `${previewH}px` }}>
+            <div
+              style={{
+                position: 'relative',
+                width: `${previewW}px`,
+                height: `${previewH}px`,
+                transform: `translateX(${previewCenterOffsetX}px)`,
+              }}
+            >
               <canvas
-                key={`${preset.ratio}-${dims.canvasW}-${dims.canvasH}`}
+                key={`${preset.ratio}-${dims.canvasW}-${dims.canvasH}-${previewRenderScale}`}
                 ref={canvasRef}
-                width={dims.canvasW}
-                height={dims.canvasH}
                 className="xs-canvas"
                 style={{ width: '100%', height: '100%' }}
               />

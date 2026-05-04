@@ -39,20 +39,25 @@ export function usePreviewMetrics(
     const previewScale = dims.canvasW > 0 
       ? Math.min(previewBudgetW / dims.canvasW, previewBudgetH / dims.canvasH, 2)
       : 1;
+    const devicePixelRatio = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+    const previewRenderScale = clamp(Math.max(1, previewScale) * devicePixelRatio, 1, 2);
 
     const previewW = Math.floor(dims.canvasW * previewScale);
     const previewH = Math.floor(dims.canvasH * previewScale);
 
     const centerX = (dims.drawX + dims.drawW / 2) * previewScale;
     const centerY = (dims.drawY + dims.drawH / 2) * previewScale;
+    const previewCenterOffsetX = (rightRailReserve - leftPanelReserve) / 2;
 
     return {
       dims,
       previewScale,
+      previewRenderScale,
       previewW,
       previewH,
       centerX,
       centerY,
+      previewCenterOffsetX,
       layout: {
         topInset,
         rightRailReserve,

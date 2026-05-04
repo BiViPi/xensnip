@@ -1,17 +1,36 @@
 import { getCompositionDimensions, drawComposition, preloadWallpaper } from "./core";
 import type { EditorPreset } from "./preset";
 
-export function composeToCanvas(canvas: HTMLCanvasElement, image: HTMLImageElement, preset: EditorPreset) {
+export function composeToCanvas(
+  canvas: HTMLCanvasElement,
+  image: HTMLImageElement,
+  preset: EditorPreset,
+  renderScale: number = 1
+) {
   const dims = getCompositionDimensions(image.width, image.height, preset);
+  const targetScale = Math.max(1, renderScale);
+  const scaledCanvasW = Math.max(1, Math.round(dims.canvasW * targetScale));
+  const scaledCanvasH = Math.max(1, Math.round(dims.canvasH * targetScale));
+  const compositionCanvas = document.createElement("canvas");
+  compositionCanvas.width = dims.canvasW;
+  compositionCanvas.height = dims.canvasH;
+  const compositionCtx = compositionCanvas.getContext("2d");
+  if (!compositionCtx) return;
   
   // Sync canvas dimensions
-  if (canvas.width !== dims.canvasW) canvas.width = dims.canvasW;
-  if (canvas.height !== dims.canvasH) canvas.height = dims.canvasH;
+  if (canvas.width !== scaledCanvasW) canvas.width = scaledCanvasW;
+  if (canvas.height !== scaledCanvasH) canvas.height = scaledCanvasH;
   
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
-  
-  drawComposition(ctx, image, preset, dims);
+
+  drawComposition(compositionCtx, image, preset, dims);
+
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, scaledCanvasW, scaledCanvasH);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(compositionCanvas, 0, 0, scaledCanvasW, scaledCanvasH);
 }
 
 export async function composeToBlob(image: HTMLImageElement, preset: EditorPreset, format: string = "image/png", quality: number = 1.0): Promise<Uint8Array> {
