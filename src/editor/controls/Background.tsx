@@ -11,8 +11,8 @@ function BackgroundModeIcon({ mode }: { mode: BackgroundMode }) {
       <svg className="xs-tab-icon" viewBox="0 0 1024 1024" aria-hidden="true">
         <defs>
           <linearGradient id="wallpaper-tab-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#38bdf8" />
-            <stop offset="100%" stopColor="#2563eb" />
+            <stop offset="0%" stopColor="var(--icon-accent-blue-light)" />
+            <stop offset="100%" stopColor="var(--icon-accent-blue)" />
           </linearGradient>
         </defs>
         <g fill="none" stroke="url(#wallpaper-tab-grad)" strokeWidth="48" strokeLinecap="round" strokeLinejoin="round">
@@ -45,8 +45,14 @@ function BackgroundModeIcon({ mode }: { mode: BackgroundMode }) {
 
   return (
     <svg className="xs-tab-icon" viewBox="0 0 1024 1024" aria-hidden="true">
-      <rect x="232" y="232" width="560" height="560" rx="120" fill="none" stroke="#38bdf8" strokeWidth="48" />
-      <rect x="296" y="296" width="432" height="432" rx="64" fill="#38bdf8" />
+      <defs>
+        <linearGradient id="solid-tab-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="var(--icon-accent-blue-light)" />
+          <stop offset="100%" stopColor="var(--icon-accent-blue)" />
+        </linearGradient>
+      </defs>
+      <rect x="232" y="232" width="560" height="560" rx="120" fill="none" stroke="url(#solid-tab-grad)" strokeWidth="48" />
+      <rect x="296" y="296" width="432" height="432" rx="64" fill="url(#solid-tab-grad)" />
     </svg>
   );
 }
