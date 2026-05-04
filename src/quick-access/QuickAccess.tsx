@@ -164,7 +164,7 @@ export function QuickAccess() {
     if (initialId) void bootstrapAsset(initialId);
   }, [bootstrapAsset]);
 
-  const { dims, previewScale, previewW, previewH, centerX, centerY } = usePreviewMetrics(image, preset, viewportSize);
+  const { dims, previewScale, previewW, previewH, centerX, centerY, layout } = usePreviewMetrics(image, preset, viewportSize);
 
   useEffect(() => {
     if (!canvasRef.current || !image) return;
@@ -221,7 +221,16 @@ export function QuickAccess() {
       
       <div className="xs-viewport">
         {assetId && image ? (
-          <div className="xs-canvas-area" style={{ position: 'relative' }}>
+          <div
+            className="xs-canvas-area"
+            style={{
+              position: 'relative',
+              paddingTop: `${layout.topInset}px`,
+              paddingRight: `${layout.rightRailReserve}px`,
+              paddingBottom: `${layout.bottomInset}px`,
+              paddingLeft: `${layout.leftPanelReserve}px`,
+            }}
+          >
             <div style={{ position: 'relative', width: `${previewW}px`, height: `${previewH}px` }}>
               <canvas
                 key={`${preset.ratio}-${dims.canvasW}-${dims.canvasH}`}
@@ -283,7 +292,7 @@ export function QuickAccess() {
             {isLoading ? "Loading capture..." : "Capture unavailable."}
           </div>
         )}
-        <div className="xs-dock-spacer" />
+        <div className="xs-dock-spacer" style={{ height: `${layout.dockReserve}px`, flexBasis: `${layout.dockReserve}px` }} />
       </div>
 
       {assetId && image && (
