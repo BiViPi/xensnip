@@ -165,14 +165,14 @@ pub fn run() {
                     }
                     _ => {}
                 })
-                .on_tray_icon_event(|_tray, event| {
+                .on_tray_icon_event(|tray, event| {
                     if let TrayIconEvent::Click {
                         button: MouseButton::Left,
                         button_state: MouseButtonState::Up,
                         ..
                     } = event
                     {
-                        // Future: toggle window
+                        quick_access::focus_window(tray.app_handle());
                     }
                 })
                 .build(app)?;

@@ -1,12 +1,12 @@
 import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  quickAccessDismiss,
   assetReadPng,
   assetRelease,
   assetResolve,
   settingsLoad,
 } from "../ipc/index";
+import { quickAccessSetBusy } from "../ipc/index";
 import { QuickAccessShowPayload, Settings } from "../ipc/types";
 import { composeToCanvas } from "../compose/compose";
 import { DEFAULT_PRESET, EditorPreset } from "../compose/preset";
@@ -21,18 +21,16 @@ import { usePreviewMetrics } from "../editor/usePreviewMetrics";
 import { AnnotationStage } from "../annotate/AnnotationStage";
 import { useKeyboardShortcuts } from "../editor/useKeyboardShortcuts";
 import { FloatingToolbarManager } from "../annotate/floating/FloatingToolbarManager";
-import { AnnotationSnapshot, useAnnotationStore } from "../annotate/state/store";
+import { useAnnotationStore } from "../annotate/state/store";
 import { useCropTool } from "../editor/useCropTool";
 import { CropOverlay } from "../editor/CropOverlay";
 import { registerHistoryRecorder, withHistorySuspended } from "../editor/historyBridge";
+import { useScreenshotDocuments, ScreenshotDocument, DocumentStateSnapshot, DocumentUndoSnapshot } from "../editor/useScreenshotDocuments";
+import { generateThumbnail } from "../editor/generateThumbnail";
+import { LeftPanel } from "../left-panel/LeftPanel";
 import "./QuickAccess.css";
 
-interface EditorSnapshot {
-  imageSrc: string;
-  preset: EditorPreset;
-  annotation: AnnotationSnapshot;
-  cropBounds: { x: number; y: number; w: number; h: number } | null;
-}
+// EditorSnapshot is replaced by DocumentUndoSnapshot in the per-document stack
 
 const HISTORY_LIMIT = 50;
 
@@ -41,7 +39,6 @@ export function QuickAccess() {
     width: window.innerWidth,
     height: window.innerHeight,
   }));
-  const [assetId, setAssetId] = useState<string | null>(null);
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [preset, setPreset] = useState<EditorPreset>(DEFAULT_PRESET);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
@@ -51,14 +48,33 @@ export function QuickAccess() {
   const [wallpaperFlip, setWallpaperFlip] = useState(0);
   const [isPresetManagerOpen, setIsPresetManagerOpen] = useState(false);
   const [activePop, setActivePop] = useState<string | null>(null);
+  const [isLeftPanelCollapsed, setIsLeftPanelCollapsed] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stageRef = useRef<any>(null);
-  const bootstrappedAssetIdRef = useRef<string | null>(null);
-  const resolvedAssetIdRef = useRef<string | null>(null);
-  const blobUrlRef = useRef<string | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const undoStackRef = useRef<EditorSnapshot[]>([]);
+  
+  const { 
+    documents, 
+    activeDocumentId, 
+    activeDoc, 
+    addDocument, 
+    removeDocument, 
+    switchToDocument, 
+    updateCheckbox, 
+    clearAll,
+    setActiveDocumentId
+  } = useScreenshotDocuments();
+
+  const undoStackRef = useRef<DocumentUndoSnapshot[]>([]);
+  
+  // Cleanup helper for assets and blob URLs
+  const releaseDocument = useCallback((doc: ScreenshotDocument) => {
+    URL.revokeObjectURL(doc.blobUrl);
+    if (doc.assetId) {
+      void assetRelease(doc.assetId, "quick_access_ui").catch(() => {});
+    }
+  }, []);
 
   useEffect(() => {
     settingsLoad().then(setSettings).catch(console.error);
@@ -93,23 +109,26 @@ export function QuickAccess() {
     hasAnnotations
   } = useCropTool(image, preset, setImage, setActiveTool);
 
-  const buildSnapshot = useCallback((): EditorSnapshot | null => {
+  const buildAnnotationSnapshot = useCallback(() => {
+    const s = useAnnotationStore.getState();
+    return {
+      activeTool: s.activeTool,
+      objects: s.objects.map(obj => ({ ...obj })),
+      selectedId: s.selectedId,
+      editingTextId: s.editingTextId,
+      toolbarCollapsed: s.toolbarCollapsed,
+    };
+  }, []);
+
+  const buildSnapshot = useCallback((): DocumentUndoSnapshot | null => {
     if (!image?.src) return null;
 
-    const annotationState = useAnnotationStore.getState();
     return {
       imageSrc: image.src,
-      preset: { ...preset },
-      annotation: {
-        activeTool: annotationState.activeTool,
-        objects: annotationState.objects.map((obj) => ({ ...obj })),
-        selectedId: annotationState.selectedId,
-        editingTextId: annotationState.editingTextId,
-        toolbarCollapsed: annotationState.toolbarCollapsed,
-      },
+      annotation: buildAnnotationSnapshot(),
       cropBounds: cropBounds ? { ...cropBounds } : null,
     };
-  }, [cropBounds, image, preset]);
+  }, [cropBounds, image, buildAnnotationSnapshot]);
 
   const loadSnapshotImage = useCallback(async (src: string) => {
     const img = new Image();
@@ -129,7 +148,6 @@ export function QuickAccess() {
     if (
       previous &&
       previous.imageSrc === snapshot.imageSrc &&
-      JSON.stringify(previous.preset) === JSON.stringify(snapshot.preset) &&
       JSON.stringify(previous.annotation) === JSON.stringify(snapshot.annotation) &&
       JSON.stringify(previous.cropBounds) === JSON.stringify(snapshot.cropBounds)
     ) {
@@ -150,7 +168,7 @@ export function QuickAccess() {
       const restoredImage = await loadSnapshotImage(snapshot.imageSrc);
       withHistorySuspended(() => {
         setImage(restoredImage);
-        setPreset({ ...snapshot.preset });
+        // Shared preset is intentionally excluded from per-document undo
         useAnnotationStore.getState().restoreSnapshot(snapshot.annotation);
         setCropBounds(snapshot.cropBounds ? { ...snapshot.cropBounds } : null);
       });
@@ -158,6 +176,31 @@ export function QuickAccess() {
       console.error("Undo restore failed", error);
     }
   }, [loadSnapshotImage, setCropBounds]);
+
+  const handleSwitchDocument = useCallback((nextId: string) => {
+    if (nextId === activeDocumentId) return;
+
+    // 1. Cancel active crop if running
+    if (activeTool === 'crop') cancelCrop();
+
+    // 2. Build current state snapshot
+    const snapshot: DocumentStateSnapshot = {
+      annotation: buildAnnotationSnapshot(),
+      cropBounds: cropBounds ?? null,
+      undoStack: [...undoStackRef.current],
+    };
+
+    // 3. Persist into current doc + set activeDocumentId atomically
+    switchToDocument(nextId, snapshot);
+
+    // 4. Restore incoming doc into editor shell
+    const nextDoc = documents.find(d => d.id === nextId);
+    if (!nextDoc) return;
+    setImage(nextDoc.image);
+    useAnnotationStore.getState().restoreSnapshot(nextDoc.annotation);
+    setCropBounds(nextDoc.cropBounds);
+    undoStackRef.current = [...nextDoc.undoStack];
+  }, [activeDocumentId, activeTool, cancelCrop, cropBounds, documents, switchToDocument, setCropBounds]);
 
   useKeyboardShortcuts({ onUndo: () => void handleUndo() });
 
@@ -173,33 +216,22 @@ export function QuickAccess() {
   }, [activeTool, cropBounds, startCrop]);
 
   const bootstrapAsset = useCallback(async (nextAssetId: string) => {
-    if (bootstrappedAssetIdRef.current === nextAssetId) return;
-
-    if (resolvedAssetIdRef.current && resolvedAssetIdRef.current !== nextAssetId) {
-      void assetRelease(resolvedAssetIdRef.current, "quick_access_ui").catch(() => {});
-      resolvedAssetIdRef.current = null;
+    // Check if we already have this asset to avoid duplicates in the session list
+    if (documents.some(d => d.assetId === nextAssetId)) {
+      handleSwitchDocument(documents.find(d => d.assetId === nextAssetId)!.id);
+      return;
     }
 
-    bootstrappedAssetIdRef.current = nextAssetId;
     setIsLoading(true);
     setToast(null);
     setIsActionInFlight(false);
-    setImage(null);
-    undoStackRef.current = [];
-
-    if (blobUrlRef.current) {
-      URL.revokeObjectURL(blobUrlRef.current);
-      blobUrlRef.current = null;
-    }
 
     try {
       await assetResolve(nextAssetId, "quick_access_ui");
-      resolvedAssetIdRef.current = nextAssetId;
 
       const bytes = await assetReadPng(nextAssetId);
       const blob = new Blob([bytes], { type: "image/png" });
       const url = URL.createObjectURL(blob);
-      blobUrlRef.current = url;
 
       const img = new Image();
       img.src = url;
@@ -208,12 +240,41 @@ export function QuickAccess() {
         img.onerror = () => reject(new Error("Failed to load blob image"));
       });
 
-      setImage(img);
-      setAssetId(nextAssetId);
+      const thumb = await generateThumbnail(img);
+
+      const newDoc: ScreenshotDocument = {
+        id: crypto.randomUUID(),
+        image: img,
+        blobUrl: url,
+        assetId: nextAssetId,
+        thumbnailSrc: thumb,
+        annotation: {
+          activeTool: 'select',
+          objects: [],
+          selectedId: null,
+          editingTextId: null,
+          toolbarCollapsed: false,
+        },
+        cropBounds: null,
+        isExportChecked: true, // Default to checked for export
+        undoStack: [],
+        createdAt: Date.now(),
+      };
+
+      const evicted = addDocument(newDoc);
+      evicted.forEach(releaseDocument);
+
+      // Set as active
+      setImage(newDoc.image);
+      setActiveDocumentId(newDoc.id);
+      useAnnotationStore.getState().clearAll();
+      setCropBounds(null);
+      undoStackRef.current = [];
 
       let currentSettings = await settingsLoad();
       setSettings(currentSettings);
 
+      // Shared preset logic (applies to all captures in session)
       if (currentSettings?.last_preset) {
         setPreset({ ...DEFAULT_PRESET, ...currentSettings.last_preset });
       } else if (currentSettings?.default_preset_id) {
@@ -225,12 +286,25 @@ export function QuickAccess() {
       }
     } catch (e) {
       console.error("Bootstrap failed", e);
-      bootstrappedAssetIdRef.current = null;
       showToast("Capture is no longer available.", "error");
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [documents, addDocument, releaseDocument, handleSwitchDocument, setActiveDocumentId, setCropBounds]);
+
+  const clearAllInSession = useCallback(() => {
+    documents.forEach(doc => {
+      doc.annotation.objects = [];
+      doc.cropBounds = null;
+      doc.undoStack = [];
+    });
+    // Trigger re-render of thumbnails
+    documents.forEach(doc => {
+      generateThumbnail(doc.image).then(thumb => {
+        doc.thumbnailSrc = thumb;
+      });
+    });
+  }, [documents]);
 
   useEffect(() => {
     let unlisten: any = null;
@@ -247,7 +321,8 @@ export function QuickAccess() {
     if (initialId) void bootstrapAsset(initialId);
   }, [bootstrapAsset]);
 
-  const { dims, previewScale, previewRenderScale, previewW, previewH, centerX, centerY, previewCenterOffsetX, layout } = usePreviewMetrics(image, preset, viewportSize);
+  const panelWidth = isLeftPanelCollapsed ? 52 : 272;
+  const { dims, previewScale, previewRenderScale, previewW, previewH, centerX, centerY, previewCenterOffsetX, layout } = usePreviewMetrics(image, preset, viewportSize, panelWidth);
 
   useEffect(() => {
     if (!canvasRef.current || !image) return;
@@ -262,8 +337,10 @@ export function QuickAccess() {
   }, [preset.bg_mode, preset.bg_value]);
 
   const handleDismiss = useCallback(async () => {
-    if (assetId) void quickAccessDismiss(assetId).catch(() => {});
-  }, [assetId]);
+    const allDocs = clearAll();
+    allDocs.forEach(releaseDocument);
+    // Note: Rust window close will handle UI termination
+  }, [clearAll, releaseDocument]);
 
   const handleShadowDrag = useCallback((e: any) => {
     if (!image || !canvasRef.current) return;
@@ -303,7 +380,36 @@ export function QuickAccess() {
       <TitleBar title="Xensnip" onClose={handleDismiss} />
       
       <div className="xs-viewport">
-        {assetId && image ? (
+        <LeftPanel 
+          documents={documents}
+          activeDocumentId={activeDocumentId}
+          isCollapsed={isLeftPanelCollapsed}
+          onCollapsedChange={setIsLeftPanelCollapsed}
+          onSelect={handleSwitchDocument}
+          onCheckboxToggle={(id) => {
+            const doc = documents.find(d => d.id === id);
+            if (doc) updateCheckbox(id, !doc.isExportChecked);
+          }}
+          onDelete={(id) => {
+            const removed = removeDocument(id);
+            if (removed) {
+              releaseDocument(removed);
+              // If we deleted the active document, switch to the first remaining one
+              if (id === activeDocumentId && documents.length > 1) {
+                const remaining = documents.filter(d => d.id !== id);
+                if (remaining.length > 0) {
+                  // Pass empty snapshot since we're deleting the current state anyway
+                  handleSwitchDocument(remaining[0].id);
+                }
+              } else if (id === activeDocumentId && documents.length === 1) {
+                setImage(null);
+                setActiveDocumentId(null);
+              }
+            }
+          }}
+        />
+
+        {activeDoc && image ? (
           <div
             className="xs-canvas-area"
             style={{
@@ -383,7 +489,7 @@ export function QuickAccess() {
         <div className="xs-dock-spacer" style={{ height: `${layout.dockReserve}px`, flexBasis: `${layout.dockReserve}px` }} />
       </div>
 
-      {assetId && image && (
+      {activeDoc && image && (
         <div className="xs-dock-container">
           <QuickBar
             preset={preset} setPreset={setPreset} image={image}
@@ -391,6 +497,9 @@ export function QuickAccess() {
             showToast={showToast} activePop={activePop} onActivePopChange={setActivePop}
             settings={settings} onRefreshSettings={refreshSettings}
             onOpenPresetManager={() => setIsPresetManagerOpen(true)}
+            documents={documents}
+            activeDocument={activeDoc}
+            onClearAllSession={clearAllInSession}
           />
         </div>
       )}

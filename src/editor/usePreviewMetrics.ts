@@ -14,14 +14,15 @@ function clamp(value: number, min: number, max: number) {
 export function usePreviewMetrics(
   image: HTMLImageElement | null,
   preset: EditorPreset,
-  viewportSize: ViewportSize
+  viewportSize: ViewportSize,
+  panelWidth: number = 272
 ) {
   return useMemo(() => {
     const dims = image 
       ? getCompositionDimensions(image.width, image.height, preset) 
       : { canvasW: 0, canvasH: 0, drawX: 0, drawY: 0, drawW: 0, drawH: 0 };
 
-    const leftPanelReserve = clamp(viewportSize.width * 0.16, 176, 256);
+    const leftPanelReserve = panelWidth;
     const rightRailReserve = clamp(viewportSize.width * 0.07, 92, 140);
     const topInset = clamp(viewportSize.height * 0.075, 68, 96);
     const bottomInset = clamp(viewportSize.height * 0.055, 36, 64);
@@ -66,5 +67,5 @@ export function usePreviewMetrics(
         dockReserve,
       }
     };
-  }, [image, preset, viewportSize]);
+  }, [image, preset, viewportSize, panelWidth]);
 }

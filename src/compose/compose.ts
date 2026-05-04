@@ -1,5 +1,7 @@
 import { getCompositionDimensions, drawComposition, preloadWallpaper } from "./core";
 import type { EditorPreset } from "./preset";
+import { ScreenshotDocument } from "../editor/useScreenshotDocuments";
+import { composeWithAnnotations } from "./composeWithAnnotations";
 
 export function composeToCanvas(
   canvas: HTMLCanvasElement,
@@ -65,6 +67,25 @@ export async function composeToBlob(image: HTMLImageElement, preset: EditorPrese
       reader.readAsArrayBuffer(blob);
     }, format, quality);
   });
+}
+
+
+
+export async function composeDocumentToBytes(
+  doc: ScreenshotDocument,
+  preset: EditorPreset,
+  format: string = "image/png",
+  quality: number = 1.0
+): Promise<Uint8Array> {
+  const img = new Image();
+  img.src = doc.blobUrl;
+  await new Promise((resolve) => { img.onload = resolve; });
+
+  if (doc.annotation.objects.length > 0) {
+    return composeWithAnnotations(img, preset, doc.annotation.objects, format, quality);
+  } else {
+    return composeToBlob(img, preset, format, quality);
+  }
 }
 
 export async function loadImage(src: string): Promise<HTMLImageElement> {

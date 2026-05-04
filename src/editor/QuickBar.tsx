@@ -3,7 +3,8 @@ import {
   RatioIcon, BackgroundIcon, PaddingIcon, RadiusIcon, 
   ShadowIcon, PresetIcon, ChevronIcon, CopyIcon, ExportIcon 
 } from "../components/icons";
-import { composeToBlob } from "../compose/compose";
+import { composeToBlob, composeDocumentToBytes } from "../compose/compose";
+import { ScreenshotDocument } from "./useScreenshotDocuments";
 import { composeWithAnnotations } from "../compose/composeWithAnnotations";
 import { useAnnotationStore, useHasAnnotations } from "../annotate/state/store";
 import copySound from "../assets/sounds/copy.ogg";
@@ -28,14 +29,19 @@ interface Props {
   settings: Settings | null;
   onRefreshSettings: () => void;
   onOpenPresetManager: () => void;
+  documents: ScreenshotDocument[];
+  activeDocument: ScreenshotDocument | null;
+  onClearAllSession: () => void;
 }
 
 export function QuickBar({
   preset, setPreset, image, isActionInFlight, setIsActionInFlight, showToast,
-  activePop, onActivePopChange, settings, onRefreshSettings, onOpenPresetManager
+  activePop, onActivePopChange, settings, onRefreshSettings, onOpenPresetManager,
+  documents, activeDocument, onClearAllSession
 }: Props) {
   const hasAnnotations = useHasAnnotations();
   const clearAll = useAnnotationStore(s => s.clearAll);
+  const hasAnyAnnotations = documents.some(d => d.annotation.objects.length > 0 || d.cropBounds !== null) || hasAnnotations;
   const toggle = (n: string) => onActivePopChange(activePop === n ? null : n);
 
   const objects = useAnnotationStore(s => s.objects);
@@ -68,16 +74,33 @@ export function QuickBar({
       const format = settings.export_format === "JPEG" ? "image/jpeg" : "image/png";
       const ext = settings.export_format === "JPEG" ? "jpg" : "png";
       
-      const bytes = objects.length > 0
-        ? await composeWithAnnotations(image, preset, objects, format, 1.0)
-        : await composeToBlob(image, preset, format, 1.0);
+      const docsToExport = documents.filter(d => d.isExportChecked);
       
-      const saved = await exportSaveMedia(bytes, settings.export_folder, `xensnip-${Date.now()}.${ext}`);
-      if (saved) {
-        if (settings.play_save_sound) {
-          new Audio(exportSound).play().catch(() => {});
-        }
+      if (docsToExport.length === 0 && activeDocument) {
+        // Fallback to active document
+        const bytes = objects.length > 0
+          ? await composeWithAnnotations(image, preset, objects, format, 1.0)
+          : await composeToBlob(image, preset, format, 1.0);
+        
+        await exportSaveMedia(bytes, settings.export_folder, `xensnip-${Date.now()}.${ext}`);
         showToast("Saved", "success");
+      } else {
+        // Batch export
+        let successCount = 0;
+        for (const doc of docsToExport) {
+          try {
+            const bytes = await composeDocumentToBytes(doc, preset, format, 1.0);
+            await exportSaveMedia(bytes, settings.export_folder, `xensnip-${doc.id}.${ext}`);
+            successCount++;
+          } catch (e) {
+            console.error(`Failed to export ${doc.id}`, e);
+          }
+        }
+        showToast(`Exported ${successCount} items`, "success");
+      }
+
+      if (settings.play_save_sound) {
+        new Audio(exportSound).play().catch(() => {});
       }
     } catch (err) {
       showToast("Failed to save image", "error");
@@ -97,7 +120,7 @@ export function QuickBar({
           </button>
           {activePop === 'ratio' && (
             <div className="xs-pop">
-              {hasAnnotations ? (
+              {hasAnyAnnotations ? (
                 <div className="xs-ratio-warning">
                   <div className="xs-ratio-warning-title">Change aspect ratio?</div>
                   <div className="xs-ratio-warning-text">
@@ -112,7 +135,10 @@ export function QuickBar({
                     </button>
                     <button
                       className="xs-btn xs-btn-danger"
-                      onClick={() => clearAll()}
+                      onClick={() => {
+                        clearAll();
+                        onClearAllSession();
+                      }}
                     >
                       Delete annotations
                     </button>

@@ -149,6 +149,12 @@ pub fn dismiss(app: &AppHandle, _asset_id: &str) {
     }
 }
 
+pub fn focus_window(app: &AppHandle) {
+    if let Some(window) = app.get_webview_window(QA_LABEL) {
+        let _ = window.set_focus();
+    }
+}
+
 fn spawn_window(
     app: &AppHandle,
     asset_id: &str,

@@ -1,0 +1,290 @@
+.xs-left-panel {
+  --xs-left-panel-width: 272px;
+  --xs-left-rail-width: 52px;
+  --xs-left-bg: rgba(15, 23, 42, 0.58);
+  --xs-left-blur: blur(18px);
+  --xs-left-border: 1px solid rgba(255, 255, 255, 0.08);
+  --xs-left-active-cyan: #06b6d4;
+  
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: var(--xs-left-panel-width);
+  background: var(--xs-left-bg);
+  backdrop-filter: var(--xs-left-blur);
+  border-right: var(--xs-left-border);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  transition: width 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  overflow: hidden;
+}
+
+.xs-left-panel.collapsed {
+  width: var(--xs-left-rail-width);
+}
+
+/* Header */
+.xs-left-header {
+  padding: 24px 16px 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.xs-left-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.xs-left-count-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--xs-left-active-cyan);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--xs-left-active-cyan);
+}
+
+.xs-left-count {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.xs-left-collapse-btn, .xs-left-expand-btn {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.xs-left-collapse-btn:hover, .xs-left-expand-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+}
+
+.xs-left-expand-btn {
+  margin: 24px auto 0 auto;
+}
+
+/* List */
+.xs-left-list-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 12px;
+}
+
+/* Hide scrollbar but keep functionality */
+.xs-left-list-container::-webkit-scrollbar {
+  width: 4px;
+}
+.xs-left-list-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+
+.xs-left-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Item */
+.xs-left-item {
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0;
+  transition: transform 0.2s;
+}
+
+.xs-left-item:hover {
+  transform: translateX(2px);
+}
+
+.xs-left-active-rail {
+  position: absolute;
+  left: -12px;
+  top: 4px;
+  bottom: 4px;
+  width: 3px;
+  background: var(--xs-left-active-cyan);
+  box-shadow: 0 0 12px var(--xs-left-active-cyan);
+  border-radius: 0 2px 2px 0;
+}
+
+/* Dot Indicator */
+.xs-left-dot-container {
+  width: 14px;
+  display: flex;
+  justify-content: center;
+}
+
+.xs-left-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  transition: all 0.2s;
+}
+
+.xs-left-dot.checked {
+  background: var(--xs-left-active-cyan);
+  border-color: var(--xs-left-active-cyan);
+  box-shadow: 0 0 8px var(--xs-left-active-cyan);
+}
+
+/* Thumbnail */
+.xs-left-thumb-container {
+  flex: 1;
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1.5px solid transparent;
+  transition: all 0.2s;
+}
+
+.xs-left-item.active .xs-left-thumb-container {
+  border-color: var(--xs-left-active-cyan);
+  box-shadow: 0 0 16px rgba(6, 182, 212, 0.25);
+}
+
+.xs-left-thumb-glow {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(168, 85, 247, 0.1));
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.xs-left-item.active .xs-left-thumb-glow {
+  opacity: 1;
+}
+
+.xs-left-thumb {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 6.5px;
+  object-fit: contain;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* Badge Indicators */
+.xs-left-indicators {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: flex;
+  gap: 4px;
+}
+
+.xs-left-indicator-badge {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.xs-left-indicator-badge.delete {
+  opacity: 0;
+  transform: scale(0.8);
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.xs-left-item:hover .xs-left-indicator-badge.delete {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* If pen is present and we hover, hide pen and show delete? 
+   Or just stack them. Polish shows them stacking or pen showing state. */
+.xs-left-item:hover .xs-left-indicator-badge.pen {
+  display: none;
+}
+
+/* Empty State */
+.xs-left-empty {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  opacity: 0.5;
+}
+
+.xs-left-empty-icon {
+  color: rgba(255, 255, 255, 0.2);
+}
+
+.xs-left-empty-text {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* Footer */
+.xs-left-footer {
+  padding: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+.xs-left-footer-hint {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.xs-left-footer-icons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.xs-left-mini-dot {
+  width: 4px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+}
+
+/* Animations */
+@keyframes slideInTop {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.xs-left-list > div:first-child {
+  animation: slideInTop 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
