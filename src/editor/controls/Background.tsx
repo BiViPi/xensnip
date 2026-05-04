@@ -10,17 +10,15 @@ function BackgroundModeIcon({ mode }: { mode: BackgroundMode }) {
     return (
       <svg className="xs-tab-icon" viewBox="0 0 1024 1024" aria-hidden="true">
         <defs>
-          <linearGradient id="wallpaper-tab-grad" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#80b3ff" />
-            <stop offset="30%" stopColor="#4d94ff" />
-            <stop offset="70%" stopColor="#1a66ff" />
-            <stop offset="100%" stopColor="#0033e6" />
+          <linearGradient id="wallpaper-tab-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#38bdf8" />
+            <stop offset="100%" stopColor="#2563eb" />
           </linearGradient>
         </defs>
-        <g fill="none" stroke="url(#wallpaper-tab-grad)" strokeWidth="36" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="232" y="282" width="560" height="460" rx="75" />
-          <circle cx="360" cy="410" r="45" />
-          <path d="M232 670L410 510L510 615L650 440L792 590" />
+        <g fill="none" stroke="url(#wallpaper-tab-grad)" strokeWidth="48" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="232" y="232" width="560" height="560" rx="120" />
+          <circle cx="370" cy="380" r="50" />
+          <path d="M232 700L410 520L510 640L660 450L792 600" />
         </g>
       </svg>
     );
@@ -31,14 +29,13 @@ function BackgroundModeIcon({ mode }: { mode: BackgroundMode }) {
       <svg className="xs-tab-icon" viewBox="0 0 1024 1024" aria-hidden="true">
         <defs>
           <linearGradient id="gradient-tab-fill" x1="0%" y1="100%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#14a3ff" />
-            <stop offset="50%" stopColor="#4646fa" />
-            <stop offset="100%" stopColor="#9026f4" />
+            <stop offset="0%" stopColor="#38bdf8" />
+            <stop offset="50%" stopColor="#818cf8" />
+            <stop offset="100%" stopColor="#c084fc" />
           </linearGradient>
           <linearGradient id="gradient-tab-stroke" x1="0%" y1="100%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#42c5ff" />
-            <stop offset="50%" stopColor="#737dff" />
-            <stop offset="100%" stopColor="#c56bf8" />
+            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.8" />
+            <stop offset="100%" stopColor="#ffffff" stopOpacity="0.3" />
           </linearGradient>
         </defs>
         <rect x="232" y="232" width="560" height="560" rx="120" fill="url(#gradient-tab-fill)" stroke="url(#gradient-tab-stroke)" strokeWidth="32" />
@@ -48,8 +45,8 @@ function BackgroundModeIcon({ mode }: { mode: BackgroundMode }) {
 
   return (
     <svg className="xs-tab-icon" viewBox="0 0 1024 1024" aria-hidden="true">
-      <rect x="232" y="232" width="560" height="560" rx="120" fill="none" stroke="#4a8aff" strokeWidth="40" />
-      <rect x="296" y="296" width="432" height="432" rx="64" fill="#4a8aff" />
+      <rect x="232" y="232" width="560" height="560" rx="120" fill="none" stroke="#38bdf8" strokeWidth="48" />
+      <rect x="296" y="296" width="432" height="432" rx="64" fill="#38bdf8" />
     </svg>
   );
 }

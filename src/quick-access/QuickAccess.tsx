@@ -21,10 +21,20 @@ import { usePreviewMetrics } from "../editor/usePreviewMetrics";
 import { AnnotationStage } from "../annotate/AnnotationStage";
 import { useKeyboardShortcuts } from "../editor/useKeyboardShortcuts";
 import { FloatingToolbarManager } from "../annotate/floating/FloatingToolbarManager";
-import { useAnnotationStore } from "../annotate/state/store";
+import { AnnotationSnapshot, useAnnotationStore } from "../annotate/state/store";
 import { useCropTool } from "../editor/useCropTool";
 import { CropOverlay } from "../editor/CropOverlay";
+import { registerHistoryRecorder, withHistorySuspended } from "../editor/historyBridge";
 import "./QuickAccess.css";
+
+interface EditorSnapshot {
+  imageSrc: string;
+  preset: EditorPreset;
+  annotation: AnnotationSnapshot;
+  cropBounds: { x: number; y: number; w: number; h: number } | null;
+}
+
+const HISTORY_LIMIT = 50;
 
 export function QuickAccess() {
   const [viewportSize, setViewportSize] = useState(() => ({
@@ -48,8 +58,7 @@ export function QuickAccess() {
   const resolvedAssetIdRef = useRef<string | null>(null);
   const blobUrlRef = useRef<string | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useKeyboardShortcuts();
+  const undoStackRef = useRef<EditorSnapshot[]>([]);
 
   useEffect(() => {
     settingsLoad().then(setSettings).catch(console.error);
@@ -84,11 +93,84 @@ export function QuickAccess() {
     hasAnnotations
   } = useCropTool(image, preset, setImage, setActiveTool);
 
+  const buildSnapshot = useCallback((): EditorSnapshot | null => {
+    if (!image?.src) return null;
+
+    const annotationState = useAnnotationStore.getState();
+    return {
+      imageSrc: image.src,
+      preset: { ...preset },
+      annotation: {
+        activeTool: annotationState.activeTool,
+        objects: annotationState.objects.map((obj) => ({ ...obj })),
+        selectedId: annotationState.selectedId,
+        editingTextId: annotationState.editingTextId,
+        toolbarCollapsed: annotationState.toolbarCollapsed,
+      },
+      cropBounds: cropBounds ? { ...cropBounds } : null,
+    };
+  }, [cropBounds, image, preset]);
+
+  const loadSnapshotImage = useCallback(async (src: string) => {
+    const img = new Image();
+    img.src = src;
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error("Failed to restore snapshot image"));
+    });
+    return img;
+  }, []);
+
+  const pushHistorySnapshot = useCallback(() => {
+    const snapshot = buildSnapshot();
+    if (!snapshot) return;
+
+    const previous = undoStackRef.current[undoStackRef.current.length - 1];
+    if (
+      previous &&
+      previous.imageSrc === snapshot.imageSrc &&
+      JSON.stringify(previous.preset) === JSON.stringify(snapshot.preset) &&
+      JSON.stringify(previous.annotation) === JSON.stringify(snapshot.annotation) &&
+      JSON.stringify(previous.cropBounds) === JSON.stringify(snapshot.cropBounds)
+    ) {
+      return;
+    }
+
+    undoStackRef.current.push(snapshot);
+    if (undoStackRef.current.length > HISTORY_LIMIT) {
+      undoStackRef.current.shift();
+    }
+  }, [buildSnapshot]);
+
+  const handleUndo = useCallback(async () => {
+    const snapshot = undoStackRef.current.pop();
+    if (!snapshot) return;
+
+    try {
+      const restoredImage = await loadSnapshotImage(snapshot.imageSrc);
+      withHistorySuspended(() => {
+        setImage(restoredImage);
+        setPreset({ ...snapshot.preset });
+        useAnnotationStore.getState().restoreSnapshot(snapshot.annotation);
+        setCropBounds(snapshot.cropBounds ? { ...snapshot.cropBounds } : null);
+      });
+    } catch (error) {
+      console.error("Undo restore failed", error);
+    }
+  }, [loadSnapshotImage, setCropBounds]);
+
+  useKeyboardShortcuts({ onUndo: () => void handleUndo() });
+
   useEffect(() => {
-    if (activeTool === 'crop') {
+    registerHistoryRecorder(pushHistorySnapshot);
+    return () => registerHistoryRecorder(null);
+  }, [pushHistorySnapshot]);
+
+  useEffect(() => {
+    if (activeTool === 'crop' && !cropBounds) {
       startCrop();
     }
-  }, [activeTool, startCrop]);
+  }, [activeTool, cropBounds, startCrop]);
 
   const bootstrapAsset = useCallback(async (nextAssetId: string) => {
     if (bootstrappedAssetIdRef.current === nextAssetId) return;
@@ -103,6 +185,7 @@ export function QuickAccess() {
     setToast(null);
     setIsActionInFlight(false);
     setImage(null);
+    undoStackRef.current = [];
 
     if (blobUrlRef.current) {
       URL.revokeObjectURL(blobUrlRef.current);

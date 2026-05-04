@@ -1,12 +1,12 @@
 :root {
   --icon-bg-primary: #ffffff;
   --icon-bg-card: #1b1e2e;
-  --icon-stroke-dark: #1e293b;
-  --icon-stroke-medium: #0b132b;
+  --icon-stroke-dark: #94a3b8; /* Tăng độ sáng từ 1e293b lên 94a3b8 để nổi bật */
+  --icon-stroke-medium: #475569;
 
-  --icon-accent-blue: #2563eb;
-  --icon-accent-blue-light: #38bdf8;
-  --icon-accent-purple-start: #6e50ff;
-  --icon-accent-purple-end: #ff549a;
-  --icon-accent-orange: #ff935b;
+  --icon-accent-blue: #38bdf8;       /* Cyan sáng hơn (Sky-400) */
+  --icon-accent-blue-light: #f0f9ff; /* Gần như trắng để tạo điểm nhấn highlight */
+  --icon-accent-purple-start: #818cf8;
+  --icon-accent-purple-end: #c084fc;
+  --icon-accent-orange: #fb923c;
 }

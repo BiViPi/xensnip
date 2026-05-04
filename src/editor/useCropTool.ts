@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { EditorPreset } from '../compose/preset';
 import { getCompositionDimensions } from '../compose/core';
 import { useAnnotationStore } from '../annotate/state/store';
+import { recordHistorySnapshot, withHistorySuspended } from './historyBridge';
 
 export interface CropBounds {
   x: number;
@@ -47,6 +48,7 @@ export function useCropTool(
 
   const commitCrop = useCallback(async () => {
     if (!image || !cropBounds) return;
+    recordHistorySnapshot();
 
     // Translate crop bounds from composition canvas space to raw image space.
     const dims = getCompositionDimensions(image.width, image.height, preset);
@@ -80,7 +82,7 @@ export function useCropTool(
     await new Promise<void>((resolve) => { newImg.onload = () => resolve(); });
 
     setImage(newImg);
-    clearAll();
+    withHistorySuspended(() => clearAll());
     setCropBounds(null);
     setActiveTool('select');
   }, [image, cropBounds, preset, setImage, clearAll, setActiveTool]);

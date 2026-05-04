@@ -11,9 +11,9 @@ export const OpacityIcon = () => {
         <stop offset="100%" stopColor="var(--icon-accent-blue-light)" />
       </linearGradient>
     </defs>
-    <circle cx="98" cy="120" r="38" fill="var(--icon-accent-blue)" fillOpacity="0.1" />
-    <circle cx="128" cy="120" r="38" fill="var(--icon-accent-blue)" fillOpacity="0.35" />
-    <circle cx="158" cy="120" r="38" fill="var(--icon-accent-blue)" fillOpacity="0.85" />
+    <circle cx="98" cy="120" r="38" fill="var(--icon-accent-blue)" fillOpacity="0.25" />
+    <circle cx="128" cy="120" r="38" fill="var(--icon-accent-blue)" fillOpacity="0.55" />
+    <circle cx="158" cy="120" r="38" fill="var(--icon-accent-blue)" fillOpacity="1" />
     <path d="M 56 176 A 96 96 0 0 1 154 36" fill="none" stroke="var(--icon-stroke-dark)" strokeWidth="12" strokeLinecap="round" />
     <path d="M 194 66 A 96 96 0 0 1 200 176" fill="none" stroke="var(--icon-stroke-dark)" strokeWidth="12" strokeLinecap="round" />
     <path d="M 174 28 Q 174 52 150 52 Q 174 52 174 76 Q 174 52 198 52 Q 174 52 174 28 Z" fill="var(--icon-accent-blue)" />
