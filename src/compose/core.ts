@@ -17,34 +17,34 @@ export function getCompositionDimensions(
   preset: EditorPreset
 ): CompositionDimensions {
   const { padding, ratio } = preset;
-  
-  const requiredW = imageW + padding * 2;
-  const requiredH = imageH + padding * 2;
 
   let canvasW: number;
   let canvasH: number;
 
   if (ratio === "Auto") {
-    canvasW = requiredW;
-    canvasH = requiredH;
+    // Keep the composition canvas stable. Padding only changes how much
+    // the screenshot shrinks inside the canvas, not the canvas bounds.
+    canvasW = imageW;
+    canvasH = imageH;
   } else {
     const [rw, rh] = parseRatio(ratio);
     const targetAspect = rw / rh;
-    const currentAspect = requiredW / requiredH;
+    const currentAspect = imageW / imageH;
 
     if (currentAspect > targetAspect) {
-      canvasW = requiredW;
-      canvasH = requiredW / targetAspect;
+      canvasW = imageW;
+      canvasH = imageW / targetAspect;
     } else {
-      canvasH = requiredH;
-      canvasW = requiredH * targetAspect;
+      canvasH = imageH;
+      canvasW = imageH * targetAspect;
     }
   }
 
-  // Final scale to fit image into canvas minus padding
-  const safeW = canvasW - padding * 2;
-  const safeH = canvasH - padding * 2;
-  const scale = Math.min(safeW / imageW, safeH / imageH);
+  // Padding now insets the screenshot inside a fixed canvas instead of
+  // resizing the canvas itself.
+  const safeW = Math.max(1, canvasW - padding * 2);
+  const safeH = Math.max(1, canvasH - padding * 2);
+  const scale = Math.min(safeW / imageW, safeH / imageH, 1);
   
   const drawW = imageW * scale;
   const drawH = imageH * scale;

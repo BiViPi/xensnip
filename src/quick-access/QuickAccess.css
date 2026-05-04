@@ -249,6 +249,31 @@ body {
   z-index: 1000;
 }
 
+.xs-ratio-warning {
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.xs-ratio-warning-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.xs-ratio-warning-text {
+  font-size: 12px;
+  line-height: 1.45;
+  color: #94a3b8;
+}
+
+.xs-ratio-warning-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 @keyframes xs-slide {
   from {
     opacity: 0;

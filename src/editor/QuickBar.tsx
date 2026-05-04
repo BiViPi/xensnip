@@ -121,12 +121,16 @@ const Icon = ({ name }: { name: string }) => {
           <stop offset="0%" stopColor="#2563EB" />
           <stop offset="100%" stopColor="#38BDF8" />
         </linearGradient>
+        <linearGradient id="grad_rad_mountain" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#6e50ff"/>
+          <stop offset="100%" stopColor="#ff549a"/>
+        </linearGradient>
         <filter id="glow_rad" x="-50%" y="-50%" width="200%" height="200%">
           <feDropShadow dx="0" dy="6" stdDeviation="12" floodColor="#2563EB" floodOpacity="0.45" />
         </filter>
       </defs>
-      <circle cx="88" cy="96" r="14" fill="#64748B" />
-      <path d="M 56 186 L 94 140 A 6 6 0 0 1 104 140 L 132 174 L 148 120 A 6 6 0 0 1 158 120 L 200 180 L 200 196 A 8 8 0 0 1 192 204 L 64 204 A 8 8 0 0 1 56 196 Z" fill="#64748B" />
+      <circle cx="88" cy="96" r="14" fill="url(#grad_rad_mountain)" />
+      <path d="M 56 186 L 94 140 A 6 6 0 0 1 104 140 L 132 174 L 148 120 A 6 6 0 0 1 158 120 L 200 180 L 200 196 A 8 8 0 0 1 192 204 L 64 204 A 8 8 0 0 1 56 196 Z" fill="url(#grad_rad_mountain)" />
       <path d="M 128 44 L 76 44 A 32 32 0 0 0 44 76 L 44 180 A 32 32 0 0 0 76 212 L 180 212 A 32 32 0 0 0 212 180 L 212 128" fill="none" stroke="#1E293B" strokeWidth="12" strokeLinecap="round" />
       <path d="M 144 44 L 180 44 A 32 32 0 0 1 212 76 L 212 112" fill="none" stroke="url(#grad_rad)" strokeWidth="12" strokeLinecap="round" />
       <g fill="#2563EB"><circle cx="132" cy="60" r="4" /><circle cx="196" cy="124" r="4" /></g>
@@ -223,7 +227,7 @@ const Icon = ({ name }: { name: string }) => {
         <rect x="101" y="91" width="168" height="168" rx="29" fill="none" stroke="url(#edge-highlight)" strokeWidth="2"/>
       </g>
       <g>
-        <rect x="70" y="120" width="180" height="180" rx="30" fill="#1b1e2e"/>
+        <rect x="70" y="120" width="180" height="180" rx="30" fill="#FFFFFF"/> {/* sau này khi làm light theme thì panel này chuyển lại nền đen */}
         <rect x="71" y="121" width="178" height="178" rx="29" fill="none" stroke="url(#edge-highlight)" strokeWidth="2"/>
       </g>
       <g id="ui-elements">
@@ -263,6 +267,7 @@ export function QuickBar({
   activePop, onActivePopChange, settings, onRefreshSettings, onOpenPresetManager
 }: Props) {
   const hasAnnotations = useHasAnnotations();
+  const clearAll = useAnnotationStore(s => s.clearAll);
   const toggle = (n: string) => onActivePopChange(activePop === n ? null : n);
 
   const objects = useAnnotationStore(s => s.objects);
@@ -317,14 +322,45 @@ export function QuickBar({
       <div style={{ display: 'flex', gap: '8px' }}>
         <div style={{ position: "relative", display: 'flex', width: 'fit-content' }}>
           <button 
-            className={`xs-btn xs-pill-btn ${activePop === 'ratio' ? 'active' : ''} ${hasAnnotations ? 'locked' : ''}`} 
-            onClick={() => !hasAnnotations && toggle('ratio')}
-            title={hasAnnotations ? "Xóa tất cả annotation để đổi tỷ lệ" : undefined}
-            style={hasAnnotations ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+            className={`xs-btn xs-pill-btn ${activePop === 'ratio' ? 'active' : ''}`}
+            onClick={() => toggle('ratio')}
           >
             <Icon name="ratio" /> {preset.ratio} <Icon name="chevron" />
           </button>
-          {activePop === 'ratio' && <div className="xs-pop"><RatioControl value={preset.ratio} onChange={(v) => { setPreset(p => ({ ...p, ratio: v })); onActivePopChange(null); }} /></div>}
+          {activePop === 'ratio' && (
+            <div className="xs-pop">
+              {hasAnnotations ? (
+                <div className="xs-ratio-warning">
+                  <div className="xs-ratio-warning-title">Change aspect ratio?</div>
+                  <div className="xs-ratio-warning-text">
+                    Changing the aspect ratio requires removing all annotations.
+                  </div>
+                  <div className="xs-ratio-warning-actions">
+                    <button
+                      className="xs-btn xs-btn-ghost"
+                      onClick={() => onActivePopChange(null)}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="xs-btn xs-btn-danger"
+                      onClick={() => clearAll()}
+                    >
+                      Delete annotations
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <RatioControl
+                  value={preset.ratio}
+                  onChange={(v) => {
+                    setPreset(p => ({ ...p, ratio: v }));
+                    onActivePopChange(null);
+                  }}
+                />
+              )}
+            </div>
+          )}
         </div>
 
         <div style={{ position: "relative", display: 'flex', width: 'fit-content' }}>
