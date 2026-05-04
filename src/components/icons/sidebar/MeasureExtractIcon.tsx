@@ -10,19 +10,18 @@ export const MeasureExtractIcon = ({ size = 20, className }: IconProps) => {
   const ids = useScopedIds(["grad", "gridMask", "rulerMask"] as const);
 
   return (
-    <svg 
-      width={size} 
-      height={size} 
-      viewBox="0 0 1024 1024" 
-      fill="none" 
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 1024 1024"
+      fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
     >
       <defs>
         <linearGradient id={ids.grad} x1="150" y1="870" x2="870" y2="150" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#3B82F6" />
-          <stop offset="50%" stopColor="#2563EB" />
-          <stop offset="100%" stopColor="#1D4ED8" />
+          <stop offset="0%" stopColor="var(--icon-accent-blue-light)" />
+          <stop offset="100%" stopColor="var(--icon-accent-blue)" />
         </linearGradient>
 
         <mask id={ids.gridMask}>

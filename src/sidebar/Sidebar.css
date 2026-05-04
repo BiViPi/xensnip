@@ -76,8 +76,8 @@
 }
 
 .xs-rail-toggle.active {
-  color: #3b82f6;
-  background: rgba(59, 130, 246, 0.1);
+  color: var(--icon-accent-blue);
+  background: rgba(56, 189, 248, 0.1);
 }
 
 .xs-rail-divider {
@@ -126,9 +126,9 @@
 }
 
 .xs-rail-item.active {
-  background: rgba(59, 130, 246, 0.15);
-  color: #3b82f6;
-  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.3);
+  background: rgba(56, 189, 248, 0.15);
+  color: var(--icon-accent-blue);
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.3);
 }
 
 .xs-rail-item:disabled,
@@ -157,7 +157,7 @@
   background: rgba(13, 19, 34, 0.95);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  border: 1px solid rgba(56, 189, 248, 0.2);
   border-radius: 16px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
   pointer-events: auto;
@@ -199,9 +199,9 @@
 }
 
 .xs-tool-icon-btn.active {
-  background: rgba(59, 130, 246, 0.12);
-  border-color: rgba(59, 130, 246, 0.25);
-  color: #60a5fa;
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.25);
+  color: var(--icon-accent-blue);
 }
 
 .xs-tool-icon-btn.disabled,
