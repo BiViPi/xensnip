@@ -1,0 +1,12 @@
+:root {
+  --icon-bg-primary: #ffffff;
+  --icon-bg-card: #1b1e2e;
+  --icon-stroke-dark: #1e293b;
+  --icon-stroke-medium: #0b132b;
+
+  --icon-accent-blue: #2563eb;
+  --icon-accent-blue-light: #38bdf8;
+  --icon-accent-purple-start: #6e50ff;
+  --icon-accent-purple-end: #ff549a;
+  --icon-accent-orange: #ff935b;
+}

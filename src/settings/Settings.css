@@ -332,6 +332,12 @@ input:checked+.xs-slider:before {
   display: block;
 }
 
+.xs-icon-circle svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
 
 .xs-field-label {
   flex: 1;

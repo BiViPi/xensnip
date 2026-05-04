@@ -7,6 +7,17 @@
   color: rgba(255, 255, 255, 0.87);
   background-color: #0f172a;
 
+  --icon-bg-primary: #FFFFFF;
+  --icon-bg-card: #1b1e2e;
+  --icon-stroke-dark: #1E293B;
+  --icon-stroke-medium: #0B132B;
+
+  --icon-accent-blue: #2563EB;
+  --icon-accent-blue-light: #38BDF8;
+  --icon-accent-purple-start: #6e50ff;
+  --icon-accent-purple-end: #ff549a;
+  --icon-accent-orange: #FF935B;
+
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;

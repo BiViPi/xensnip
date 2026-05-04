@@ -7,13 +7,10 @@ import { HotkeyField } from "./HotkeyField";
 import { TitleBar } from "../editor/TitleBar";
 import "./Settings.css";
 
-import launchOnStartupIcon from "../assets/settings_icons/launch-on-startup.svg";
-import iconSound from "../assets/settings_icons/icon-sound.svg";
-import exportSoundIcon from "../assets/settings_icons/export-sound.svg";
-import savedToIcon from "../assets/settings_icons/saved-to.svg";
-import outputFormatIcon from "../assets/settings_icons/output-format.svg";
-import mediaQualityIcon from "../assets/settings_icons/media-quality.svg";
-import multipleMonitorsIcon from "../assets/settings_icons/mutiple-monitors.svg";
+import { 
+  LaunchOnStartupIcon, IconSoundIcon, ExportSoundIcon, SavedToIcon, 
+  OutputFormatIcon, MediaQualityIcon, MultipleMonitorsIcon 
+} from "../components/icons";
 
 export function Settings() {
   const [draft, setDraft] = useState<SettingsType | null>(null);
@@ -123,7 +120,7 @@ export function Settings() {
           <div className="xs-section-title">GENERAL</div>
           <div className="xs-card">
             <div className="xs-settings-row">
-              <div className="xs-icon-circle"><img src={launchOnStartupIcon} alt="Launch on startup" /></div>
+              <div className="xs-icon-circle"><LaunchOnStartupIcon /></div>
               <div className="xs-field-label">
                 <span className="xs-label-text">Launch on Startup</span>
                 <span className="xs-label-desc">Automatically start XenSnip when you log in</span>
@@ -168,7 +165,7 @@ export function Settings() {
           <div className="xs-section-title">SOUNDS</div>
           <div className="xs-card">
             <div className="xs-settings-row">
-              <div className="xs-icon-circle"><img src={iconSound} alt="Copy sound" /></div>
+              <div className="xs-icon-circle"><IconSoundIcon /></div>
               <div className="xs-field-label">
                 <span className="xs-label-text">Copy sound</span>
                 <span className="xs-label-desc">Play a sound after copying to clipboard</span>
@@ -184,7 +181,7 @@ export function Settings() {
             </div>
             <div className="xs-divider" />
             <div className="xs-settings-row">
-              <div className="xs-icon-circle"><img src={exportSoundIcon} alt="Save sound" /></div>
+              <div className="xs-icon-circle"><ExportSoundIcon /></div>
               <div className="xs-field-label">
                 <span className="xs-label-text">Save sound</span>
                 <span className="xs-label-desc">Play a sound after saving an image</span>
@@ -205,7 +202,7 @@ export function Settings() {
           <div className="xs-section-title">EXPORT</div>
           <div className="xs-card">
             <div className="xs-settings-row">
-              <div className="xs-icon-circle"><img src={savedToIcon} alt="Saved to" /></div>
+              <div className="xs-icon-circle"><SavedToIcon /></div>
               <div className="xs-field-label">
                 <span className="xs-label-text">Screenshots are saved to</span>
                 <span className="xs-label-desc xs-truncate-path">{draft.export_folder || "Not configured"}</span>
@@ -214,7 +211,7 @@ export function Settings() {
             </div>
             <div className="xs-divider" />
             <div className="xs-settings-row">
-              <div className="xs-icon-circle"><img src={outputFormatIcon} alt="Output format" /></div>
+              <div className="xs-icon-circle"><OutputFormatIcon /></div>
               <div className="xs-field-label">
                 <span className="xs-label-text">Output format</span>
                 <span className="xs-label-desc">Choose the default image format</span>
@@ -232,7 +229,7 @@ export function Settings() {
             </div>
             <div className="xs-divider" />
             <div className="xs-settings-row">
-              <div className="xs-icon-circle"><img src={mediaQualityIcon} alt="Media quality" /></div>
+              <div className="xs-icon-circle"><MediaQualityIcon /></div>
               <div className="xs-field-label">
                 <span className="xs-label-text">JPEG quality</span>
                 <span className="xs-label-desc">JPEG exports use 100% quality</span>
@@ -246,7 +243,7 @@ export function Settings() {
           <div className="xs-section-title">CAPTURE</div>
           <div className="xs-card">
             <div className="xs-settings-row">
-              <div className="xs-icon-circle"><img src={multipleMonitorsIcon} alt="Multiple monitors" /></div>
+              <div className="xs-icon-circle"><MultipleMonitorsIcon /></div>
               <div className="xs-field-label">
                 <span className="xs-label-text">Allow region capture on all monitors</span>
                 <span className="xs-label-desc">Enable region capture on secondary monitors</span>
