@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useAnnotationStore } from '../state/store';
 import { ArrowObject } from '../state/types';
-import { ChevronRight, ChevronLeft, Type } from 'lucide-react';
+import { ChevronRight, ChevronLeft } from 'lucide-react';
+import { DashedLineIcon, PaletteIcon, SolidLineIcon, StrokeWidthIcon } from './ToolbarIcons';
 
 interface Props {
   anchor: { left: number; top: number; width: number; height: number };
@@ -13,7 +14,8 @@ const COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#a855f7'
 
 export function ArrowToolbar({ anchor, obj }: Props) {
   const { updateObject, toolbarCollapsed, setToolbarCollapsed } = useAnnotationStore();
-  const [showSlider, setShowSlider] = useState(false);
+  const [showThickness, setShowThickness] = useState(false);
+  const [showColors, setShowColors] = useState(false);
 
   const overlay = document.getElementById('annotation-ui-overlay');
   if (!overlay) return null;
@@ -44,29 +46,45 @@ export function ArrowToolbar({ anchor, obj }: Props) {
         <div className="xs-toolbar-section">
           <div className="xs-toolbar-divider" />
 
-          {COLORS.map(c => (
-            <button
-              key={c}
-              className={`xs-color-chip ${obj.stroke === c ? 'active' : ''}`}
-              style={{ background: c }}
-              onClick={() => updateObject(obj.id, { stroke: c })}
-            />
-          ))}
+          <button
+            className={`xs-toolbar-btn ${obj.style === 'solid' ? 'active' : ''}`}
+            onClick={() => updateObject(obj.id, { style: 'solid' })}
+            title="Solid"
+          >
+            <SolidLineIcon />
+          </button>
+
+          <button
+            className={`xs-toolbar-btn ${obj.style === 'dashed' ? 'active' : ''}`}
+            onClick={() => updateObject(obj.id, { style: 'dashed' })}
+            title="Dashed"
+          >
+            <DashedLineIcon />
+          </button>
 
           <div className="xs-toolbar-divider" />
 
           <div style={{ position: 'relative' }}>
             <button
-              className="xs-toolbar-text"
-              onClick={() => setShowSlider(!showSlider)}
+              className={`xs-toolbar-btn ${showThickness ? 'active' : ''}`}
+              onClick={() => {
+                setShowThickness(!showThickness);
+                setShowColors(false);
+              }}
+              title="Line Thickness"
             >
-              {obj.strokeWidth}px
+              <StrokeWidthIcon />
             </button>
-            {showSlider && (
+            {showThickness && (
               <div className="xs-toolbar-slider-popover">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                  <StrokeWidthIcon />
+                  <span style={{ fontSize: 10, color: '#64748b' }}>{obj.strokeWidth}px</span>
+                </div>
                 <input
                   type="range"
-                  min="2" max="20"
+                  min="1"
+                  max="24"
                   value={obj.strokeWidth}
                   onChange={(e) => updateObject(obj.id, { strokeWidth: parseInt(e.target.value) })}
                   className="xs-toolbar-slider"
@@ -77,13 +95,31 @@ export function ArrowToolbar({ anchor, obj }: Props) {
 
           <div className="xs-toolbar-divider" />
 
-          <button
-            className={`xs-toolbar-btn ${obj.style === 'dashed' ? 'active' : ''}`}
-            onClick={() => updateObject(obj.id, { style: obj.style === 'dashed' ? 'solid' : 'dashed' })}
-            title="Toggle Line Style"
-          >
-            <Type size={14} />
-          </button>
+          <div style={{ position: 'relative' }}>
+            <button
+              className={`xs-toolbar-btn ${showColors ? 'active' : ''}`}
+              onClick={() => {
+                setShowColors(!showColors);
+                setShowThickness(false);
+              }}
+              title="Stroke Color"
+            >
+              <PaletteIcon />
+            </button>
+            {showColors && (
+              <div className="xs-toolbar-slider-popover xs-color-popover">
+                {COLORS.map(c => (
+                  <button
+                    key={c}
+                    className={`xs-color-chip ${obj.stroke === c ? 'active' : ''}`}
+                    style={{ background: c }}
+                    onClick={() => updateObject(obj.id, { stroke: c })}
+                    title={c}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>,

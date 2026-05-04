@@ -20,6 +20,7 @@ export function ObjectsLayer({ compositionCanvasRef }: Props) {
             <ArrowNode
               key={obj.id}
               obj={obj}
+              isSelected={selectedId === obj.id}
               onSelect={select}
               onUpdate={updateObject}
             />
