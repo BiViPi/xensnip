@@ -167,7 +167,7 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
           height: Math.abs(dy),
           stroke: '#ef4444',
           strokeWidth: 4,
-          fill: 'transparent',
+          lineStyle: 'solid',
           cornerRadius: 0,
           draggable: true,
         };

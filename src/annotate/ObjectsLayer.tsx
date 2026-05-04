@@ -30,6 +30,7 @@ export function ObjectsLayer({ compositionCanvasRef }: Props) {
             <RectangleNode
               key={obj.id}
               obj={obj}
+              isSelected={selectedId === obj.id}
               onSelect={select}
               onUpdate={updateObject}
             />

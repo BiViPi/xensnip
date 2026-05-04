@@ -25,7 +25,7 @@ export interface RectangleObject extends BaseObject {
   height: number;
   stroke: string;
   strokeWidth: number;
-  fill: string;
+  lineStyle: 'solid' | 'dashed' | 'cloud';
   cornerRadius: number;
 }
 
