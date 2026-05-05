@@ -33,6 +33,11 @@ import "./QuickAccess.css";
 // EditorSnapshot is replaced by DocumentUndoSnapshot in the per-document stack
 
 const HISTORY_LIMIT = 50;
+const LEFT_PANEL_MIN_WIDTH = 220;
+const LEFT_PANEL_MAX_WIDTH = 272;
+const LEFT_PANEL_COLLAPSED_WIDTH = 52;
+const LEFT_PANEL_OFFSET = 20;
+const LEFT_PANEL_SAFE_GAP = 16;
 
 export function QuickAccess() {
   const [viewportSize, setViewportSize] = useState(() => ({
@@ -374,8 +379,25 @@ export function QuickAccess() {
     }
   }, []);
 
-  const panelWidth = isLeftPanelCollapsed ? 52 : 272;
-  const { dims, previewScale, previewRenderScale, previewW, previewH, centerX, centerY, previewCenterOffsetX, layout } = usePreviewMetrics(image, preset, viewportSize, panelWidth);
+  const expandedPanelWidth = Math.min(
+    LEFT_PANEL_MAX_WIDTH,
+    Math.max(LEFT_PANEL_MIN_WIDTH, Math.round(viewportSize.width * 0.2))
+  );
+  const leftPanelWidth = isLeftPanelCollapsed ? LEFT_PANEL_COLLAPSED_WIDTH : expandedPanelWidth;
+  const leftPanelReserve = leftPanelWidth + LEFT_PANEL_OFFSET + LEFT_PANEL_SAFE_GAP;
+  const {
+    dims,
+    previewScale,
+    previewRenderScale,
+    previewW,
+    previewH,
+    centerX,
+    centerY,
+    previewCenterOffsetX,
+    previewViewportCenterOffsetX,
+    layout,
+  } =
+    usePreviewMetrics(image, preset, viewportSize, leftPanelReserve);
 
   useEffect(() => {
     if (!canvasRef.current || !image) return;
@@ -437,6 +459,7 @@ export function QuickAccess() {
           documents={documents}
           activeDocumentId={activeDocumentId}
           isCollapsed={isLeftPanelCollapsed}
+          expandedWidth={expandedPanelWidth}
           onCollapsedChange={setIsLeftPanelCollapsed}
           onSelect={handleSwitchDocument}
           onCheckboxToggle={(id) => {
@@ -550,7 +573,10 @@ export function QuickAccess() {
       </div>
 
       {activeDoc && image && (
-        <div className="xs-dock-container">
+        <div
+          className="xs-dock-container"
+          style={{ left: `calc(50% + ${previewViewportCenterOffsetX}px)` }}
+        >
           <QuickBar
             preset={preset} setPreset={setPreset} image={image}
             isActionInFlight={isActionInFlight} setIsActionInFlight={setIsActionInFlight}

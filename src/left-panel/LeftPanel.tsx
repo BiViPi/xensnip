@@ -7,6 +7,7 @@ interface Props {
   documents: ScreenshotDocument[];
   activeDocumentId: string | null;
   isCollapsed: boolean;
+  expandedWidth: number;
   onCollapsedChange: (v: boolean) => void;
   onSelect: (id: string) => void;
   onCheckboxToggle: (id: string) => void;
@@ -17,6 +18,7 @@ export function LeftPanel({
   documents,
   activeDocumentId,
   isCollapsed,
+  expandedWidth,
   onCollapsedChange,
   onSelect,
   onCheckboxToggle,
@@ -24,7 +26,10 @@ export function LeftPanel({
 }: Props) {
 
   return (
-    <div className={`xs-left-panel ${isCollapsed ? 'is-collapsed' : ''}`}>
+    <div
+      className={`xs-left-panel ${isCollapsed ? 'is-collapsed' : ''}`}
+      style={{ ['--xs-left-panel-width' as string]: `${expandedWidth}px` }}
+    >
       {!isCollapsed && (
         <div className="xs-left-header">
           <div className="xs-left-header-content">

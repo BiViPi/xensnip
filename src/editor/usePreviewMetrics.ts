@@ -15,14 +15,14 @@ export function usePreviewMetrics(
   image: HTMLImageElement | null,
   preset: EditorPreset,
   viewportSize: ViewportSize,
-  panelWidth: number = 272
+  panelReserveWidth: number = 272
 ) {
   return useMemo(() => {
     const dims = image 
       ? getCompositionDimensions(image.width, image.height, preset) 
       : { canvasW: 0, canvasH: 0, drawX: 0, drawY: 0, drawW: 0, drawH: 0 };
 
-    const leftPanelReserve = panelWidth;
+    const leftPanelReserve = panelReserveWidth;
     const rightRailReserve = clamp(viewportSize.width * 0.07, 92, 140);
     const topInset = clamp(viewportSize.height * 0.075, 68, 96);
     const bottomInset = clamp(viewportSize.height * 0.055, 36, 64);
@@ -48,7 +48,8 @@ export function usePreviewMetrics(
 
     const centerX = (dims.drawX + dims.drawW / 2) * previewScale;
     const centerY = (dims.drawY + dims.drawH / 2) * previewScale;
-    const previewCenterOffsetX = (rightRailReserve - leftPanelReserve) / 2;
+    const previewCenterOffsetX = 0;
+    const previewViewportCenterOffsetX = (leftPanelReserve - rightRailReserve) / 2;
 
     return {
       dims,
@@ -59,6 +60,7 @@ export function usePreviewMetrics(
       centerX,
       centerY,
       previewCenterOffsetX,
+      previewViewportCenterOffsetX,
       layout: {
         topInset,
         rightRailReserve,
@@ -67,5 +69,5 @@ export function usePreviewMetrics(
         dockReserve,
       }
     };
-  }, [image, preset, viewportSize, panelWidth]);
+  }, [image, preset, viewportSize, panelReserveWidth]);
 }
