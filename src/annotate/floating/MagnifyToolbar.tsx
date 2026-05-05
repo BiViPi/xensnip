@@ -1,19 +1,20 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronRight, ChevronLeft, Focus, MoonStar } from 'lucide-react';
+import { ChevronRight, ChevronLeft, ZoomIn, SquareSquare } from 'lucide-react';
 import { useAnnotationStore } from '../state/store';
-import { SpotlightObject } from '../state/types';
+import { MagnifyObject } from '../state/types';
 import { RadiusIcon } from './ToolbarIcons';
 
 interface Props {
   anchor: { left: number; top: number; width: number; height: number };
-  obj: SpotlightObject;
+  obj: MagnifyObject;
 }
 
-export function SpotlightToolbar({ anchor, obj }: Props) {
+export function MagnifyToolbar({ anchor, obj }: Props) {
   const { updateObject, toolbarCollapsed, setToolbarCollapsed } = useAnnotationStore();
-  const [showOpacity, setShowOpacity] = useState(false);
+  const [showZoom, setShowZoom] = useState(false);
   const [showRadius, setShowRadius] = useState(false);
+  const [showBorder, setShowBorder] = useState(false);
 
   const overlay = document.getElementById('annotation-ui-overlay');
   if (!overlay) return null;
@@ -45,27 +46,29 @@ export function SpotlightToolbar({ anchor, obj }: Props) {
 
           <div style={{ position: 'relative' }}>
             <button
-              className={`xs-toolbar-btn ${showOpacity ? 'active' : ''}`}
+              className={`xs-toolbar-btn ${showZoom ? 'active' : ''}`}
               onClick={() => {
-                setShowOpacity(!showOpacity);
+                setShowZoom(!showZoom);
                 setShowRadius(false);
+                setShowBorder(false);
               }}
-              title="Simplify UI Dim"
+              title="Magnify Zoom"
             >
-              <MoonStar size={14} />
+              <ZoomIn size={14} />
             </button>
-            {showOpacity && (
+            {showZoom && (
               <div className="xs-toolbar-slider-popover">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                  <MoonStar size={12} />
-                  <span style={{ fontSize: 10, color: '#64748b' }}>{Math.round(obj.opacity * 100)}%</span>
+                  <ZoomIn size={12} />
+                  <span style={{ fontSize: 10, color: '#64748b' }}>{Math.round(obj.zoom * 100)}%</span>
                 </div>
                 <input
                   type="range"
-                  min="20"
-                  max="90"
-                  value={Math.round(obj.opacity * 100)}
-                  onChange={(e) => updateObject(obj.id, { opacity: parseInt(e.target.value, 10) / 100 })}
+                  min="100"
+                  max="400"
+                  step="10"
+                  value={Math.round(obj.zoom * 100)}
+                  onChange={(e) => updateObject(obj.id, { zoom: parseInt(e.target.value, 10) / 100 })}
                   className="xs-toolbar-slider"
                 />
               </div>
@@ -79,16 +82,17 @@ export function SpotlightToolbar({ anchor, obj }: Props) {
               className={`xs-toolbar-btn ${showRadius ? 'active' : ''}`}
               onClick={() => {
                 setShowRadius(!showRadius);
-                setShowOpacity(false);
+                setShowZoom(false);
+                setShowBorder(false);
               }}
-              title="Simplify UI Radius"
+              title="Magnify Radius"
             >
               <RadiusIcon />
             </button>
             {showRadius && (
               <div className="xs-toolbar-slider-popover">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                  <Focus size={12} />
+                  <RadiusIcon />
                   <span style={{ fontSize: 10, color: '#64748b' }}>{obj.cornerRadius}px</span>
                 </div>
                 <input
@@ -97,6 +101,38 @@ export function SpotlightToolbar({ anchor, obj }: Props) {
                   max="64"
                   value={obj.cornerRadius}
                   onChange={(e) => updateObject(obj.id, { cornerRadius: parseInt(e.target.value, 10) })}
+                  className="xs-toolbar-slider"
+                />
+              </div>
+            )}
+          </div>
+
+          <div className="xs-toolbar-divider" />
+
+          <div style={{ position: 'relative' }}>
+            <button
+              className={`xs-toolbar-btn ${showBorder ? 'active' : ''}`}
+              onClick={() => {
+                setShowBorder(!showBorder);
+                setShowZoom(false);
+                setShowRadius(false);
+              }}
+              title="Border Opacity"
+            >
+              <SquareSquare size={14} />
+            </button>
+            {showBorder && (
+              <div className="xs-toolbar-slider-popover">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                  <SquareSquare size={12} />
+                  <span style={{ fontSize: 10, color: '#64748b' }}>{Math.round(obj.borderOpacity * 100)}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={Math.round(obj.borderOpacity * 100)}
+                  onChange={(e) => updateObject(obj.id, { borderOpacity: parseInt(e.target.value, 10) / 100 })}
                   className="xs-toolbar-slider"
                 />
               </div>

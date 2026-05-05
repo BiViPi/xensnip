@@ -1,4 +1,4 @@
-export type ToolId = 'select' | 'arrow' | 'rectangle' | 'text' | 'blur' | 'numbered' | 'spotlight' | 'crop' | 'canvas';
+export type ToolId = 'select' | 'arrow' | 'rectangle' | 'text' | 'blur' | 'numbered' | 'spotlight' | 'crop' | 'canvas' | 'magnify' | 'simplify_ui';
 
 export interface BaseObject {
   id: string;
@@ -62,4 +62,27 @@ export interface SpotlightObject extends BaseObject {
   cornerRadius: number;
 }
 
-export type AnnotateObject = ArrowObject | RectangleObject | TextObject | BlurObject | NumberedObject | SpotlightObject;
+export interface MagnifyObject extends BaseObject {
+  type: 'magnify';
+  width: number;
+  height: number;
+  sourceX: number;
+  sourceY: number;
+  sourceWidth: number;
+  sourceHeight: number;
+  zoom: number;
+  cornerRadius: number;
+  borderOpacity: number;
+}
+
+export interface SimplifyUiObject extends BaseObject {
+  type: 'simplify_ui';
+  width: number;
+  height: number;
+  dimOpacity: number;
+  blurRadius: number;
+  saturation: number;
+  cornerRadius: number;
+}
+
+export type AnnotateObject = ArrowObject | RectangleObject | TextObject | BlurObject | NumberedObject | SpotlightObject | MagnifyObject | SimplifyUiObject;

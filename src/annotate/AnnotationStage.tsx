@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Stage, Layer, Arrow, Rect } from 'react-konva';
 import { useAnnotationStore } from './state/store';
 import { ObjectsLayer } from './ObjectsLayer';
-import { ArrowObject, RectangleObject, TextObject, BlurObject, NumberedObject, SpotlightObject } from './state/types';
+import { ArrowObject, RectangleObject, TextObject, BlurObject, NumberedObject, SpotlightObject, MagnifyObject, SimplifyUiObject } from './state/types';
 import { SelectionTransformer } from './SelectionTransformer';
 import { createPortal } from 'react-dom';
 import { getSpotlightCornerRadius } from './renderers/spotlightLayout';
@@ -21,6 +21,8 @@ const TOOL_CURSOR: Record<string, string> = {
   rectangle: 'crosshair',
   blur: 'crosshair',
   spotlight: 'crosshair',
+  magnify: 'crosshair',
+  simplify_ui: 'crosshair',
   text: 'text',
   numbered: 'cell',
   crop: 'default',
@@ -71,6 +73,18 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
     } else if (activeTool === 'spotlight') {
       setDrawingObject({
         type: 'spotlight',
+        start: { x: stageX, y: stageY },
+        end: { x: stageX, y: stageY }
+      });
+    } else if (activeTool === 'magnify') {
+      setDrawingObject({
+        type: 'magnify',
+        start: { x: stageX, y: stageY },
+        end: { x: stageX, y: stageY }
+      });
+    } else if (activeTool === 'simplify_ui') {
+      setDrawingObject({
+        type: 'simplify_ui',
         start: { x: stageX, y: stageY },
         end: { x: stageX, y: stageY }
       });
@@ -209,6 +223,43 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
           draggable: true,
         };
         addObject(spotlight);
+      } else if (drawingObject.type === 'magnify') {
+        const rectWidth = Math.abs(dx);
+        const rectHeight = Math.abs(dy);
+        const magnify: MagnifyObject = {
+          id: newId,
+          type: 'magnify',
+          x: Math.min(drawingObject.start.x, drawingObject.end.x),
+          y: Math.min(drawingObject.start.y, drawingObject.end.y),
+          sourceX: Math.min(drawingObject.start.x, drawingObject.end.x),
+          sourceY: Math.min(drawingObject.start.y, drawingObject.end.y),
+          sourceWidth: rectWidth,
+          sourceHeight: rectHeight,
+          rotation: 0,
+          width: rectWidth * 1.8,
+          height: rectHeight * 1.8,
+          zoom: 1.8,
+          cornerRadius: 20,
+          borderOpacity: 0.8,
+          draggable: true,
+        };
+        addObject(magnify);
+      } else if (drawingObject.type === 'simplify_ui') {
+        const simplifyUi: SimplifyUiObject = {
+          id: newId,
+          type: 'simplify_ui',
+          x: Math.min(drawingObject.start.x, drawingObject.end.x),
+          y: Math.min(drawingObject.start.y, drawingObject.end.y),
+          rotation: 0,
+          width: Math.abs(dx),
+          height: Math.abs(dy),
+          dimOpacity: 0.52,
+          blurRadius: 4,
+          saturation: 0.35,
+          cornerRadius: 24,
+          draggable: true,
+        };
+        addObject(simplifyUi);
       }
       select(newId);
       setActiveTool('select');
@@ -257,15 +308,15 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
             />
           )}
 
-          {(drawingObject?.type === 'rectangle' || drawingObject?.type === 'blur') && (
+          {(drawingObject?.type === 'rectangle' || drawingObject?.type === 'blur' || drawingObject?.type === 'magnify' || drawingObject?.type === 'simplify_ui') && (
             <Rect
               x={Math.min(drawingObject.start.x, drawingObject.end.x)}
               y={Math.min(drawingObject.start.y, drawingObject.end.y)}
               width={Math.abs(drawingObject.end.x - drawingObject.start.x)}
               height={Math.abs(drawingObject.end.y - drawingObject.start.y)}
-              stroke={drawingObject?.type === 'blur' ? "rgba(255,255,255,0.5)" : "#ef4444"}
-              strokeWidth={drawingObject?.type === 'blur' ? 1 : 4}
-              fill={drawingObject?.type === 'blur' ? "rgba(255,255,255,0.2)" : "transparent"}
+              stroke={drawingObject?.type === 'blur' || drawingObject?.type === 'simplify_ui' ? "rgba(255,255,255,0.5)" : "#ef4444"}
+              strokeWidth={drawingObject?.type === 'blur' || drawingObject?.type === 'simplify_ui' ? 1 : 4}
+              fill={drawingObject?.type === 'blur' || drawingObject?.type === 'simplify_ui' ? "rgba(255,255,255,0.2)" : "transparent"}
               opacity={0.6}
             />
           )}

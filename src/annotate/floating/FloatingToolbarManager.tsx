@@ -8,6 +8,8 @@ import { TextToolbar } from './TextToolbar';
 import { BlurToolbar } from './BlurToolbar';
 import { NumberedToolbar } from './NumberedToolbar';
 import { SpotlightToolbar } from './SpotlightToolbar';
+import { MagnifyToolbar } from './MagnifyToolbar';
+import { SimplifyUiToolbar } from './SimplifyUiToolbar';
 
 interface Props {
   scale: number;
@@ -45,6 +47,14 @@ export function FloatingToolbarManager({ scale, stageRef }: Props) {
 
   if (selectedObject.type === 'spotlight') {
     return <SpotlightToolbar anchor={anchor} obj={selectedObject as any} />;
+  }
+
+  if (selectedObject.type === 'magnify') {
+    return <MagnifyToolbar anchor={anchor} obj={selectedObject as any} />;
+  }
+
+  if (selectedObject.type === 'simplify_ui') {
+    return <SimplifyUiToolbar anchor={anchor} obj={selectedObject as any} />;
   }
 
   return null;

@@ -8,6 +8,8 @@ import { createTextNode } from "../annotate/renderers/TextRenderer";
 import { renderBlur } from "../annotate/renderers/BlurRenderer";
 import { createNumberedNode } from "../annotate/renderers/NumberedRenderer";
 import { createSpotlightNodes } from "../annotate/renderers/SpotlightRenderer";
+import { renderMagnify } from "../annotate/renderers/MagnifyRenderer";
+import { renderSimplifyUi } from "../annotate/renderers/SimplifyUiRenderer";
 
 export async function composeWithAnnotations(
   image: HTMLImageElement,
@@ -29,6 +31,11 @@ export async function composeWithAnnotations(
 
   // 1. Draw base composition
   drawComposition(ctx, image, preset, dims);
+  const sourceCanvas = document.createElement('canvas');
+  sourceCanvas.width = canvas.width;
+  sourceCanvas.height = canvas.height;
+  const sourceCtx = sourceCanvas.getContext('2d');
+  sourceCtx?.drawImage(canvas, 0, 0);
 
   // 2. Draw annotations
   if (objects.length > 0) {
@@ -56,6 +63,10 @@ export async function composeWithAnnotations(
         for (const node of createSpotlightNodes(obj as any, dims.canvasW, dims.canvasH)) {
           layer.add(node);
         }
+      } else if (obj.type === 'magnify') {
+        renderMagnify(ctx, obj as any, sourceCanvas);
+      } else if (obj.type === 'simplify_ui') {
+        renderSimplifyUi(ctx, obj as any, sourceCanvas);
       }
     }
     

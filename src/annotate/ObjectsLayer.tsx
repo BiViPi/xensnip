@@ -5,6 +5,8 @@ import { TextNode } from './objects/TextNode';
 import { BlurNode } from './objects/BlurNode';
 import { NumberedNode } from './objects/NumberedNode';
 import { SpotlightNode } from './objects/SpotlightNode';
+import { MagnifyNode } from './objects/MagnifyNode';
+import { SimplifyUiNode } from './objects/SimplifyUiNode';
 
 interface Props {
   compositionCanvasRef: React.RefObject<HTMLCanvasElement | null>;
@@ -83,6 +85,32 @@ export function ObjectsLayer({ compositionCanvasRef, stageWidth, stageHeight }: 
               stageHeight={stageHeight}
               onSelect={select}
               onUpdate={updateObject}
+            />
+          );
+        }
+        if (obj.type === 'magnify') {
+          return (
+            <MagnifyNode
+              key={obj.id}
+              obj={obj as any}
+              isSelected={selectedId === obj.id}
+              onSelect={select}
+              onUpdate={updateObject}
+              compositionCanvasRef={compositionCanvasRef}
+            />
+          );
+        }
+        if (obj.type === 'simplify_ui') {
+          return (
+            <SimplifyUiNode
+              key={obj.id}
+              obj={obj as any}
+              isSelected={selectedId === obj.id}
+              stageWidth={stageWidth}
+              stageHeight={stageHeight}
+              onSelect={select}
+              onUpdate={updateObject}
+              compositionCanvasRef={compositionCanvasRef}
             />
           );
         }

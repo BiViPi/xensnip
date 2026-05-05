@@ -40,7 +40,7 @@ export function SelectionTransformer() {
     }
 
     transformerRef.current.nodes([selectedNode]);
-    if (selectedNode.className === 'Group') {
+    if (selectedNode.className === 'Group' && selectedObject?.type !== 'magnify') {
       transformerRef.current.enabledAnchors([]);
     } else {
       transformerRef.current.enabledAnchors([...fullResizeAnchors]);
@@ -76,7 +76,7 @@ export function SelectionTransformer() {
         rotation,
         points: newPoints as [number, number, number, number],
       });
-    } else if (obj.type === 'rectangle' || obj.type === 'blur' || obj.type === 'spotlight') {
+    } else if (obj.type === 'rectangle' || obj.type === 'blur' || obj.type === 'spotlight' || obj.type === 'magnify' || obj.type === 'simplify_ui') {
       updateObject(selectedId, {
         x: node.x(),
         y: node.y(),

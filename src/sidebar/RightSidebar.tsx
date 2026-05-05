@@ -81,9 +81,9 @@ export function RightSidebar() {
 
 function FocusTools({ onClose }: { onClose: () => void }) {
   const tools = [
-    { id: 'spotlight', label: 'Spotlight', icon: Aperture, hint: 'Spotlight â€” drag on canvas' },
-    { id: 'simplify_ui', label: 'Simplify UI', icon: Sparkles, hint: 'Simplify UI â€” coming soon', disabled: true },
-    { id: 'magnify', label: 'Magnify', icon: ZoomIn, hint: 'Magnify â€” coming soon', disabled: true },
+    { id: 'spotlight', label: 'Simplify UI', icon: Aperture, hint: 'Simplify UI - drag on canvas' },
+    { id: 'simplify_ui', label: 'Spotlight', icon: Sparkles, hint: 'Spotlight - drag on canvas' },
+    { id: 'magnify', label: 'Magnify', icon: ZoomIn, hint: 'Magnify — drag on canvas' },
   ];
   return <ToolGrid tools={tools} onClose={onClose} />;
 }
@@ -164,3 +164,4 @@ function CropTools({ onClose }: { onClose: () => void }) {
   ];
   return <ToolGrid tools={tools} onClose={onClose} />;
 }
+
