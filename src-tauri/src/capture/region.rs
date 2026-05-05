@@ -6,7 +6,7 @@ use windows::Win32::Graphics::Gdi::{
 };
 use xcap::Monitor;
 
-// GDI Imports for fallback
+// GDI imports for the current region-capture backend.
 use windows::Win32::Graphics::Gdi::{
     BitBlt, CreateCompatibleBitmap, CreateCompatibleDC, DeleteDC, DeleteObject, GetDC, GetDIBits,
     ReleaseDC, SelectObject, BITMAPINFOHEADER, BI_RGB, DIB_RGB_COLORS, HGDIOBJ, SRCCOPY,
@@ -29,8 +29,8 @@ pub fn capture_region(app: &AppHandle) -> Result<(), CaptureError> {
     }
 }
 
-/// Finalize region capture and trigger the backend capture logic.
-/// Implements WGC Monitor capture with a GDI BitBlt fallback as per 02-WGC-TIMEOUT-FIX-PROPOSAL.md.
+/// Finalize region capture and trigger the region-capture backend.
+/// Region capture currently uses GDI BitBlt directly to avoid WGC monitor timeouts.
 pub fn finish_region_capture(
     app: &AppHandle,
     gx: i32,
@@ -39,7 +39,14 @@ pub fn finish_region_capture(
     gh: u32,
 ) -> Result<(), CaptureError> {
     let start_time = std::time::Instant::now();
-    log::info!(target: "capture", "finish_region_capture (Native): global_rect={}x{} at {},{}", gw, gh, gx, gy);
+    log::info!(
+        target: "capture",
+        "finish_region_capture (GDI): global_rect={}x{} at {},{}",
+        gw,
+        gh,
+        gx,
+        gy
+    );
 
     // 1. Basic validation: rect too small
     if gw < 10 || gh < 10 {
@@ -53,7 +60,7 @@ pub fn finish_region_capture(
             app,
             &err,
             &start_time,
-            crate::diagnostics::CaptureMethod::WgcMonitor,
+            crate::diagnostics::CaptureMethod::GdiBitblt,
         );
         finish_session(app);
         return Err(err);
@@ -67,7 +74,7 @@ pub fn finish_region_capture(
             app,
             &err,
             &start_time,
-            crate::diagnostics::CaptureMethod::WgcMonitor,
+            crate::diagnostics::CaptureMethod::GdiBitblt,
         );
         finish_session(app);
         err
@@ -98,7 +105,7 @@ pub fn finish_region_capture(
             app,
             &err,
             &start_time,
-            crate::diagnostics::CaptureMethod::WgcMonitor,
+            crate::diagnostics::CaptureMethod::GdiBitblt,
         );
         finish_session(app);
         return Err(err);
@@ -137,61 +144,21 @@ pub fn finish_region_capture(
     let dpi_pct = (actual_dpi * 100.0).round() as u32;
     let actual_monitor_id = center_monitor.name().unwrap_or_else(|_| "Unknown".to_string());
 
-    let mut capture_method = crate::diagnostics::CaptureMethod::WgcMonitor;
-
-    let final_image = if intersecting_monitors.len() == 1 {
-        // Path 1: Single-monitor selection -> Reuse WGC V1
-        let target_monitor = &intersecting_monitors[0];
-        let mx = target_monitor.x().unwrap_or(0);
-        let my = target_monitor.y().unwrap_or(0);
-        let local_x = gx - mx;
-        let local_y = gy - my;
-
-        log::info!(target: "capture", "Single-monitor branch: WGC on {}", target_monitor.name().unwrap_or_default());
-        let image_res = target_monitor.capture_image();
-        
-        match image_res {
-            Ok(img) => {
-                let img_w = img.width();
-                let img_h = img.height();
-                let x_offset = (local_x.max(0) as u32).min(img_w);
-                let y_offset = (local_y.max(0) as u32).min(img_h);
-                let crop_w = gw.min(img_w.saturating_sub(x_offset));
-                let crop_h = gh.min(img_h.saturating_sub(y_offset));
-
-                let raw = img.into_raw();
-                if let Some(mut rgba_img) = image::RgbaImage::from_raw(img_w, img_h, raw) {
-                    image::imageops::crop(&mut rgba_img, x_offset, y_offset, crop_w, crop_h).to_image()
-                } else {
-                    let err = CaptureError::WgcFailure();
-                    emit_failure(app, &err, &start_time, capture_method);
-                    finish_session(app);
-                    return Err(err);
-                }
-            }
-            Err(e) => {
-                log::warn!(target: "capture", "Single-monitor WGC failed ({:?}), falling back to GDI...", e);
-                capture_method = crate::diagnostics::CaptureMethod::GdiBitblt;
-                capture_region_gdi(gx, gy, gw, gh).map_err(|_ge| {
-                    let err = CaptureError::WgcFailure();
-                    emit_failure(app, &err, &start_time, capture_method.clone());
-                    finish_session(app);
-                    err
-                })?
-            }
-        }
-    } else {
-        // Path 2: Multi-monitor selection -> Global GDI BitBlt
-        log::info!(target: "capture", "Multi-monitor branch: GDI Desktop Capture ({} monitors intersected)", intersecting_monitors.len());
-        capture_method = crate::diagnostics::CaptureMethod::GdiBitblt;
-        capture_region_gdi(gx, gy, gw, gh).map_err(|_ge| {
-            log::error!(target: "capture", "Multi-monitor GDI failed: {}", _ge);
-            let err = CaptureError::WgcFailure();
-            emit_failure(app, &err, &start_time, capture_method.clone());
-            finish_session(app);
-            err
-        })?
-    };
+    // Region capture uses GDI directly on this machine because WGC monitor capture
+    // has been the source of multi-second timeouts before the editor can open.
+    let capture_method = crate::diagnostics::CaptureMethod::GdiBitblt;
+    let final_image = capture_region_gdi(gx, gy, gw, gh).map_err(|ge| {
+        log::error!(
+            target: "capture",
+            "Region GDI capture failed ({} monitors intersected): {}",
+            intersecting_monitors.len(),
+            ge
+        );
+        let err = CaptureError::WgcFailure();
+        emit_failure(app, &err, &start_time, capture_method.clone());
+        finish_session(app);
+        err
+    })?;
 
     let final_w = final_image.width();
     let final_h = final_image.height();
