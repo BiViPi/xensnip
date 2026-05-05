@@ -4,12 +4,15 @@ import { RectangleNode } from './objects/RectangleNode';
 import { TextNode } from './objects/TextNode';
 import { BlurNode } from './objects/BlurNode';
 import { NumberedNode } from './objects/NumberedNode';
+import { SpotlightNode } from './objects/SpotlightNode';
 
 interface Props {
   compositionCanvasRef: React.RefObject<HTMLCanvasElement | null>;
+  stageWidth: number;
+  stageHeight: number;
 }
 
-export function ObjectsLayer({ compositionCanvasRef }: Props) {
+export function ObjectsLayer({ compositionCanvasRef, stageWidth, stageHeight }: Props) {
   const { objects, select, updateObject, selectedId } = useAnnotationStore();
 
   return (
@@ -65,6 +68,19 @@ export function ObjectsLayer({ compositionCanvasRef }: Props) {
               key={obj.id}
               obj={obj as any}
               isSelected={selectedId === obj.id}
+              onSelect={select}
+              onUpdate={updateObject}
+            />
+          );
+        }
+        if (obj.type === 'spotlight') {
+          return (
+            <SpotlightNode
+              key={obj.id}
+              obj={obj as any}
+              isSelected={selectedId === obj.id}
+              stageWidth={stageWidth}
+              stageHeight={stageHeight}
               onSelect={select}
               onUpdate={updateObject}
             />

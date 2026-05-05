@@ -7,6 +7,7 @@ import { createRectangleNode } from "../annotate/renderers/RectangleRenderer";
 import { createTextNode } from "../annotate/renderers/TextRenderer";
 import { renderBlur } from "../annotate/renderers/BlurRenderer";
 import { createNumberedNode } from "../annotate/renderers/NumberedRenderer";
+import { createSpotlightNodes } from "../annotate/renderers/SpotlightRenderer";
 
 export async function composeWithAnnotations(
   image: HTMLImageElement,
@@ -51,6 +52,10 @@ export async function composeWithAnnotations(
         layer.add(createTextNode(obj as any));
       } else if (obj.type === 'numbered') {
         layer.add(createNumberedNode(obj as any));
+      } else if (obj.type === 'spotlight') {
+        for (const node of createSpotlightNodes(obj as any, dims.canvasW, dims.canvasH)) {
+          layer.add(node);
+        }
       }
     }
     

@@ -12,6 +12,9 @@ import {
   Ghost,
   Hash,
   Crop as CropIcon,
+  Aperture,
+  Sparkles,
+  ZoomIn,
 } from 'lucide-react';
 import './Sidebar.css';
 
@@ -76,6 +79,15 @@ export function RightSidebar() {
   );
 }
 
+function FocusTools({ onClose }: { onClose: () => void }) {
+  const tools = [
+    { id: 'spotlight', label: 'Spotlight', icon: Aperture, hint: 'Spotlight â€” drag on canvas' },
+    { id: 'simplify_ui', label: 'Simplify UI', icon: Sparkles, hint: 'Simplify UI â€” coming soon', disabled: true },
+    { id: 'magnify', label: 'Magnify', icon: ZoomIn, hint: 'Magnify â€” coming soon', disabled: true },
+  ];
+  return <ToolGrid tools={tools} onClose={onClose} />;
+}
+
 function FeaturePopover({ featureId, onClose }: { featureId: FeatureId; onClose: () => void }) {
   const feature = FEATURES.find(f => f.id === featureId);
   if (!feature) return null;
@@ -87,6 +99,7 @@ function FeaturePopover({ featureId, onClose }: { featureId: FeatureId; onClose:
         {featureId === 'privacy' && <PrivacyTools onClose={onClose} />}
         {featureId === 'steps_callouts' && <StepsTools onClose={onClose} />}
         {featureId === 'crop_canvas' && <CropTools onClose={onClose} />}
+        {featureId === 'focus_polish' && <FocusTools onClose={onClose} />}
         {feature.locked && (
           <div className="xs-locked-msg">Coming soon</div>
         )}

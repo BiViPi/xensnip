@@ -1,4 +1,4 @@
-export type ToolId = 'select' | 'arrow' | 'rectangle' | 'text' | 'blur' | 'numbered' | 'crop' | 'canvas';
+export type ToolId = 'select' | 'arrow' | 'rectangle' | 'text' | 'blur' | 'numbered' | 'spotlight' | 'crop' | 'canvas';
 
 export interface BaseObject {
   id: string;
@@ -54,4 +54,12 @@ export interface NumberedObject extends BaseObject {
   fill: string;
 }
 
-export type AnnotateObject = ArrowObject | RectangleObject | TextObject | BlurObject | NumberedObject;
+export interface SpotlightObject extends BaseObject {
+  type: 'spotlight';
+  width: number;
+  height: number;
+  opacity: number;
+  cornerRadius: number;
+}
+
+export type AnnotateObject = ArrowObject | RectangleObject | TextObject | BlurObject | NumberedObject | SpotlightObject;

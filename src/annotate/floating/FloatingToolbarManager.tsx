@@ -7,6 +7,7 @@ import { RectangleToolbar } from './RectangleToolbar';
 import { TextToolbar } from './TextToolbar';
 import { BlurToolbar } from './BlurToolbar';
 import { NumberedToolbar } from './NumberedToolbar';
+import { SpotlightToolbar } from './SpotlightToolbar';
 
 interface Props {
   scale: number;
@@ -40,6 +41,10 @@ export function FloatingToolbarManager({ scale, stageRef }: Props) {
 
   if (selectedObject.type === 'numbered') {
     return <NumberedToolbar anchor={anchor} obj={selectedObject as any} />;
+  }
+
+  if (selectedObject.type === 'spotlight') {
+    return <SpotlightToolbar anchor={anchor} obj={selectedObject as any} />;
   }
 
   return null;

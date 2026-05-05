@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { Stage, Layer, Arrow, Rect } from 'react-konva';
 import { useAnnotationStore } from './state/store';
 import { ObjectsLayer } from './ObjectsLayer';
-import { ArrowObject, RectangleObject, TextObject, BlurObject, NumberedObject } from './state/types';
+import { ArrowObject, RectangleObject, TextObject, BlurObject, NumberedObject, SpotlightObject } from './state/types';
 import { SelectionTransformer } from './SelectionTransformer';
 import { createPortal } from 'react-dom';
+import { getSpotlightCornerRadius } from './renderers/spotlightLayout';
 
 interface AnnotationStageProps {
   width: number;
@@ -19,6 +20,7 @@ const TOOL_CURSOR: Record<string, string> = {
   arrow: 'crosshair',
   rectangle: 'crosshair',
   blur: 'crosshair',
+  spotlight: 'crosshair',
   text: 'text',
   numbered: 'cell',
   crop: 'default',
@@ -29,6 +31,8 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
   const { activeTool, select, addObject, updateObject, setActiveTool, objects, editingTextId, setEditingTextId } = useAnnotationStore();
   const [drawingObject, setDrawingObject] = useState<any>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const stageWidth = width / scale;
+  const stageHeight = height / scale;
 
   const editingText = objects.find((obj): obj is TextObject => obj.type === 'text' && obj.id === editingTextId);
   const overlay = document.getElementById('annotation-ui-overlay');
@@ -61,6 +65,12 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
     } else if (activeTool === 'blur') {
       setDrawingObject({
         type: 'blur',
+        start: { x: stageX, y: stageY },
+        end: { x: stageX, y: stageY }
+      });
+    } else if (activeTool === 'spotlight') {
+      setDrawingObject({
+        type: 'spotlight',
         start: { x: stageX, y: stageY },
         end: { x: stageX, y: stageY }
       });
@@ -185,6 +195,20 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
           draggable: true,
         };
         addObject(blur);
+      } else if (drawingObject.type === 'spotlight') {
+        const spotlight: SpotlightObject = {
+          id: newId,
+          type: 'spotlight',
+          x: Math.min(drawingObject.start.x, drawingObject.end.x),
+          y: Math.min(drawingObject.start.y, drawingObject.end.y),
+          rotation: 0,
+          width: Math.abs(dx),
+          height: Math.abs(dy),
+          opacity: 0.58,
+          cornerRadius: 24,
+          draggable: true,
+        };
+        addObject(spotlight);
       }
       select(newId);
       setActiveTool('select');
@@ -213,7 +237,7 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
         }}
       >
         <Layer>
-          <ObjectsLayer compositionCanvasRef={compositionCanvasRef} />
+          <ObjectsLayer compositionCanvasRef={compositionCanvasRef} stageWidth={stageWidth} stageHeight={stageHeight} />
           <SelectionTransformer />
 
           {drawingObject?.type === 'arrow' && (
@@ -244,6 +268,65 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
               fill={drawingObject?.type === 'blur' ? "rgba(255,255,255,0.2)" : "transparent"}
               opacity={0.6}
             />
+          )}
+
+          {drawingObject?.type === 'spotlight' && (
+            <>
+              <Rect
+                x={0}
+                y={0}
+                width={stageWidth}
+                height={stageHeight}
+                fill="rgba(2, 6, 23, 0.58)"
+                listening={false}
+              />
+              <Rect
+                x={Math.min(drawingObject.start.x, drawingObject.end.x)}
+                y={Math.min(drawingObject.start.y, drawingObject.end.y)}
+                width={Math.abs(drawingObject.end.x - drawingObject.start.x)}
+                height={Math.abs(drawingObject.end.y - drawingObject.start.y)}
+                cornerRadius={getSpotlightCornerRadius({
+                  id: 'spotlight-preview',
+                  type: 'spotlight',
+                  x: 0,
+                  y: 0,
+                  rotation: 0,
+                  width: Math.abs(drawingObject.end.x - drawingObject.start.x),
+                  height: Math.abs(drawingObject.end.y - drawingObject.start.y),
+                  opacity: 0.58,
+                  cornerRadius: 24,
+                  draggable: false,
+                })}
+                fill="#000"
+                globalCompositeOperation="destination-out"
+                listening={false}
+              />
+              <Rect
+                x={Math.min(drawingObject.start.x, drawingObject.end.x)}
+                y={Math.min(drawingObject.start.y, drawingObject.end.y)}
+                width={Math.abs(drawingObject.end.x - drawingObject.start.x)}
+                height={Math.abs(drawingObject.end.y - drawingObject.start.y)}
+                cornerRadius={getSpotlightCornerRadius({
+                  id: 'spotlight-preview',
+                  type: 'spotlight',
+                  x: 0,
+                  y: 0,
+                  rotation: 0,
+                  width: Math.abs(drawingObject.end.x - drawingObject.start.x),
+                  height: Math.abs(drawingObject.end.y - drawingObject.start.y),
+                  opacity: 0.58,
+                  cornerRadius: 24,
+                  draggable: false,
+                })}
+                fill="rgba(255,255,255,0.001)"
+                stroke="#818cf8"
+                strokeWidth={2}
+                shadowColor="#22d3ee"
+                shadowBlur={18}
+                shadowOpacity={0.28}
+                listening={false}
+              />
+            </>
           )}
         </Layer>
       </Stage>

@@ -7,6 +7,16 @@ export function SelectionTransformer() {
   const { selectedId, updateObject, objects, editingTextId } = useAnnotationStore();
   const transformerRef = useRef<any>(null);
   const selectedObject = objects.find((o) => o.id === selectedId);
+  const fullResizeAnchors = [
+    'top-left',
+    'top-center',
+    'top-right',
+    'middle-left',
+    'middle-right',
+    'bottom-left',
+    'bottom-center',
+    'bottom-right',
+  ] as const;
 
   useEffect(() => {
     if (!transformerRef.current) return;
@@ -33,7 +43,7 @@ export function SelectionTransformer() {
     if (selectedNode.className === 'Group') {
       transformerRef.current.enabledAnchors([]);
     } else {
-      transformerRef.current.enabledAnchors(['top-left', 'top-right', 'bottom-left', 'bottom-right']);
+      transformerRef.current.enabledAnchors([...fullResizeAnchors]);
     }
     transformerRef.current.getLayer().batchDraw();
   }, [selectedId, selectedObject?.type, editingTextId, objects]);
@@ -66,7 +76,7 @@ export function SelectionTransformer() {
         rotation,
         points: newPoints as [number, number, number, number],
       });
-    } else if (obj.type === 'rectangle' || obj.type === 'blur') {
+    } else if (obj.type === 'rectangle' || obj.type === 'blur' || obj.type === 'spotlight') {
       updateObject(selectedId, {
         x: node.x(),
         y: node.y(),
