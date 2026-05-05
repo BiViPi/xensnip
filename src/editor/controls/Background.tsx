@@ -29,7 +29,7 @@ function BackgroundModeIcon({ mode }: { mode: BackgroundMode }) {
       <svg className="xs-tab-icon" viewBox="0 0 1024 1024" aria-hidden="true">
         <defs>
           <linearGradient id="gradient-tab-fill" x1="0%" y1="100%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#38bdf8" />
+            <stop offset="0%" stopColor="#22D3EE" />
             <stop offset="50%" stopColor="#818cf8" />
             <stop offset="100%" stopColor="#c084fc" />
           </linearGradient>

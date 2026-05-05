@@ -544,20 +544,20 @@ export function QuickAccess() {
               {activePop === "shadow" && preset.shadow_enabled && (
                 <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
                   <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
-                    <line x1={centerX} y1={centerY} x2={dotX} y2={dotY} stroke="#3b82f6" strokeWidth="1.5" strokeDasharray="4 2" opacity="0.5" />
+                    <line x1={centerX} y1={centerY} x2={dotX} y2={dotY} stroke="#6366F1" strokeWidth="1.5" strokeDasharray="4 2" opacity="0.5" />
                   </svg>
                   <div 
                     onMouseDown={onMouseDownShadow}
                     style={{
                       position: 'absolute', left: `${dotX}px`, top: `${dotY}px`,
-                      width: '16px', height: '16px', background: '#3b82f6', border: '2px solid white',
+                      width: '16px', height: '16px', background: '#6366F1', border: '2px solid white',
                       borderRadius: '50%', transform: 'translate(-50%, -50%)', cursor: 'move',
                       pointerEvents: 'auto', boxShadow: '0 2px 10px rgba(0,0,0,0.3)', zIndex: 2000
                     }}
                   />
                   <div style={{
                     position: 'absolute', left: `${centerX}px`, top: `${centerY}px`,
-                    width: '6px', height: '6px', background: '#fff', border: '1.5px solid #3b82f6',
+                    width: '6px', height: '6px', background: '#fff', border: '1.5px solid #6366F1',
                     borderRadius: '50%', transform: 'translate(-50%, -50%)'
                   }} />
                 </div>

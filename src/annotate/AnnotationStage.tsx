@@ -275,7 +275,7 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
             fontFamily: editingText.fontFamily,
             color: editingText.fill,
             background: 'transparent',
-            border: '1px dashed rgba(59, 130, 246, 0.65)',
+            border: '1px dashed rgba(99, 102, 241, 0.65)',
             padding: `${editingText.padding * scale}px`,
             margin: 0,
             outline: 'none',

@@ -1,12 +1,14 @@
 :root {
-  --icon-bg-primary: #ffffff;
-  --icon-bg-card: #1b1e2e;
-  --icon-stroke-dark: #94a3b8; /* Tăng độ sáng từ 1e293b lên 94a3b8 để nổi bật */
-  --icon-stroke-medium: #475569;
+  /* Aligned to semantic tokens */
+  --icon-bg-primary: var(--text-primary);
+  --icon-bg-card: var(--surface-panel);
+  --icon-stroke-dark: #f6f0e7;
+  --icon-stroke-medium: #d8d0c5;
 
-  --icon-accent-blue: #38bdf8;       /* Cyan sáng hơn (Sky-400) */
-  --icon-accent-blue-light: #f0f9ff; /* Gần như trắng để tạo điểm nhấn highlight */
-  --icon-accent-purple-start: #818cf8;
-  --icon-accent-purple-end: #c084fc;
-  --icon-accent-orange: #fb923c;
+  /* Ivory-led icon artwork, with indigo reserved for containers/state chrome */
+  --icon-accent-blue: #e7dfd2;
+  --icon-accent-blue-light: #fffaf2;
+  --icon-accent-purple-start: #f8f3ea;
+  --icon-accent-purple-end: #ddd4c7;
+  --icon-accent-orange: var(--state-warning);
 }

@@ -212,7 +212,7 @@ export function QuickBar({
                       style={{ 
                         width: '24px', height: '24px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.15)',
                         background: c.color, cursor: 'pointer', transition: 'all 0.2s',
-                        boxShadow: preset.border_color === c.color ? '0 0 0 2px #3b82f6' : 'none'
+                        boxShadow: preset.border_color === c.color ? '0 0 0 2px #6366F1' : 'none'
                       }}
                       onClick={() => setPreset(p => ({ ...p, border_color: c.color }))}
                       title={c.label}

@@ -1,0 +1,44 @@
+:root {
+  /* Backgrounds */
+  --bg-app: #070b16;
+  --bg-canvas: #0b1120;
+
+  /* Surfaces */
+  --surface-base: rgba(13, 18, 32, 0.92);
+  --surface-panel: rgba(15, 23, 42, 0.88);
+  --surface-raised: rgba(20, 26, 44, 0.94);
+  --surface-overlay: rgba(14, 18, 35, 0.97);
+
+  /* Text */
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-tertiary: #64748b;
+
+  /* Borders */
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(255, 255, 255, 0.14);
+  --border-focus: rgba(99, 102, 241, 0.55);
+  --border-selected: rgba(99, 102, 241, 0.45);
+
+  /* Accent: Indigo */
+  --accent-primary: #6366F1;
+  --accent-hover: #818CF8;
+  --accent-pressed: #4F46E5;
+  --accent-soft-bg: rgba(99, 102, 241, 0.12);
+  --accent-glow-soft: rgba(99, 102, 241, 0.20);
+
+  /* Support: Cyan */
+  --accent-cyan: #22D3EE;
+  --accent-cyan-soft: rgba(34, 211, 238, 0.16);
+
+  /* Semantic */
+  --state-success: #10b981;
+  --state-warning: #f59e0b;
+  --state-danger: #ef4444;
+
+  /* Icons */
+  --icon-default: #e7dfd2;
+  --icon-hover: #fffaf2;
+  --icon-active: #fffaf2;
+  --icon-disabled: #8e8a84;
+}

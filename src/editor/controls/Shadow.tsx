@@ -18,7 +18,7 @@ export function ShadowControl({ preset, onChange }: Props) {
           onClick={() => onChange({ shadow_enabled: !preset.shadow_enabled })}
           style={{
             width: "40px", height: "22px",
-            backgroundColor: preset.shadow_enabled ? "#3b82f6" : "rgba(255,255,255,0.1)",
+            backgroundColor: preset.shadow_enabled ? "#6366F1" : "rgba(255,255,255,0.1)",
             borderRadius: "11px", position: "relative", cursor: "pointer",
             transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
           }}

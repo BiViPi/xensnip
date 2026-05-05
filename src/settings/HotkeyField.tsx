@@ -88,18 +88,18 @@ export function HotkeyField({ value, onChange, error }: Props) {
         }
 
         .xs-hotkey-input:hover {
-          border-color: rgba(59, 130, 246, 0.5);
+          border-color: rgba(99, 102, 241, 0.5);
           background: rgba(0, 0, 0, 0.4);
         }
 
         .xs-hotkey-input.listening {
-          border-color: #3b82f6;
-          box-shadow: 0 0 12px rgba(59, 130, 246, 0.2);
-          background: rgba(59, 130, 246, 0.1);
+          border-color: #6366F1;
+          box-shadow: 0 0 12px rgba(99, 102, 241, 0.2);
+          background: rgba(99, 102, 241, 0.1);
         }
 
         .xs-hotkey-value {
-          color: #3b82f6;
+          color: #6366F1;
           font-weight: 700;
         }
 

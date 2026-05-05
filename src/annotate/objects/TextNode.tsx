@@ -107,7 +107,7 @@ export function TextNode({ obj, isSelected, onSelect, onUpdate }: TextNodeProps)
             y={0}
             width={bounds.width}
             height={bounds.height}
-            stroke="#3b82f6"
+            stroke="#6366F1"
             dash={[4, 3]}
             strokeWidth={1}
             listening={false}

@@ -83,10 +83,10 @@ export function SelectionTransformer() {
       rotateEnabled={false}
       anchorSize={8}
       anchorCornerRadius={2}
-      anchorStroke="#3b82f6"
+      anchorStroke="#6366F1"
       anchorStrokeWidth={1}
       anchorFill="#fff"
-      borderStroke="#3b82f6"
+      borderStroke="#6366F1"
       borderDash={[4, 3]}
       padding={4}
       boundBoxFunc={(oldBox, newBox) => {
