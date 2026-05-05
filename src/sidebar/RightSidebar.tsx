@@ -1,4 +1,4 @@
-
+import { useLayoutEffect, useRef, useState } from 'react';
 import { useSidebarStore, FeatureId } from './store';
 import { useAnnotationStore } from '../annotate/state/store';
 import { useMeasureStore } from '../measure/store';
@@ -25,6 +25,9 @@ import './Sidebar.css';
 
 export function RightSidebar() {
   const { activeFeatureId, collapsed, toggle, openFeature, closeFeature } = useSidebarStore();
+  const railRef = useRef<HTMLDivElement | null>(null);
+  const featureRefs = useRef<Partial<Record<FeatureId, HTMLButtonElement | null>>>({});
+  const [popoverAnchorTop, setPopoverAnchorTop] = useState<number>(0);
 
   const handleFeatureClick = (id: FeatureId, locked?: boolean) => {
     if (locked) return;
@@ -35,14 +38,31 @@ export function RightSidebar() {
     }
   };
 
-  const activeIndex = FEATURES.findIndex(f => f.id === activeFeatureId);
-  // Rail layout: padding-top(6) + toggle(32) + gap(4) + divider(1) + gap(4) = 47px before first item
-  // Each item is 34px with a 4px gap.
-  const popoverOffset = activeIndex >= 0 ? 47 + (activeIndex * (44 + 4)) : 0;
+  useLayoutEffect(() => {
+    if (!activeFeatureId || collapsed) return;
+
+    const updateAnchorTop = () => {
+      const rail = railRef.current;
+      const feature = featureRefs.current[activeFeatureId];
+      if (!rail || !feature) return;
+
+      const railRect = rail.getBoundingClientRect();
+      const featureRect = feature.getBoundingClientRect();
+      const nextTop = (featureRect.top - railRect.top) + (featureRect.height / 2);
+      setPopoverAnchorTop(nextTop);
+    };
+
+    updateAnchorTop();
+    window.addEventListener('resize', updateAnchorTop);
+    return () => window.removeEventListener('resize', updateAnchorTop);
+  }, [activeFeatureId, collapsed]);
 
   return (
     <div className="xs-sidebar-root">
-      <div className={`xs-sidebar-rail ${collapsed ? 'collapsed' : ''}`}>
+      <div
+        ref={railRef}
+        className={`xs-sidebar-rail ${collapsed ? 'collapsed' : ''}`}
+      >
         {/* ... existing rail content ... */}
         <button
           className={`xs-rail-toggle ${!collapsed ? 'active' : ''}`}
@@ -58,6 +78,9 @@ export function RightSidebar() {
             {FEATURES.map((feature) => (
               <button
                 key={feature.id}
+                ref={(node) => {
+                  featureRefs.current[feature.id] = node;
+                }}
                 className={`xs-rail-item ${activeFeatureId === feature.id ? 'active' : ''} ${feature.locked ? 'locked' : ''}`}
                 onClick={() => handleFeatureClick(feature.id, feature.locked)}
                 disabled={!feature.enabled}
@@ -76,7 +99,10 @@ export function RightSidebar() {
       </div>
 
       {activeFeatureId && !collapsed && (
-        <div style={{ marginTop: `${popoverOffset}px` }}>
+        <div
+          className="xs-popover-anchor"
+          style={{ top: `${popoverAnchorTop}px` }}
+        >
           <FeaturePopover featureId={activeFeatureId} onClose={closeFeature} />
         </div>
       )}
