@@ -145,6 +145,7 @@ pub fn run() {
             let _tray = TrayIconBuilder::new()
                 .icon(app.default_window_icon().unwrap().clone())
                 .menu(&menu)
+                .show_menu_on_left_click(false)
                 .on_menu_event(move |app: &AppHandle, event| match event.id.as_ref() {
                     "quit" => {
                         log::info!(target: "app", "Quit clicked");

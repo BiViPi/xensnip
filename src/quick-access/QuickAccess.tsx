@@ -566,7 +566,7 @@ export function QuickAccess() {
           </div>
         ) : (
           <div className="xs-loading">
-            {isLoading ? "Loading capture..." : "Capture unavailable."}
+            {isLoading ? "Loading capture..." : "No capture yet. Use a hotkey or the tray menu to start."}
           </div>
         )}
         <div className="xs-dock-spacer" style={{ height: `${layout.dockReserve}px`, flexBasis: `${layout.dockReserve}px` }} />

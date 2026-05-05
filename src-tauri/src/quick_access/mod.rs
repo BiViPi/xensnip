@@ -151,7 +151,14 @@ pub fn dismiss(app: &AppHandle, _asset_id: &str) {
 
 pub fn focus_window(app: &AppHandle) {
     if let Some(window) = app.get_webview_window(QA_LABEL) {
+        let _ = window.unminimize();
+        let _ = window.show();
         let _ = window.set_focus();
+        return;
+    }
+
+    if let Err(err) = spawn_empty_window(app) {
+        log::error!(target: "quick_access", "Failed to spawn empty editor window: {:?}", err);
     }
 }
 
@@ -203,6 +210,35 @@ fn spawn_window(
         EDITOR_WIDTH,
         EDITOR_HEIGHT
     );
+    Ok(())
+}
+
+fn spawn_empty_window(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
+    let window = WebviewWindowBuilder::new(
+        app,
+        QA_LABEL,
+        WebviewUrl::App("quick-access.html".into()),
+    )
+    .title("XenSnip Editor")
+    .decorations(false)
+    .resizable(true)
+    .always_on_top(false)
+    .skip_taskbar(false)
+    .transparent(true)
+    .focused(true)
+    .inner_size(EDITOR_WIDTH as f64, EDITOR_HEIGHT as f64)
+    .min_inner_size(EDITOR_MIN_WIDTH as f64, EDITOR_MIN_HEIGHT as f64)
+    .build()?;
+
+    let _ = crate::apply_window_native_style(&window);
+
+    window.on_window_event(|event| {
+        if matches!(event, WindowEvent::Destroyed) {
+            log::info!(target: "quick_access", "Empty editor window destroyed.");
+        }
+    });
+
+    log::info!(target: "quick_access", "Empty editor window spawned from tray.");
     Ok(())
 }
 
