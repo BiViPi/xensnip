@@ -14,7 +14,7 @@ interface MeasureStore {
     rgb: [number, number, number];
   } | null;
   colorPickerFrozen: boolean;
-  ocrSelection: { x: number; y: number; width: number; height: number } | null;
+  ocrRegion: { x: number; y: number; width: number; height: number } | null;
   ocrText: string;
   ocrStatus: 'idle' | 'selecting' | 'running' | 'ready' | 'error';
   ocrError: string | null;
@@ -25,7 +25,7 @@ interface MeasureStore {
   setGridOpacity: (opacity: number) => void;
   setCurrentSample: (sample: MeasureStore['currentSample']) => void;
   setColorPickerFrozen: (frozen: boolean) => void;
-  setOcrSelection: (selection: MeasureStore['ocrSelection']) => void;
+  setOcrRegion: (region: MeasureStore['ocrRegion']) => void;
   setOcrText: (text: string) => void;
   setOcrStatus: (status: MeasureStore['ocrStatus']) => void;
   setOcrError: (error: string | null) => void;
@@ -38,7 +38,7 @@ export const useMeasureStore = create<MeasureStore>((set) => ({
   gridOpacity: 0.2,
   currentSample: null,
   colorPickerFrozen: false,
-  ocrSelection: null,
+  ocrRegion: null,
   ocrText: '',
   ocrStatus: 'idle',
   ocrError: null,
@@ -49,7 +49,7 @@ export const useMeasureStore = create<MeasureStore>((set) => ({
   setGridOpacity: (gridOpacity) => set({ gridOpacity }),
   setCurrentSample: (currentSample) => set({ currentSample }),
   setColorPickerFrozen: (colorPickerFrozen) => set({ colorPickerFrozen }),
-  setOcrSelection: (ocrSelection) => set({ ocrSelection }),
+  setOcrRegion: (ocrRegion) => set({ ocrRegion }),
   setOcrText: (ocrText) => set({ ocrText }),
   setOcrStatus: (ocrStatus) => set({ ocrStatus }),
   setOcrError: (ocrError) => set({ ocrError }),

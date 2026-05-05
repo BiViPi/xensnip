@@ -37,9 +37,20 @@ const TOOL_CURSOR: Record<string, string> = {
 
 export function AnnotationStage({ width, height, scale, compositionCanvasRef, stageRef }: AnnotationStageProps) {
   const { activeTool, select, addObject, updateObject, setActiveTool, objects, editingTextId, setEditingTextId } = useAnnotationStore();
-  const { activeUtility, setCurrentSample, colorPickerFrozen, setColorPickerFrozen, setOcrStatus, setOcrText, setOcrError } = useMeasureStore();
+  const {
+    activeUtility,
+    setCurrentSample,
+    colorPickerFrozen,
+    setColorPickerFrozen,
+    ocrRegion,
+    setOcrRegion,
+    setOcrStatus,
+    setOcrText,
+    setOcrError,
+  } = useMeasureStore();
   const [drawingObject, setDrawingObject] = useState<any>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const ocrRequestIdRef = useRef<number>(0);
   const stageWidth = width / scale;
   const stageHeight = height / scale;
 
@@ -53,6 +64,25 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
     textareaRef.current.select();
   }, [editingText?.id]);
 
+  useEffect(() => {
+    if (activeUtility === 'ocr_extract') return;
+
+    ocrRequestIdRef.current += 1;
+    setDrawingObject((current: any) => current?.type === 'ocr_selection' ? null : current);
+    setOcrRegion(null);
+    setOcrStatus('idle');
+    setOcrText('');
+    setOcrError(null);
+  }, [activeUtility, setOcrError, setOcrRegion, setOcrStatus, setOcrText]);
+
+  const dismissOcrResult = () => {
+    ocrRequestIdRef.current += 1;
+    setOcrRegion(null);
+    setOcrStatus('idle');
+    setOcrText('');
+    setOcrError(null);
+  };
+
   const handleMouseDown = (e: any) => {
     const stage = e.target.getStage();
     const pos = stage.getPointerPosition();
@@ -65,6 +95,9 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
     }
 
     if (activeUtility === 'ocr_extract') {
+      setOcrRegion(null);
+      setOcrText('');
+      setOcrError(null);
       setDrawingObject({
         type: 'ocr_selection',
         start: { x: stageX, y: stageY },
@@ -232,24 +265,34 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
       if (selection.width > 5 && selection.height > 5) {
         const canvas = compositionCanvasRef.current;
         if (canvas) {
+          setOcrRegion(selection);
           setOcrStatus('running');
+          setOcrText('');
+          setOcrError(null);
+          const reqId = ++ocrRequestIdRef.current;
           const region = getCompositionCoordinates(selection.x, selection.y, canvas.width, canvas.height);
-          const size = getCompositionCoordinates(selection.width, selection.height, canvas.width, canvas.height);
+          const regionWidth = Math.max(1, Math.min(canvas.width - region.x, Math.ceil(selection.width)));
+          const regionHeight = Math.max(1, Math.min(canvas.height - region.y, Math.ceil(selection.height)));
           
           extractTextFromCanvas(canvas, { 
             x: region.x, 
             y: region.y, 
-            width: size.x, 
-            height: size.y 
+            width: regionWidth, 
+            height: regionHeight 
           }).then(text => {
-            setOcrText(text);
-            setOcrStatus('ready');
+            if (ocrRequestIdRef.current === reqId) {
+              setOcrText(text);
+              setOcrStatus('ready');
+            }
           }).catch(err => {
-            setOcrError(err.message);
-            setOcrStatus('error');
+            if (ocrRequestIdRef.current === reqId) {
+              setOcrError(err.message);
+              setOcrStatus('error');
+            }
           });
         }
       } else {
+        setOcrRegion(null);
         setOcrStatus('idle');
       }
       setDrawingObject(null);
@@ -456,6 +499,20 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
             />
           )}
 
+          {activeUtility === 'ocr_extract' && ocrRegion && drawingObject?.type !== 'ocr_selection' && (
+            <Rect
+              x={ocrRegion.x}
+              y={ocrRegion.y}
+              width={ocrRegion.width}
+              height={ocrRegion.height}
+              stroke="rgba(99, 102, 241, 0.9)"
+              strokeWidth={2}
+              dash={[6, 4]}
+              fill="rgba(99, 102, 241, 0.07)"
+              listening={false}
+            />
+          )}
+
           {drawingObject?.type === 'spotlight' && (
             <>
               <Rect
@@ -558,7 +615,7 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
         />,
         overlay
       )}
-      <OCRResultToolbar />
+      <OCRResultToolbar onDismiss={dismissOcrResult} scale={scale} />
     </>
   );
 }

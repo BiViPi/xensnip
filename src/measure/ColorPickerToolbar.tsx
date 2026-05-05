@@ -46,14 +46,19 @@ export function ColorPickerToolbar({ sample, anchor, frozen }: Props) {
       <div 
         className="xs-color-preview-swatch"
         style={{ 
-          width: 24, height: 24, 
+          width: 32, height: 32, 
           backgroundColor: sample.hex,
-          borderRadius: 4,
+          borderRadius: 6,
           border: '1px solid rgba(255,255,255,0.1)'
         }} 
       />
-      <div className="xs-color-hex" style={{ fontFamily: 'monospace', fontSize: 13, color: '#e2e8f0', minWidth: 60, userSelect: 'all' }}>
-        {sample.hex}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginRight: 4 }}>
+        <div className="xs-color-hex" style={{ fontFamily: 'monospace', fontSize: 13, color: '#e2e8f0', userSelect: 'all', lineHeight: 1 }}>
+          {sample.hex}
+        </div>
+        <div style={{ fontFamily: 'monospace', fontSize: 11, color: '#94a3b8', userSelect: 'all', lineHeight: 1 }}>
+          rgb({sample.rgb[0]}, {sample.rgb[1]}, {sample.rgb[2]})
+        </div>
       </div>
       <div className="xs-toolbar-divider" />
       <button 

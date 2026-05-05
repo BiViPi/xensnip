@@ -26,6 +26,7 @@ export function PixelRulerNode({ obj, onSelect, onChange, scale }: Props) {
 
   return (
     <Group
+      id={obj.id}
       x={obj.x}
       y={obj.y}
       draggable={obj.draggable}

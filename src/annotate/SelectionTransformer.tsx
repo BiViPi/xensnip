@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Transformer } from 'react-konva';
 import { useAnnotationStore } from './state/store';
-import { ArrowObject } from './state/types';
 
 export function SelectionTransformer() {
   const { selectedId, updateObject, objects, editingTextId } = useAnnotationStore();
@@ -40,7 +39,7 @@ export function SelectionTransformer() {
     }
 
     transformerRef.current.nodes([selectedNode]);
-    if (selectedNode.className === 'Group' && selectedObject?.type !== 'magnify') {
+    if (selectedNode.className === 'Group' && selectedObject?.type !== 'magnify' && selectedObject?.type !== 'pixel_ruler') {
       transformerRef.current.enabledAnchors([]);
     } else {
       transformerRef.current.enabledAnchors([...fullResizeAnchors]);
@@ -62,8 +61,8 @@ export function SelectionTransformer() {
     const obj = objects.find((o) => o.id === selectedId);
     if (!obj) return;
 
-    if (obj.type === 'arrow') {
-      const arrowObj = obj as ArrowObject;
+    if (obj.type === 'arrow' || obj.type === 'pixel_ruler') {
+      const arrowObj = obj as any;
       const newPoints = [
         arrowObj.points[0] * scaleX,
         arrowObj.points[1] * scaleY,
