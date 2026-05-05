@@ -415,32 +415,107 @@ body {
   align-items: center;
 }
 
+.xs-slider-track-container::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 8px;
+  transform: translateY(-50%);
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(24, 31, 52, 0.96) 0%, rgba(11, 17, 34, 0.98) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.28),
+    0 4px 10px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+}
+
+.xs-slider-track-container::after {
+  content: "";
+  position: absolute;
+  left: 1px;
+  top: 50%;
+  width: var(--fill-width);
+  max-width: calc(100% - 2px);
+  min-width: 0;
+  height: 6px;
+  transform: translateY(-50%);
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, rgba(129, 140, 248, 0.98) 0%, rgba(99, 102, 241, 1) 48%, rgba(34, 211, 238, 0.92) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.26),
+    0 0 10px rgba(99, 102, 241, 0.28);
+  pointer-events: none;
+}
+
 .xs-slider-input {
   -webkit-appearance: none;
   width: 100%;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.08);
+  height: 24px;
+  background: transparent;
   border-radius: 2px;
   outline: none;
-  background-image: linear-gradient(var(--xs-accent), var(--xs-accent));
-  background-size: var(--pct) 100%;
-  background-repeat: no-repeat;
+  position: relative;
+  z-index: 1;
 }
 
 .xs-slider-input::-webkit-slider-thumb {
   -webkit-appearance: none;
-  height: 14px;
-  width: 14px;
+  height: 18px;
+  width: 18px;
   border-radius: 50%;
-  background: #fff;
-  border: 2px solid var(--xs-accent);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background:
+    radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 1) 0%, rgba(243, 246, 255, 0.96) 58%, rgba(215, 223, 243, 0.92) 100%);
+  border: 2px solid rgba(129, 140, 248, 0.95);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 4px 12px rgba(12, 18, 34, 0.36),
+    0 0 0 2px rgba(99, 102, 241, 0.16);
   cursor: pointer;
-  transition: all 0.1s;
+  transition: transform 0.14s ease, box-shadow 0.14s ease;
 }
 
 .xs-slider-input::-webkit-slider-thumb:hover {
-  transform: scale(1.2);
+  transform: scale(1.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    0 5px 14px rgba(12, 18, 34, 0.38),
+    0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+.xs-slider-input::-moz-range-track {
+  height: 8px;
+  background: transparent;
+  border: none;
+}
+
+.xs-slider-input::-moz-range-progress {
+  height: 6px;
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, rgba(129, 140, 248, 0.98) 0%, rgba(99, 102, 241, 1) 48%, rgba(34, 211, 238, 0.92) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.26),
+    0 0 10px rgba(99, 102, 241, 0.28);
+}
+
+.xs-slider-input::-moz-range-thumb {
+  height: 18px;
+  width: 18px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 1) 0%, rgba(243, 246, 255, 0.96) 58%, rgba(215, 223, 243, 0.92) 100%);
+  border: 2px solid rgba(129, 140, 248, 0.95);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 4px 12px rgba(12, 18, 34, 0.36),
+    0 0 0 2px rgba(99, 102, 241, 0.16);
+  cursor: pointer;
 }
 
 .xs-slider-ticks {

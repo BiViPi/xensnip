@@ -47,40 +47,54 @@ export function ShadowControl({ preset, onChange }: Props) {
           { id: "angle", label: "Angle", value: preset.shadow_angle, min: 0, max: 360, step: 1, unit: "°", displayVal: preset.shadow_angle, Icon: AngleIcon },
           { id: "blur", label: "Blur", value: preset.shadow_blur, min: 0, max: 100, step: 1, unit: "px", displayVal: preset.shadow_blur, Icon: BlurIcon },
           { id: "offset", label: "Offset", value: preset.shadow_offset, min: 0, max: 100, step: 1, unit: "px", displayVal: preset.shadow_offset, Icon: OffsetIcon }
-        ].map((item) => (
-          <div key={item.id} style={{
-            display: "grid",
-            gridTemplateColumns: "24px 60px 1fr 40px",
-            alignItems: "center",
-            gap: "12px"
-          }}>
-            <div style={{
-              width: "24px", height: "24px",
-              display: "flex", alignItems: "center", justifyContent: "center"
+        ].map((item) => {
+          const pct = ((item.value - item.min) / (item.max - item.min)) * 100;
+          const ratio = pct / 100;
+          const fillWidth = `calc(${pct}% + ${(9 - 18 * ratio).toFixed(2)}px)`;
+
+          return (
+            <div key={item.id} style={{
+              display: "grid",
+              gridTemplateColumns: "24px 60px 1fr 40px",
+              alignItems: "center",
+              gap: "12px"
             }}>
-              <item.Icon />
+              <div style={{
+                width: "24px", height: "24px",
+                display: "flex", alignItems: "center", justifyContent: "center"
+              }}>
+                <item.Icon />
+              </div>
+              <span style={{ fontSize: "13px", color: "var(--xs-text-dim)", fontWeight: 600 }}>{item.label}</span>
+              <div
+                className="xs-slider-track-container"
+                style={
+                  {
+                    flex: 1,
+                    "--pct": `${pct}%`,
+                    "--fill-width": fillWidth,
+                  } as React.CSSProperties
+                }
+              >
+                <input
+                  type="range"
+                  min={item.min} max={item.max} step={item.step}
+                  className="xs-slider-input"
+                  value={item.value}
+                  onChange={(e) => onChange({ [`shadow_${item.id}`]: parseFloat(e.target.value) })}
+                />
+              </div>
+              <span style={{
+                fontSize: "12px", color: "var(--xs-accent)",
+                fontWeight: 700,
+                textAlign: "right", fontVariantNumeric: "tabular-nums",
+                minWidth: "40px"
+              }}>
+                {item.displayVal}{item.unit}
+              </span>
             </div>
-            <span style={{ fontSize: "13px", color: "var(--xs-text-dim)", fontWeight: 600 }}>{item.label}</span>
-            <div className="xs-slider-track-container" style={{ flex: 1 }}>
-              <input
-                type="range"
-                min={item.min} max={item.max} step={item.step}
-                className="xs-slider-input"
-                value={item.value}
-                onChange={(e) => onChange({ [`shadow_${item.id}`]: parseFloat(e.target.value) })}
-                style={{ "--pct": `${((item.value - item.min) / (item.max - item.min)) * 100}%` } as React.CSSProperties}
-              />
-            </div>
-            <span style={{
-              fontSize: "12px", color: "var(--xs-accent)",
-              fontWeight: 700,
-              textAlign: "right", fontVariantNumeric: "tabular-nums",
-              minWidth: "40px"
-            }}>
-              {item.displayVal}{item.unit}
-            </span>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
 

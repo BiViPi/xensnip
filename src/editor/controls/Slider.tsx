@@ -8,6 +8,8 @@ interface Props {
 
 export function SliderControl({ label, value, min, max, onChange }: Props) {
   const pct = ((value - min) / (max - min)) * 100;
+  const ratio = pct / 100;
+  const fillWidth = `calc(${pct}% + ${(9 - 18 * ratio).toFixed(2)}px)`;
 
   const step = (delta: number) => {
     const next = Math.min(max, Math.max(min, value + delta));
@@ -27,7 +29,15 @@ export function SliderControl({ label, value, min, max, onChange }: Props) {
 
       <div className="xs-slider-row">
         <button className="xs-slider-action" onClick={() => step(-4)}>−</button>
-        <div className="xs-slider-track-container">
+        <div
+          className="xs-slider-track-container"
+          style={
+            {
+              "--pct": `${pct}%`,
+              "--fill-width": fillWidth,
+            } as React.CSSProperties
+          }
+        >
           <input
             type="range"
             min={min}
@@ -35,7 +45,6 @@ export function SliderControl({ label, value, min, max, onChange }: Props) {
             value={value}
             onChange={(e) => onChange(parseInt(e.target.value, 10))}
             className="xs-slider-input"
-            style={{ "--pct": `${pct}%` } as React.CSSProperties}
           />
         </div>
         <button className="xs-slider-action" onClick={() => step(4)}>+</button>
