@@ -1,4 +1,4 @@
-export type ToolId = 'select' | 'arrow' | 'rectangle' | 'text' | 'blur' | 'numbered' | 'spotlight' | 'crop' | 'canvas' | 'magnify' | 'simplify_ui';
+export type ToolId = 'select' | 'arrow' | 'rectangle' | 'text' | 'blur' | 'numbered' | 'spotlight' | 'crop' | 'canvas' | 'magnify' | 'simplify_ui' | 'pixel_ruler';
 
 export interface BaseObject {
   id: string;
@@ -85,4 +85,13 @@ export interface SimplifyUiObject extends BaseObject {
   cornerRadius: number;
 }
 
-export type AnnotateObject = ArrowObject | RectangleObject | TextObject | BlurObject | NumberedObject | SpotlightObject | MagnifyObject | SimplifyUiObject;
+export interface PixelRulerObject extends BaseObject {
+  type: 'pixel_ruler';
+  points: [number, number, number, number];
+  stroke: string;
+  strokeWidth: number;
+  labelFill: string;
+  showBackground: boolean;
+}
+
+export type AnnotateObject = ArrowObject | RectangleObject | TextObject | BlurObject | NumberedObject | SpotlightObject | MagnifyObject | SimplifyUiObject | PixelRulerObject;

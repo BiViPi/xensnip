@@ -10,6 +10,9 @@ import { NumberedToolbar } from './NumberedToolbar';
 import { SpotlightToolbar } from './SpotlightToolbar';
 import { MagnifyToolbar } from './MagnifyToolbar';
 import { SimplifyUiToolbar } from './SimplifyUiToolbar';
+import { useMeasureStore } from '../../measure/store';
+import { ColorPickerToolbar } from '../../measure/ColorPickerToolbar';
+import { PixelRulerToolbar } from './PixelRulerToolbar';
 
 interface Props {
   scale: number;
@@ -18,8 +21,14 @@ interface Props {
 
 export function FloatingToolbarManager({ scale, stageRef }: Props) {
   const { selectedId, objects, editingTextId } = useAnnotationStore();
+  const { activeUtility, currentSample, colorPickerFrozen } = useMeasureStore();
   const anchor = useObjectAnchor(scale, stageRef);
   
+  if (activeUtility === 'color_picker' && currentSample) {
+    const cpAnchor = { x: currentSample.x * scale, y: currentSample.y * scale };
+    return <ColorPickerToolbar sample={currentSample} anchor={cpAnchor} frozen={colorPickerFrozen} />;
+  }
+
   if (!selectedId || !anchor || editingTextId === selectedId) return null;
 
   const selectedObject = objects.find(o => o.id === selectedId);
@@ -55,6 +64,10 @@ export function FloatingToolbarManager({ scale, stageRef }: Props) {
 
   if (selectedObject.type === 'simplify_ui') {
     return <SimplifyUiToolbar anchor={anchor} obj={selectedObject as any} />;
+  }
+
+  if (selectedObject.type === 'pixel_ruler') {
+    return <PixelRulerToolbar anchor={anchor} obj={selectedObject as any} />;
   }
 
   return null;

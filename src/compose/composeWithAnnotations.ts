@@ -10,6 +10,7 @@ import { createNumberedNode } from "../annotate/renderers/NumberedRenderer";
 import { createSpotlightNodes } from "../annotate/renderers/SpotlightRenderer";
 import { renderMagnify } from "../annotate/renderers/MagnifyRenderer";
 import { renderSimplifyUi } from "../annotate/renderers/SimplifyUiRenderer";
+import { renderPixelRuler } from "../annotate/renderers/PixelRulerRenderer";
 
 export async function composeWithAnnotations(
   image: HTMLImageElement,
@@ -67,6 +68,8 @@ export async function composeWithAnnotations(
         renderMagnify(ctx, obj as any, sourceCanvas);
       } else if (obj.type === 'simplify_ui') {
         renderSimplifyUi(ctx, obj as any, sourceCanvas);
+      } else if (obj.type === 'pixel_ruler') {
+        renderPixelRuler(ctx, obj as any);
       }
     }
     

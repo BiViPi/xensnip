@@ -2,10 +2,15 @@ import { useEffect, useRef, useState } from 'react';
 import { Stage, Layer, Arrow, Rect } from 'react-konva';
 import { useAnnotationStore } from './state/store';
 import { ObjectsLayer } from './ObjectsLayer';
-import { ArrowObject, RectangleObject, TextObject, BlurObject, NumberedObject, SpotlightObject, MagnifyObject, SimplifyUiObject } from './state/types';
+import { ArrowObject, RectangleObject, TextObject, BlurObject, NumberedObject, SpotlightObject, MagnifyObject, SimplifyUiObject, PixelRulerObject } from './state/types';
 import { SelectionTransformer } from './SelectionTransformer';
 import { createPortal } from 'react-dom';
 import { getSpotlightCornerRadius } from './renderers/spotlightLayout';
+import { useMeasureStore } from '../measure/store';
+import { getCompositionCoordinates } from '../measure/coordinates';
+import { GridOverlay } from '../measure/GridOverlay';
+import { extractTextFromCanvas } from '../measure/ocr';
+import { OCRResultToolbar } from '../measure/OCRResultToolbar';
 
 interface AnnotationStageProps {
   width: number;
@@ -25,12 +30,14 @@ const TOOL_CURSOR: Record<string, string> = {
   simplify_ui: 'crosshair',
   text: 'text',
   numbered: 'cell',
+  pixel_ruler: 'crosshair',
   crop: 'default',
   canvas: 'default',
 };
 
 export function AnnotationStage({ width, height, scale, compositionCanvasRef, stageRef }: AnnotationStageProps) {
   const { activeTool, select, addObject, updateObject, setActiveTool, objects, editingTextId, setEditingTextId } = useAnnotationStore();
+  const { activeUtility, setCurrentSample, colorPickerFrozen, setColorPickerFrozen, setOcrStatus, setOcrText, setOcrError } = useMeasureStore();
   const [drawingObject, setDrawingObject] = useState<any>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const stageWidth = width / scale;
@@ -51,6 +58,21 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
     const pos = stage.getPointerPosition();
     const stageX = pos.x / scale;
     const stageY = pos.y / scale;
+
+    if (activeUtility === 'color_picker') {
+      setColorPickerFrozen(!colorPickerFrozen);
+      return;
+    }
+
+    if (activeUtility === 'ocr_extract') {
+      setDrawingObject({
+        type: 'ocr_selection',
+        start: { x: stageX, y: stageY },
+        end: { x: stageX, y: stageY }
+      });
+      setOcrStatus('selecting');
+      return;
+    }
 
     if (activeTool === 'arrow') {
       setDrawingObject({
@@ -109,6 +131,12 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
       select(newId);
       setEditingTextId(newId);
       setActiveTool('select');
+    } else if (activeTool === 'pixel_ruler') {
+      setDrawingObject({
+        type: 'pixel_ruler',
+        start: { x: stageX, y: stageY },
+        end: { x: stageX, y: stageY }
+      });
     } else if (activeTool === 'numbered') {
       const nextNum = objects.filter(o => o.type === 'numbered').length + 1;
       const newId = `obj-${Date.now()}`;
@@ -143,15 +171,46 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
   };
 
   const handleMouseMove = (e: any) => {
-    if (!drawingObject) return;
     const stage = e.target.getStage();
     const pos = stage.getPointerPosition();
     const stageX = pos.x / scale;
     const stageY = pos.y / scale;
 
+    if (activeUtility === 'color_picker' && !colorPickerFrozen) {
+      const canvas = compositionCanvasRef.current;
+      if (canvas) {
+        const { x, y } = getCompositionCoordinates(stageX, stageY, canvas.width, canvas.height);
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        if (ctx) {
+          const pixel = ctx.getImageData(x, y, 1, 1).data;
+          const hex = '#' + ((1 << 24) + (pixel[0] << 16) + (pixel[1] << 8) + pixel[2]).toString(16).slice(1).toUpperCase();
+          setCurrentSample({
+            x: stageX, 
+            y: stageY,
+            rgb: [pixel[0], pixel[1], pixel[2]],
+            hex
+          });
+        }
+      }
+    }
+    if (!drawingObject) return;
+
+    let endX = stageX;
+    let endY = stageY;
+
+    if (e.evt?.shiftKey && (drawingObject.type === 'pixel_ruler' || drawingObject.type === 'arrow')) {
+      const dx = Math.abs(stageX - drawingObject.start.x);
+      const dy = Math.abs(stageY - drawingObject.start.y);
+      if (dx > dy) {
+        endY = drawingObject.start.y;
+      } else {
+        endX = drawingObject.start.x;
+      }
+    }
+
     setDrawingObject({
       ...drawingObject,
-      end: { x: stageX, y: stageY }
+      end: { x: endX, y: endY }
     });
   };
 
@@ -161,6 +220,41 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
     const dx = drawingObject.end.x - drawingObject.start.x;
     const dy = drawingObject.end.y - drawingObject.start.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
+
+    if (drawingObject.type === 'ocr_selection') {
+      const selection = {
+        x: Math.min(drawingObject.start.x, drawingObject.end.x),
+        y: Math.min(drawingObject.start.y, drawingObject.end.y),
+        width: Math.abs(dx),
+        height: Math.abs(dy)
+      };
+      
+      if (selection.width > 5 && selection.height > 5) {
+        const canvas = compositionCanvasRef.current;
+        if (canvas) {
+          setOcrStatus('running');
+          const region = getCompositionCoordinates(selection.x, selection.y, canvas.width, canvas.height);
+          const size = getCompositionCoordinates(selection.width, selection.height, canvas.width, canvas.height);
+          
+          extractTextFromCanvas(canvas, { 
+            x: region.x, 
+            y: region.y, 
+            width: size.x, 
+            height: size.y 
+          }).then(text => {
+            setOcrText(text);
+            setOcrStatus('ready');
+          }).catch(err => {
+            setOcrError(err.message);
+            setOcrStatus('error');
+          });
+        }
+      } else {
+        setOcrStatus('idle');
+      }
+      setDrawingObject(null);
+      return;
+    }
 
     if (dist > 4) {
       const newId = `obj-${Date.now()}`;
@@ -260,6 +354,21 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
           draggable: true,
         };
         addObject(simplifyUi);
+      } else if (drawingObject.type === 'pixel_ruler') {
+        const ruler: PixelRulerObject = {
+          id: newId,
+          type: 'pixel_ruler',
+          x: drawingObject.start.x,
+          y: drawingObject.start.y,
+          rotation: 0,
+          points: [0, 0, dx, dy],
+          stroke: '#ef4444',
+          strokeWidth: 2,
+          labelFill: '#ffffff',
+          showBackground: true,
+          draggable: true,
+        };
+        addObject(ruler);
       }
       select(newId);
       setActiveTool('select');
@@ -284,11 +393,17 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
           top: 0,
           left: 0,
           pointerEvents: 'auto',
-          cursor: TOOL_CURSOR[activeTool] ?? 'default',
+          cursor: activeUtility === 'color_picker' ? 'crosshair' : (TOOL_CURSOR[activeTool] ?? 'default'),
         }}
       >
+        <GridOverlay width={stageWidth} height={stageHeight} />
         <Layer>
-          <ObjectsLayer compositionCanvasRef={compositionCanvasRef} stageWidth={stageWidth} stageHeight={stageHeight} />
+          <ObjectsLayer 
+            compositionCanvasRef={compositionCanvasRef} 
+            stageWidth={stageWidth}
+            stageHeight={stageHeight}
+            scale={scale}
+          />
           <SelectionTransformer />
 
           {drawingObject?.type === 'arrow' && (
@@ -308,15 +423,35 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
             />
           )}
 
-          {(drawingObject?.type === 'rectangle' || drawingObject?.type === 'blur' || drawingObject?.type === 'magnify' || drawingObject?.type === 'simplify_ui') && (
+          {drawingObject?.type === 'pixel_ruler' && (
+            <Arrow
+              points={[
+                0, 0,
+                drawingObject.end.x - drawingObject.start.x,
+                drawingObject.end.y - drawingObject.start.y
+              ]}
+              x={drawingObject.start.x}
+              y={drawingObject.start.y}
+              stroke="#ef4444"
+              strokeWidth={2}
+              opacity={0.6}
+              pointerAtBeginning={true}
+              pointerAtEnding={true}
+              pointerLength={6}
+              pointerWidth={6}
+            />
+          )}
+
+          {(drawingObject?.type === 'rectangle' || drawingObject?.type === 'blur' || drawingObject?.type === 'magnify' || drawingObject?.type === 'simplify_ui' || drawingObject?.type === 'ocr_selection') && (
             <Rect
               x={Math.min(drawingObject.start.x, drawingObject.end.x)}
               y={Math.min(drawingObject.start.y, drawingObject.end.y)}
               width={Math.abs(drawingObject.end.x - drawingObject.start.x)}
               height={Math.abs(drawingObject.end.y - drawingObject.start.y)}
-              stroke={drawingObject?.type === 'blur' || drawingObject?.type === 'simplify_ui' ? "rgba(255,255,255,0.5)" : "#ef4444"}
-              strokeWidth={drawingObject?.type === 'blur' || drawingObject?.type === 'simplify_ui' ? 1 : 4}
-              fill={drawingObject?.type === 'blur' || drawingObject?.type === 'simplify_ui' ? "rgba(255,255,255,0.2)" : "transparent"}
+              stroke={drawingObject?.type === 'blur' || drawingObject?.type === 'simplify_ui' ? "rgba(255,255,255,0.5)" : (drawingObject?.type === 'ocr_selection' ? "#fbbf24" : "#ef4444")}
+              strokeWidth={drawingObject?.type === 'blur' || drawingObject?.type === 'simplify_ui' ? 1 : (drawingObject?.type === 'ocr_selection' ? 2 : 4)}
+              fill={drawingObject?.type === 'blur' || drawingObject?.type === 'simplify_ui' ? "rgba(255,255,255,0.2)" : (drawingObject?.type === 'ocr_selection' ? "rgba(251, 191, 36, 0.1)" : "transparent")}
+              dash={drawingObject?.type === 'ocr_selection' ? [4, 4] : undefined}
               opacity={0.6}
             />
           )}
@@ -423,6 +558,7 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
         />,
         overlay
       )}
+      <OCRResultToolbar />
     </>
   );
 }

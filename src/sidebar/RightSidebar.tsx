@@ -1,6 +1,7 @@
 
 import { useSidebarStore, FeatureId } from './store';
 import { useAnnotationStore } from '../annotate/state/store';
+import { useMeasureStore } from '../measure/store';
 import { FEATURES } from './features.config';
 import {
   ChevronDown,
@@ -15,6 +16,10 @@ import {
   Aperture,
   Sparkles,
   ZoomIn,
+  Ruler,
+  Grid,
+  Pipette,
+  ScanText,
 } from 'lucide-react';
 import './Sidebar.css';
 
@@ -88,6 +93,16 @@ function FocusTools({ onClose }: { onClose: () => void }) {
   return <ToolGrid tools={tools} onClose={onClose} />;
 }
 
+function MeasureTools({ onClose }: { onClose: () => void }) {
+  const tools = [
+    { id: 'grid_overlay', label: 'Grid Overlay', icon: Grid, hint: 'Grid Overlay — layout alignment helper', isUtility: true },
+    { id: 'color_picker', label: 'Color Picker', icon: Pipette, hint: 'Color Picker — sample pixels', isUtility: true },
+    { id: 'pixel_ruler', label: 'Pixel Ruler', icon: Ruler, hint: 'Pixel Ruler — drag to measure' },
+    { id: 'ocr_extract', label: 'OCR Extract Text', icon: ScanText, hint: 'OCR — drag to extract text', isUtility: true },
+  ];
+  return <ToolGrid tools={tools} onClose={onClose} />;
+}
+
 function FeaturePopover({ featureId, onClose }: { featureId: FeatureId; onClose: () => void }) {
   const feature = FEATURES.find(f => f.id === featureId);
   if (!feature) return null;
@@ -100,6 +115,7 @@ function FeaturePopover({ featureId, onClose }: { featureId: FeatureId; onClose:
         {featureId === 'steps_callouts' && <StepsTools onClose={onClose} />}
         {featureId === 'crop_canvas' && <CropTools onClose={onClose} />}
         {featureId === 'focus_polish' && <FocusTools onClose={onClose} />}
+        {featureId === 'measure_extract' && <MeasureTools onClose={onClose} />}
         {feature.locked && (
           <div className="xs-locked-msg">Coming soon</div>
         )}
@@ -111,9 +127,22 @@ function FeaturePopover({ featureId, onClose }: { featureId: FeatureId; onClose:
 // Each tool row: icon only, label as title/tooltip
 function ToolGrid({ tools, onClose }: { tools: any[]; onClose: () => void }) {
   const { activeTool, setActiveTool } = useAnnotationStore();
+  const { activeUtility, setActiveUtility, setGridVisible, gridVisible } = useMeasureStore();
 
-  const handleToolClick = (id: string) => {
-    setActiveTool(id as any);
+  const handleToolClick = (tool: any) => {
+    if (tool.isUtility) {
+      if (tool.id === 'grid_overlay') {
+        setGridVisible(!gridVisible);
+        // Leave activeUtility as is for passive grid
+      } else {
+        const nextUtility = activeUtility === tool.id ? null : tool.id;
+        setActiveUtility(nextUtility as any);
+        setActiveTool('select');
+      }
+    } else {
+      setActiveTool(tool.id as any);
+      setActiveUtility(null);
+    }
     onClose(); // auto-close popover after tool selection
   };
 
@@ -122,8 +151,8 @@ function ToolGrid({ tools, onClose }: { tools: any[]; onClose: () => void }) {
       {tools.map(tool => (
         <button
           key={tool.id}
-          className={`xs-tool-icon-btn ${activeTool === tool.id ? 'active' : ''} ${tool.disabled ? 'disabled' : ''}`}
-          onClick={() => !tool.disabled && handleToolClick(tool.id)}
+          className={`xs-tool-icon-btn ${(tool.isUtility ? (tool.id === 'grid_overlay' ? gridVisible : activeUtility === tool.id) : activeTool === tool.id) ? 'active' : ''} ${tool.disabled ? 'disabled' : ''}`}
+          onClick={() => !tool.disabled && handleToolClick(tool)}
           title={tool.hint || tool.label}
           disabled={tool.disabled}
         >
@@ -164,4 +193,3 @@ function CropTools({ onClose }: { onClose: () => void }) {
   ];
   return <ToolGrid tools={tools} onClose={onClose} />;
 }
-

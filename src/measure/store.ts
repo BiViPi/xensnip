@@ -1,0 +1,56 @@
+import { create } from 'zustand';
+
+export type MeasureUtilityToolId = 'grid_overlay' | 'color_picker' | 'ocr_extract';
+
+interface MeasureStore {
+  activeUtility: MeasureUtilityToolId | null;
+  gridVisible: boolean;
+  gridSpacing: number;
+  gridOpacity: number;
+  currentSample: {
+    x: number;
+    y: number;
+    hex: string;
+    rgb: [number, number, number];
+  } | null;
+  colorPickerFrozen: boolean;
+  ocrSelection: { x: number; y: number; width: number; height: number } | null;
+  ocrText: string;
+  ocrStatus: 'idle' | 'selecting' | 'running' | 'ready' | 'error';
+  ocrError: string | null;
+
+  setActiveUtility: (utility: MeasureUtilityToolId | null) => void;
+  setGridVisible: (visible: boolean) => void;
+  setGridSpacing: (spacing: number) => void;
+  setGridOpacity: (opacity: number) => void;
+  setCurrentSample: (sample: MeasureStore['currentSample']) => void;
+  setColorPickerFrozen: (frozen: boolean) => void;
+  setOcrSelection: (selection: MeasureStore['ocrSelection']) => void;
+  setOcrText: (text: string) => void;
+  setOcrStatus: (status: MeasureStore['ocrStatus']) => void;
+  setOcrError: (error: string | null) => void;
+}
+
+export const useMeasureStore = create<MeasureStore>((set) => ({
+  activeUtility: null,
+  gridVisible: false,
+  gridSpacing: 50,
+  gridOpacity: 0.2,
+  currentSample: null,
+  colorPickerFrozen: false,
+  ocrSelection: null,
+  ocrText: '',
+  ocrStatus: 'idle',
+  ocrError: null,
+
+  setActiveUtility: (activeUtility) => set({ activeUtility, colorPickerFrozen: false }),
+  setGridVisible: (gridVisible) => set({ gridVisible }),
+  setGridSpacing: (gridSpacing) => set({ gridSpacing }),
+  setGridOpacity: (gridOpacity) => set({ gridOpacity }),
+  setCurrentSample: (currentSample) => set({ currentSample }),
+  setColorPickerFrozen: (colorPickerFrozen) => set({ colorPickerFrozen }),
+  setOcrSelection: (ocrSelection) => set({ ocrSelection }),
+  setOcrText: (ocrText) => set({ ocrText }),
+  setOcrStatus: (ocrStatus) => set({ ocrStatus }),
+  setOcrError: (ocrError) => set({ ocrError }),
+}));

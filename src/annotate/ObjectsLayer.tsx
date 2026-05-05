@@ -7,14 +7,16 @@ import { NumberedNode } from './objects/NumberedNode';
 import { SpotlightNode } from './objects/SpotlightNode';
 import { MagnifyNode } from './objects/MagnifyNode';
 import { SimplifyUiNode } from './objects/SimplifyUiNode';
+import { PixelRulerNode } from './objects/PixelRulerNode';
 
 interface Props {
   compositionCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   stageWidth: number;
   stageHeight: number;
+  scale: number;
 }
 
-export function ObjectsLayer({ compositionCanvasRef, stageWidth, stageHeight }: Props) {
+export function ObjectsLayer({ compositionCanvasRef, stageWidth, stageHeight, scale }: Props) {
   const { objects, select, updateObject, selectedId } = useAnnotationStore();
 
   return (
@@ -111,6 +113,18 @@ export function ObjectsLayer({ compositionCanvasRef, stageWidth, stageHeight }: 
               onSelect={select}
               onUpdate={updateObject}
               compositionCanvasRef={compositionCanvasRef}
+            />
+          );
+        }
+        if (obj.type === 'pixel_ruler') {
+          return (
+            <PixelRulerNode
+              key={obj.id}
+              obj={obj as any}
+              isSelected={selectedId === obj.id}
+              onSelect={() => select(obj.id)}
+              onChange={(attrs) => updateObject(obj.id, attrs)}
+              scale={scale}
             />
           );
         }
