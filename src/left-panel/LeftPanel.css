@@ -1,25 +1,30 @@
 :root {
   --xs-left-panel-width: 272px;
   --xs-left-rail-width: 52px;
-  --xs-left-panel-bg: var(--surface-panel);
+  --xs-left-panel-bg: var(--surface-base);
   --xs-left-panel-blur: 18px;
-  --xs-left-panel-border: 1px solid var(--border-subtle);
-  --xs-left-panel-radius: 22px;
-  --xs-left-panel-shadow: var(--shadow-panel);
+  --xs-left-panel-border: 1px solid rgba(255, 255, 255, 0.12);
+  --xs-left-panel-radius: 16px;
+  --xs-left-panel-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 1px 0 0 rgba(255, 255, 255, 0.04),
+    inset -1px 0 0 rgba(255, 255, 255, 0.04),
+    0 16px 36px rgba(0, 0, 0, 0.42),
+    0 2px 10px rgba(0, 0, 0, 0.24);
   
   --xs-left-item-radius: 14px;
   --xs-left-item-bg: transparent;
   --xs-left-item-border: 1px solid transparent;
   --xs-left-thumb-radius: 10px;
   
-  --xs-left-active-border: 2px solid var(--border-selected);
+  --xs-left-active-border: 1px solid transparent;
   --xs-left-active-shadow: none;
   --xs-left-active-rail-width: 4px;
 }
 
 .xs-left-panel {
   position: absolute;
-  top: 20px;
+  top: 56px;
   bottom: 20px;
   left: 20px;
   width: var(--xs-left-panel-width);
@@ -37,11 +42,21 @@
 
 .xs-left-panel.is-collapsed {
   width: var(--xs-left-rail-width);
+  cursor: pointer;
+}
+
+.xs-left-panel.is-collapsed:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 1px 0 0 rgba(255, 255, 255, 0.04),
+    inset -1px 0 0 rgba(255, 255, 255, 0.04),
+    0 16px 34px rgba(0, 0, 0, 0.28);
 }
 
 /* Header */
 .xs-left-header {
-  padding: 22px 20px 0;
+  padding: 18px 18px 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -82,7 +97,7 @@
   width: 32px;
   height: 32px;
   background: var(--surface-base);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 10px;
   display: flex;
   align-items: center;
@@ -90,6 +105,9 @@
   color: var(--icon-default);
   cursor: pointer;
   transition: all 0.2s;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 4px 10px rgba(0, 0, 0, 0.16);
 }
 
 .xs-left-toggle-floating:hover {
@@ -98,11 +116,37 @@
   transform: scale(1.05);
 }
 
+.xs-left-collapsed-handle {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(180deg, rgba(101, 104, 240, 0.96) 0%, rgba(78, 70, 229, 0.98) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--icon-active);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 8px 16px rgba(65, 62, 178, 0.28);
+  z-index: 2;
+}
+
+.xs-left-collapsed-handle:hover {
+  transform: translateX(-50%) scale(1.04);
+}
+
 /* Scroll List */
 .xs-left-list {
   flex: 1;
   overflow-y: auto;
-  padding: 18px 20px;
+  padding: 18px 18px;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -133,10 +177,21 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  border: 1px solid var(--border-subtle);
+  border: 1px solid rgba(222, 231, 248, 0.28);
+  background: rgba(13, 18, 32, 0.45);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 0 0 1px rgba(255, 255, 255, 0.03);
   cursor: pointer;
   transition: all 0.2s;
   flex-shrink: 0;
+}
+
+.xs-left-export-dot:hover {
+  border-color: rgba(237, 242, 255, 0.42);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 
 .xs-left-export-dot.is-checked {
@@ -168,7 +223,7 @@
   background: var(--xs-left-item-bg);
   border: var(--xs-left-item-border);
   border-radius: var(--xs-left-item-radius);
-  padding: 6px;
+  padding: 8px;
   cursor: pointer;
   position: relative;
   overflow: hidden;
@@ -178,7 +233,7 @@
 .xs-left-item-wrapper.is-active .xs-left-item-card {
   border: var(--xs-left-active-border);
   box-shadow: var(--xs-left-active-shadow);
-  background: var(--accent-soft-bg);
+  background: transparent;
 }
 
 .xs-left-thumb-container {
@@ -187,6 +242,18 @@
   background: #000;
   border-radius: var(--xs-left-thumb-radius);
   overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.xs-left-item-wrapper.is-active .xs-left-thumb-container {
+  border-color: rgba(122, 108, 255, 0.9);
+  box-shadow:
+    inset 0 0 0 1px rgba(209, 201, 255, 0.28),
+    0 0 0 2px rgba(104, 88, 244, 0.9),
+    0 0 18px rgba(103, 88, 244, 0.38),
+    0 0 34px rgba(103, 88, 244, 0.18);
 }
 
 .xs-left-thumb {
@@ -229,36 +296,6 @@
   opacity: 0;
 }
 
-/* Footer Control */
-.xs-left-footer {
-  height: 44px;
-  margin-top: 16px;
-  margin-bottom: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.xs-left-footer-btn {
-  width: 72px;
-  height: 34px;
-  background: var(--surface-base);
-  border: 1px solid var(--border-subtle);
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.xs-left-footer-btn:hover {
-  background: var(--surface-raised);
-  color: var(--text-primary);
-}
-
 /* Empty State */
 .xs-left-empty {
   flex: 1;
@@ -281,25 +318,26 @@
 
 /* Collapsed Overrides */
 .xs-left-panel.is-collapsed .xs-left-header,
-.xs-left-panel.is-collapsed .xs-left-item-card,
-.xs-left-panel.is-collapsed .xs-left-footer-btn span {
+.xs-left-panel.is-collapsed .xs-left-item-card {
   display: none;
 }
 
-.xs-left-panel.is-collapsed .xs-left-footer-btn {
-  width: 38px;
-}
-
 .xs-left-panel.is-collapsed .xs-left-list {
-  padding: 20px 0;
+  padding: 64px 0 20px;
   align-items: center;
 }
 
 .xs-left-panel.is-collapsed .xs-left-item-wrapper {
   justify-content: center;
   width: 100%;
+  pointer-events: none;
 }
 
 .xs-left-panel.is-collapsed .xs-left-active-rail {
-  left: 0;
+  opacity: 0;
+}
+
+.xs-left-panel.is-collapsed .xs-left-export-dot {
+  pointer-events: none;
+  opacity: 0;
 }

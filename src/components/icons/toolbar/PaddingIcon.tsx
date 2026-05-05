@@ -7,11 +7,11 @@ export const PaddingIcon = () => {
   <svg width="24" height="24" viewBox="60 60 380 380" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <linearGradient id={ids.grad} x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#05C3FF" />
-        <stop offset="100%" stopColor="#0A36E8" />
+        <stop offset="0%" stopColor="var(--icon-accent-purple-start)" />
+        <stop offset="100%" stopColor="var(--icon-accent-purple-end)" />
       </linearGradient>
       <filter id={ids.shadow} x="-20%" y="-20%" width="140%" height="140%">
-        <feDropShadow dx="0" dy="12" stdDeviation="15" floodColor="#0A2050" floodOpacity="0.15" />
+        <feDropShadow dx="0" dy="12" stdDeviation="15" floodColor="#26225f" floodOpacity="0.22" />
       </filter>
       <g id={ids.arrow}>
         <line x1="250" y1="80" x2="250" y2="135" fill="none" stroke={`url(#${ids.grad})`} strokeWidth="12" strokeLinecap="round" />

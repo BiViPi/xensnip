@@ -87,6 +87,24 @@
     0 8px 16px rgba(31, 35, 76, 0.38);
 }
 
+.xs-rail-toggle.active:hover {
+  color: var(--icon-hover);
+  background: linear-gradient(180deg, rgba(60, 63, 136, 0.92) 0%, rgba(43, 46, 96, 0.94) 100%);
+  border-color: rgba(129, 140, 248, 0.38);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 8px 16px rgba(31, 35, 76, 0.38);
+}
+
+.xs-sidebar-rail.collapsed .xs-rail-toggle {
+  color: var(--icon-hover);
+  background: linear-gradient(180deg, rgba(60, 63, 136, 0.92) 0%, rgba(43, 46, 96, 0.94) 100%);
+  border-color: rgba(129, 140, 248, 0.38);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 8px 16px rgba(31, 35, 76, 0.38);
+}
+
 .xs-rail-divider {
   width: 22px;
   height: 1px;
@@ -134,6 +152,15 @@
 }
 
 .xs-rail-item.active {
+  background: linear-gradient(180deg, rgba(101, 104, 240, 0.96) 0%, rgba(78, 70, 229, 0.98) 100%);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: var(--icon-hover);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 8px 16px rgba(65, 62, 178, 0.28);
+}
+
+.xs-rail-item.active:hover:not(:disabled):not(.locked) {
   background: linear-gradient(180deg, rgba(101, 104, 240, 0.96) 0%, rgba(78, 70, 229, 0.98) 100%);
   border-color: rgba(255, 255, 255, 0.12);
   color: var(--icon-hover);
@@ -215,6 +242,15 @@
 }
 
 .xs-tool-icon-btn.active {
+  background: linear-gradient(180deg, rgba(101, 104, 240, 0.96) 0%, rgba(78, 70, 229, 0.98) 100%);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: var(--icon-hover);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 8px 16px rgba(65, 62, 178, 0.28);
+}
+
+.xs-tool-icon-btn.active:hover:not(:disabled):not(.disabled) {
   background: linear-gradient(180deg, rgba(101, 104, 240, 0.96) 0%, rgba(78, 70, 229, 0.98) 100%);
   border-color: rgba(255, 255, 255, 0.12);
   color: var(--icon-hover);

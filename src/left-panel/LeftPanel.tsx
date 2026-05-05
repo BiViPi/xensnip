@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Camera, MoreVertical } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Camera } from 'lucide-react';
 import { ScreenshotDocument } from '../editor/useScreenshotDocuments';
 import { LeftPanelItem } from './LeftPanelItem';
 import './LeftPanel.css';
@@ -29,7 +29,21 @@ export function LeftPanel({
     <div
       className={`xs-left-panel ${isCollapsed ? 'is-collapsed' : ''}`}
       style={{ ['--xs-left-panel-width' as string]: `${expandedWidth}px` }}
+      onClick={isCollapsed ? () => onCollapsedChange(false) : undefined}
     >
+      {isCollapsed && (
+        <button
+          className="xs-left-collapsed-handle"
+          onClick={(e) => {
+            e.stopPropagation();
+            onCollapsedChange(false);
+          }}
+          title="Expand"
+        >
+          <ChevronRight size={16} />
+        </button>
+      )}
+
       {!isCollapsed && (
         <div className="xs-left-header">
           <div className="xs-left-header-content">
@@ -68,22 +82,6 @@ export function LeftPanel({
             />
           ))
         )}
-      </div>
-
-      <div className="xs-left-footer">
-        <button 
-          className="xs-left-footer-btn"
-          onClick={() => onCollapsedChange(!isCollapsed)}
-        >
-          {isCollapsed ? (
-            <ChevronRight size={18} />
-          ) : (
-            <>
-              <MoreVertical size={14} />
-              <ChevronLeft size={16} />
-            </>
-          )}
-        </button>
       </div>
     </div>
   );

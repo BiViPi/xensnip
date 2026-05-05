@@ -37,8 +37,8 @@
   --state-danger: #ef4444;
 
   /* Icons */
-  --icon-default: #e7dfd2;
-  --icon-hover: #fffaf2;
-  --icon-active: #fffaf2;
+  --icon-default: #E7DFD2;
+  --icon-hover: #FFF4E8;
+  --icon-active: #FFF8F0;
   --icon-disabled: #8e8a84;
 }

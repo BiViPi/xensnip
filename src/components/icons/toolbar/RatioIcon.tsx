@@ -15,7 +15,7 @@ export const RatioIcon = () => {
       </filter>
     </defs>
     <rect x="210" y="110" width="170" height="250" rx="24" fill="var(--icon-bg-primary)" stroke={`url(#${ids.grad})`} strokeWidth="14" filter={`url(#${ids.shadow})`} />
-    <rect x="90" y="200" width="250" height="160" rx="28" fill="var(--icon-bg-primary)" stroke="var(--icon-stroke-medium)" strokeWidth="16" filter={`url(#${ids.shadow})`} />
+    <rect x="90" y="200" width="250" height="160" rx="28" fill="var(--icon-bg-primary)" stroke="var(--icon-default)" strokeWidth="16" filter={`url(#${ids.shadow})`} />
     <g stroke={`url(#${ids.grad})`} strokeWidth="12" strokeLinecap="round" strokeLinejoin="round" fill="none">
       <line x1="175" y1="320" x2="255" y2="240" />
       <polyline points="225,240 255,240 255,270" />
