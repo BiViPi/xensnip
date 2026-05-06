@@ -21,15 +21,15 @@
   --icon-bg-primary: #F8FAFC; /* Near-white filled areas */
   --icon-bg-card: var(--surface-panel);
   --icon-stroke-dark: #334155; /* Charcoal for outlines */
-  --icon-stroke-medium: #64748B;
+  --icon-stroke-medium: #7C8AA0;
 
-  /* Indigo-led icon artwork for inactive state */
-  --icon-accent-blue: var(--accent-primary);
-  --icon-accent-blue-light: var(--accent-hover);
-  --icon-accent-purple-start: #6366F1;
-  --icon-accent-purple-end: #4F46E5;
+  /* Neutral-led icon artwork for inactive state */
+  --icon-accent-blue: #64748B;
+  --icon-accent-blue-light: #94A3B8;
+  --icon-accent-purple-start: #7C8AA0;
+  --icon-accent-purple-end: #5E6B7F;
   --icon-accent-orange: var(--state-warning);
-  --icon-accent-indigo: var(--accent-primary);
-  --icon-accent-indigo-light: var(--accent-hover);
+  --icon-accent-indigo: #64748B;
+  --icon-accent-indigo-light: #94A3B8;
   --icon-border-soft: rgba(0, 0, 0, 0.1);
 }

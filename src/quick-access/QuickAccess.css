@@ -13,7 +13,7 @@
   --xs-text-dim: var(--text-secondary);
   --xs-accent: var(--accent-primary);
 
-  --xs-blur: blur(40px) saturate(180%);
+  --xs-blur: blur(34px) saturate(165%);
   --xs-shadow-dock: 0 10px 30px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.05);
   --xs-shadow-canvas: 0 32px 64px rgba(0, 0, 0, 0.5);
 
@@ -183,6 +183,27 @@ body {
   --icon-bg-primary: #FFFFFF;
   --icon-accent-indigo: #FFFFFF;
   --icon-stroke-dark: #FFFFFF;
+}
+
+[data-theme='light'] .xs-shell::before {
+  background:
+    radial-gradient(circle at 70% 30%, rgba(6, 182, 212, 0.04) 0%, transparent 38%),
+    radial-gradient(circle at 30% 70%, rgba(99, 102, 241, 0.04) 0%, transparent 38%);
+}
+
+[data-theme='light'] .xs-dock {
+  backdrop-filter: blur(26px) saturate(145%);
+  -webkit-backdrop-filter: blur(26px) saturate(145%);
+}
+
+[data-theme='light'] .xs-icon-btn:hover {
+  background: #EEF2FF;
+  border-color: rgba(79, 70, 229, 0.12);
+}
+
+[data-theme='light'] .xs-pill-btn:hover {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(15, 23, 42, 0.08);
 }
 
 .xs-icon-btn {
@@ -380,30 +401,36 @@ input:checked+.xs-pop-slider:before {
 }
 
 .xs-ratio-item {
-  padding: 6px 0;
-  border: none;
+  padding: 8px 0;
+  border: 1px solid transparent;
   background: var(--control-bg);
   color: var(--text-tertiary);
   font-size: 12px;
-  font-weight: 600;
-  border-radius: var(--radius-sm);
+  font-weight: 700;
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow:
+    inset 0 1px 0 var(--control-inner-rim),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.08);
 }
 
 .xs-ratio-item:hover {
   background: var(--surface-raised);
   color: var(--text-primary);
+  border-color: var(--border-hover);
 }
 
 .xs-ratio-item.active {
   background: var(--accent-gradient);
   border-color: rgba(255, 255, 255, 0.2);
   color: #fff;
-  box-shadow: var(--shadow-button-primary);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    var(--shadow-button-primary);
 }
 
 /* Slider Popover — Premium Polish */
@@ -1142,7 +1169,7 @@ input:checked+.xs-pop-slider:before {
 .xs-modal-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: color-mix(in srgb, var(--bg-app) 42%, rgba(0, 0, 0, 0.28));
   backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
@@ -1162,10 +1189,12 @@ input:checked+.xs-pop-slider:before {
 }
 
 .xs-modal-content {
-  background: #0f172a;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--surface-overlay);
+  border: 1px solid var(--glass-border);
   border-radius: 20px;
-  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6);
+  box-shadow:
+    inset 0 1px 0 var(--glass-rim),
+    var(--shadow-popover);
   display: flex;
   flex-direction: column;
   animation: xs-modal-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1188,13 +1217,13 @@ input:checked+.xs-pop-slider:before {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--glass-divider);
 }
 
 .xs-modal-title {
   font-size: 18px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .xs-modal-close {
@@ -1208,8 +1237,8 @@ input:checked+.xs-pop-slider:before {
 }
 
 .xs-modal-close:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: #fff;
+  background: var(--titlebar-btn-hover);
+  color: var(--text-primary);
 }
 
 /* Preset Manager */
@@ -1223,8 +1252,8 @@ input:checked+.xs-pop-slider:before {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: rgba(255, 255, 255, 0.02);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background: color-mix(in srgb, var(--surface-panel) 88%, transparent);
+  border-bottom: 1px solid var(--glass-divider);
 }
 
 .xs-toolbar-left {
@@ -1242,7 +1271,7 @@ input:checked+.xs-pop-slider:before {
 .xs-btn-text {
   background: transparent;
   border: none;
-  color: var(--xs-text-dim);
+  color: var(--text-secondary);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -1250,7 +1279,7 @@ input:checked+.xs-pop-slider:before {
 }
 
 .xs-btn-text:hover {
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .xs-toolbar-right {
@@ -1259,9 +1288,9 @@ input:checked+.xs-pop-slider:before {
 }
 
 .xs-btn-danger {
-  background: rgba(239, 68, 68, 0.15);
-  color: #f87171;
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  background: color-mix(in srgb, var(--state-danger) 12%, var(--surface-base));
+  color: var(--state-danger);
+  border: 1px solid color-mix(in srgb, var(--state-danger) 26%, transparent);
   padding: 6px 14px;
   border-radius: 8px;
   font-size: 13px;
@@ -1270,7 +1299,7 @@ input:checked+.xs-pop-slider:before {
 }
 
 .xs-btn-danger:hover:not(:disabled) {
-  background: rgba(239, 68, 68, 0.25);
+  background: color-mix(in srgb, var(--state-danger) 18%, var(--surface-raised));
 }
 
 .xs-btn-danger:disabled {
@@ -1279,18 +1308,20 @@ input:checked+.xs-pop-slider:before {
 }
 
 .xs-btn-ghost {
-  background: rgba(255, 255, 255, 0.05);
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--surface-base);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
   padding: 6px 14px;
   border-radius: 8px;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
+  box-shadow: var(--shadow-button);
 }
 
 .xs-btn-ghost:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--surface-raised);
+  border-color: var(--border-hover);
 }
 
 .xs-btn-ghost:disabled {
@@ -1318,11 +1349,11 @@ input:checked+.xs-pop-slider:before {
 }
 
 .xs-manager-row:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: color-mix(in srgb, var(--surface-raised) 92%, transparent);
 }
 
 .xs-manager-row.selected {
-  background: rgba(99, 102, 241, 0.08);
+  background: var(--accent-soft-bg);
 }
 
 .xs-row-main {
@@ -1341,10 +1372,11 @@ input:checked+.xs-pop-slider:before {
 .xs-checkbox {
   width: 18px;
   height: 18px;
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  border: 2px solid var(--border-hover);
   border-radius: 4px;
   position: relative;
   transition: all 0.2s;
+  background: var(--surface-base);
 }
 
 .xs-checkbox.checked {
@@ -1373,14 +1405,14 @@ input:checked+.xs-pop-slider:before {
 .xs-reorder-btns button {
   background: transparent;
   border: none;
-  color: rgba(255, 255, 255, 0.15);
+  color: var(--text-tertiary);
   font-size: 10px;
   cursor: pointer;
   padding: 2px;
 }
 
 .xs-reorder-btns button:hover:not(:disabled) {
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .xs-reorder-btns button:disabled {
@@ -1405,23 +1437,26 @@ input:checked+.xs-pop-slider:before {
 .xs-manager-name {
   font-size: 15px;
   font-weight: 600;
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .xs-manager-meta {
   font-size: 12px;
-  color: var(--xs-text-dim);
+  color: var(--text-secondary);
 }
 
 .xs-inline-edit {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid var(--xs-accent);
-  color: #fff;
+  background: var(--surface-base);
+  border: 1px solid var(--accent-primary);
+  color: var(--text-primary);
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 14px;
   outline: none;
   width: 200px;
+  box-shadow:
+    inset 0 1px 0 var(--glass-rim),
+    0 0 0 3px color-mix(in srgb, var(--accent-primary) 14%, transparent);
 }
 
 .xs-row-actions {
@@ -1430,34 +1465,40 @@ input:checked+.xs-pop-slider:before {
 }
 
 .xs-row-btn {
-  background: rgba(255, 255, 255, 0.04);
-  border: none;
-  color: var(--xs-text-dim);
+  background: var(--surface-base);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
   padding: 6px 10px;
   border-radius: 6px;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
+  box-shadow: var(--shadow-button);
 }
 
 .xs-row-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
+  background: var(--surface-raised);
+  border-color: var(--border-hover);
+  color: var(--text-primary);
 }
 
 .xs-row-btn.active {
-  color: var(--xs-accent);
-  background: rgba(99, 102, 241, 0.1);
+  color: #fff;
+  background: var(--accent-gradient);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    var(--shadow-button-primary);
 }
 
 .xs-btn-danger-text {
-  color: #f87171;
+  color: var(--state-danger);
 }
 
 .xs-btn-danger-text:hover {
-  background: rgba(239, 68, 68, 0.1) !important;
-  color: #f87171 !important;
+  background: color-mix(in srgb, var(--state-danger) 10%, var(--surface-raised)) !important;
+  color: var(--state-danger) !important;
 }
 
 .xs-bg-sidebar {

@@ -94,7 +94,7 @@ export function Settings() {
   };
 
   const closeSettingsWindow = async () => {
-    await getCurrentWindow().destroy();
+    await getCurrentWindow().close();
   };
 
   const handleCancel = async () => {

@@ -15,6 +15,10 @@
   box-shadow: var(--shadow-button);
 }
 
+[data-theme='light'] .xs-titlebar {
+  backdrop-filter: blur(18px) saturate(145%);
+}
+
 .xs-titlebar-left {
   display: flex;
   align-items: center;
