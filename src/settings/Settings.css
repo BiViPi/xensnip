@@ -26,7 +26,7 @@ body {
 }
 
 [data-theme='light'] .xs-settings-shell {
-  background: #F6F7FB;
+  background: var(--bg-app);
 }
 
 /* Atmospheric Mesh Gradient Background */
@@ -170,7 +170,23 @@ body {
 }
 
 [data-theme='light'] .xs-card {
-  background: rgba(255, 255, 255, 0.97);
+  background: var(--surface-gradient-elevated);
+  border-color: var(--glass-stroke);
+  box-shadow:
+    inset 0 1px 0 var(--glass-rim-top),
+    0 0 0 1px var(--glass-stroke),
+    0 2px 6px rgba(15,23,42,0.05),
+    0 14px 32px rgba(15,23,42,0.09);
+}
+
+[data-theme='light'] .xs-settings-status-card {
+  background: var(--surface-gradient-overlay);
+  border-color: var(--glass-stroke);
+  box-shadow:
+    inset 0 1px 0 var(--glass-rim-top),
+    0 0 0 1px var(--glass-stroke),
+    0 4px 12px rgba(15,23,42,0.08),
+    0 24px 48px rgba(15,23,42,0.12);
 }
 
 .xs-settings-row {
@@ -309,6 +325,16 @@ input:checked+.xs-slider:before {
   box-shadow:
     inset 0 1px 0 var(--glass-rim),
     var(--shadow-popover);
+}
+
+[data-theme='light'] .xs-settings-footer {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.9),
+    rgba(255, 255, 255, 0.94)
+  );
+  border-top: 1px solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 -6px 18px rgba(15, 23, 42, 0.06);
 }
 
 .xs-settings-btn-primary,

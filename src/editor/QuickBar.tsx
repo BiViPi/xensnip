@@ -144,10 +144,10 @@ export function QuickBar({
       <div style={{ display: 'flex', gap: '8px' }}>
         <div style={{ position: "relative", display: 'flex', width: 'fit-content' }}>
           <button 
-            className={`xs-btn xs-pill-btn ${activePop === 'ratio' ? 'active' : ''}`}
+            className={`xs-btn xs-pill-btn xs-pill-btn-ratio ${activePop === 'ratio' ? 'active' : ''}`}
             onClick={() => toggle('ratio')}
           >
-            <RatioIcon /> {preset.ratio} <ChevronIcon />
+            <span className="xs-ratio-button-icon"><RatioIcon /></span> {preset.ratio} <ChevronIcon />
           </button>
           {activePop === 'ratio' && (
             <div className="xs-pop">

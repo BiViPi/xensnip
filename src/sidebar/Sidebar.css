@@ -35,13 +35,15 @@
 }
 
 [data-theme='light'] .xs-sidebar-rail {
-  background: rgba(255, 255, 255, 0.78);
+  background: var(--surface-gradient-elevated);
   backdrop-filter: blur(18px) saturate(130%);
   -webkit-backdrop-filter: blur(18px) saturate(130%);
-  border-color: rgba(15, 23, 42, 0.08);
+  border-color: var(--glass-stroke);
   box-shadow:
-    0 8px 22px rgba(15, 23, 42, 0.08),
-    0 1px 3px rgba(15, 23, 42, 0.05);
+    inset 0 1px 0 var(--glass-rim-top),
+    0 0 0 1px var(--glass-stroke),
+    0 3px 10px rgba(15,23,42,0.06),
+    0 8px 22px rgba(15,23,42,0.10);
 }
 
 /* ── Popover Anchor (Absolute inside Rail) ── */
@@ -219,10 +221,12 @@
 }
 
 [data-theme='light'] .xs-sidebar-popover {
-  background: rgba(255, 255, 255, 0.94);
+  background: var(--surface-gradient-overlay);
   box-shadow:
-    0 10px 24px rgba(15, 23, 42, 0.1),
-    0 1px 3px rgba(15, 23, 42, 0.05);
+    inset 0 1px 0 var(--glass-rim-top),
+    0 0 0 1px var(--glass-stroke),
+    0 4px 12px rgba(15,23,42,0.08),
+    0 24px 48px rgba(15,23,42,0.12);
 }
 
 .xs-popover-content {
