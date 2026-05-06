@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useAnnotationStore } from '../state/store';
 import { RectangleObject } from '../state/types';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
-import { CloudLineIcon, DashedLineIcon, PaletteIcon, RadiusIcon, SolidLineIcon } from './ToolbarIcons';
+import { CloudLineIcon, DashedLineIcon, PaletteIcon, SolidLineIcon } from './ToolbarIcons';
 import { SliderToggle } from './SliderToggle';
 import { RadiusToggle } from './RadiusToggle';
 

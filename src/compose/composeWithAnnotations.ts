@@ -14,6 +14,8 @@ import { renderPixelRuler } from "../annotate/renderers/PixelRulerRenderer";
 import { createSpeechBubbleNode } from "../annotate/renderers/SpeechBubbleRenderer";
 import { createCalloutNode } from "../annotate/renderers/CalloutRenderer";
 import { createFreehandArrowNode } from "../annotate/renderers/FreehandArrowRenderer";
+import { renderPixelate } from "../annotate/renderers/PixelateRenderer";
+import { renderOpaqueRedact } from "../annotate/renderers/OpaqueRedactRenderer";
 
 export async function composeWithAnnotations(
   image: HTMLImageElement,
@@ -79,6 +81,10 @@ export async function composeWithAnnotations(
         layer.add(createCalloutNode(obj as any));
       } else if (obj.type === 'freehand_arrow') {
         layer.add(createFreehandArrowNode(obj as any));
+      } else if (obj.type === 'pixelate') {
+        renderPixelate(ctx, obj as any, sourceCanvas);
+      } else if (obj.type === 'opaque_redact') {
+        renderOpaqueRedact(ctx, obj as any);
       }
     }
     

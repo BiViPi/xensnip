@@ -110,7 +110,7 @@ export function SelectionTransformer() {
         targetX: node.x() + relTargetX * scaleX,
         targetY: node.y() + relTargetY * scaleY,
       });
-    } else if (obj.type === 'rectangle' || obj.type === 'blur' || obj.type === 'spotlight' || obj.type === 'magnify' || obj.type === 'simplify_ui') {
+    } else if (obj.type === 'rectangle' || obj.type === 'blur' || obj.type === 'spotlight' || obj.type === 'magnify' || obj.type === 'simplify_ui' || obj.type === 'pixelate' || obj.type === 'opaque_redact') {
       updateObject(selectedId, {
         x: node.x(),
         y: node.y(),

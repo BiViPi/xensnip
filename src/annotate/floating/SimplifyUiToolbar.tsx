@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronRight, ChevronLeft, MoonStar, Blur, Droplets } from 'lucide-react';
+import { ChevronRight, ChevronLeft, MoonStar, Ghost, Droplets } from 'lucide-react';
 import { useAnnotationStore } from '../state/store';
 import { SimplifyUiObject } from '../state/types';
-import { RadiusIcon } from './ToolbarIcons';
 import { SliderToggle } from './SliderToggle';
 import { RadiusToggle } from './RadiusToggle';
 
@@ -82,7 +81,7 @@ export function SimplifyUiToolbar({ anchor, obj }: Props) {
                 setShowRadius(false);
               }
             }}
-            icon={<Blur size={14} />}
+            icon={<Ghost size={14} />}
             title="Simplify UI Soften"
           />
 

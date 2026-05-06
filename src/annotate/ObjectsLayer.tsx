@@ -11,6 +11,8 @@ import { PixelRulerNode } from './objects/PixelRulerNode';
 import { SpeechBubbleNode } from './objects/SpeechBubbleNode';
 import { CalloutNode } from './objects/CalloutNode';
 import { FreehandArrowNode } from './objects/FreehandArrowNode';
+import { PixelateNode } from './objects/PixelateNode';
+import { OpaqueRedactNode } from './objects/OpaqueRedactNode';
 
 interface Props {
   compositionCanvasRef: React.RefObject<HTMLCanvasElement | null>;
@@ -158,6 +160,27 @@ export function ObjectsLayer({ compositionCanvasRef, stageWidth, stageHeight, sc
               key={obj.id}
               obj={obj as any}
               onSelect={() => select(obj.id)}
+              onUpdate={updateObject}
+            />
+          );
+        }
+        if (obj.type === 'pixelate') {
+          return (
+            <PixelateNode
+              key={obj.id}
+              obj={obj as any}
+              onSelect={select}
+              onUpdate={updateObject}
+              compositionCanvasRef={compositionCanvasRef}
+            />
+          );
+        }
+        if (obj.type === 'opaque_redact') {
+          return (
+            <OpaqueRedactNode
+              key={obj.id}
+              obj={obj as any}
+              onSelect={select}
               onUpdate={updateObject}
             />
           );

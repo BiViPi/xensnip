@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type MeasureUtilityToolId = 'grid_overlay' | 'color_picker' | 'ocr_extract';
+export type MeasureUtilityToolId = 'grid_overlay' | 'color_picker' | 'ocr_extract' | 'smart_redact_ai';
 
 interface MeasureStore {
   activeUtility: MeasureUtilityToolId | null;

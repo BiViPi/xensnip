@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Stage, Layer, Arrow, Rect } from 'react-konva';
 import { useAnnotationStore } from './state/store';
 import { ObjectsLayer } from './ObjectsLayer';
-import { ArrowObject, RectangleObject, TextObject, BlurObject, NumberedObject, SpotlightObject, MagnifyObject, SimplifyUiObject, PixelRulerObject, SpeechBubbleObject, CalloutObject, FreehandArrowObject } from './state/types';
+import { ArrowObject, RectangleObject, TextObject, BlurObject, NumberedObject, SpotlightObject, MagnifyObject, SimplifyUiObject, PixelRulerObject, SpeechBubbleObject, CalloutObject, FreehandArrowObject, PixelateObject, OpaqueRedactObject } from './state/types';
 import { getTextEditableContract } from './state/textEditable';
 import { SelectionTransformer } from './SelectionTransformer';
 import { createPortal } from 'react-dom';
@@ -12,6 +12,9 @@ import { getCompositionCoordinates } from '../measure/coordinates';
 import { GridOverlay } from '../measure/GridOverlay';
 import { extractTextFromCanvas } from '../measure/ocr';
 import { OCRResultToolbar } from '../measure/OCRResultToolbar';
+import { usePrivacyStore } from '../privacy/store';
+import { SmartRedactToolbar } from '../privacy/SmartRedactToolbar';
+import { SmartRedactOverlay } from '../privacy/SmartRedactOverlay';
 
 interface AnnotationStageProps {
   width: number;
@@ -35,6 +38,8 @@ const TOOL_CURSOR: Record<string, string> = {
   speech_bubble: 'crosshair',
   callout: 'crosshair',
   freehand_arrow: 'crosshair',
+  pixelate: 'crosshair',
+  opaque_redact: 'crosshair',
   crop: 'default',
   canvas: 'default',
 };
@@ -52,6 +57,12 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
     setOcrText,
     setOcrError,
   } = useMeasureStore();
+  const {
+    setStatus: setPrivacyStatus,
+    setSelectionRect,
+    setScope,
+    reset: resetPrivacy,
+  } = usePrivacyStore();
   const [drawingObject, setDrawingObject] = useState<any>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const ocrRequestIdRef = useRef<number>(0);
@@ -77,7 +88,11 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
     setOcrStatus('idle');
     setOcrText('');
     setOcrError(null);
-  }, [activeUtility, setOcrError, setOcrRegion, setOcrStatus, setOcrText]);
+    
+    if (activeUtility !== 'smart_redact_ai') {
+      resetPrivacy();
+    }
+  }, [activeUtility, setOcrError, setOcrRegion, setOcrStatus, setOcrText, resetPrivacy]);
 
   const dismissOcrResult = () => {
     ocrRequestIdRef.current += 1;
@@ -111,6 +126,17 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
       return;
     }
 
+    if (activeUtility === 'smart_redact_ai') {
+      resetPrivacy();
+      setDrawingObject({
+        type: 'smart_redact_selection',
+        start: { x: stageX, y: stageY },
+        end: { x: stageX, y: stageY }
+      });
+      setPrivacyStatus('idle');
+      return;
+    }
+
     if (activeTool === 'arrow') {
       setDrawingObject({
         type: 'arrow',
@@ -126,6 +152,18 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
     } else if (activeTool === 'blur') {
       setDrawingObject({
         type: 'blur',
+        start: { x: stageX, y: stageY },
+        end: { x: stageX, y: stageY }
+      });
+    } else if (activeTool === 'pixelate') {
+      setDrawingObject({
+        type: 'pixelate',
+        start: { x: stageX, y: stageY },
+        end: { x: stageX, y: stageY }
+      });
+    } else if (activeTool === 'opaque_redact') {
+      setDrawingObject({
+        type: 'opaque_redact',
         start: { x: stageX, y: stageY },
         end: { x: stageX, y: stageY }
       });
@@ -391,6 +429,26 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
       return;
     }
 
+    if (drawingObject.type === 'smart_redact_selection') {
+      const selection = {
+        x: Math.min(drawingObject.start.x, drawingObject.end.x),
+        y: Math.min(drawingObject.start.y, drawingObject.end.y),
+        width: Math.abs(dx),
+        height: Math.abs(dy)
+      };
+      
+      if (selection.width > 5 && selection.height > 5) {
+        setScope('selection');
+        setSelectionRect(selection);
+        setPrivacyStatus('idle'); 
+      } else {
+        setSelectionRect(null);
+        setScope('full_canvas');
+      }
+      setDrawingObject(null);
+      return;
+    }
+
     if (dist > 4) {
       const newId = `obj-${Date.now()}`;
       if (drawingObject.type === 'arrow') {
@@ -438,6 +496,36 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
           draggable: true,
         };
         addObject(blur);
+      } else if (drawingObject.type === 'pixelate') {
+        const pixelate: PixelateObject = {
+          id: newId,
+          type: 'pixelate',
+          x: Math.min(drawingObject.start.x, drawingObject.end.x),
+          y: Math.min(drawingObject.start.y, drawingObject.end.y),
+          rotation: 0,
+          width: Math.abs(dx),
+          height: Math.abs(dy),
+          pixelSize: 12,
+          borderColor: '#000000',
+          borderWidth: 0,
+          draggable: true,
+        };
+        addObject(pixelate);
+      } else if (drawingObject.type === 'opaque_redact') {
+        const redact: OpaqueRedactObject = {
+          id: newId,
+          type: 'opaque_redact',
+          x: Math.min(drawingObject.start.x, drawingObject.end.x),
+          y: Math.min(drawingObject.start.y, drawingObject.end.y),
+          rotation: 0,
+          width: Math.abs(dx),
+          height: Math.abs(dy),
+          fill: '#000000',
+          borderColor: '#000000',
+          borderWidth: 0,
+          draggable: true,
+        };
+        addObject(redact);
       } else if (drawingObject.type === 'spotlight') {
         const spotlight: SpotlightObject = {
           id: newId,
@@ -603,17 +691,25 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
             />
           )}
 
-          {(drawingObject?.type === 'rectangle' || drawingObject?.type === 'blur' || drawingObject?.type === 'magnify' || drawingObject?.type === 'simplify_ui' || drawingObject?.type === 'ocr_selection') && (
+          {(drawingObject?.type === 'rectangle' || drawingObject?.type === 'blur' || drawingObject?.type === 'pixelate' || drawingObject?.type === 'opaque_redact' || drawingObject?.type === 'magnify' || drawingObject?.type === 'simplify_ui' || drawingObject?.type === 'ocr_selection' || drawingObject?.type === 'smart_redact_selection') && (
             <Rect
               x={Math.min(drawingObject.start.x, drawingObject.end.x)}
               y={Math.min(drawingObject.start.y, drawingObject.end.y)}
               width={Math.abs(drawingObject.end.x - drawingObject.start.x)}
               height={Math.abs(drawingObject.end.y - drawingObject.start.y)}
-              stroke={drawingObject?.type === 'blur' || drawingObject?.type === 'simplify_ui' ? "rgba(255,255,255,0.5)" : (drawingObject?.type === 'ocr_selection' ? "#fbbf24" : "#ef4444")}
-              strokeWidth={drawingObject?.type === 'blur' || drawingObject?.type === 'simplify_ui' ? 1 : (drawingObject?.type === 'ocr_selection' ? 2 : 4)}
-              fill={drawingObject?.type === 'blur' || drawingObject?.type === 'simplify_ui' ? "rgba(255,255,255,0.2)" : (drawingObject?.type === 'ocr_selection' ? "rgba(251, 191, 36, 0.1)" : "transparent")}
-              dash={drawingObject?.type === 'ocr_selection' ? [4, 4] : undefined}
-              opacity={0.6}
+              stroke={
+                drawingObject?.type === 'blur' || drawingObject?.type === 'simplify_ui' || drawingObject?.type === 'pixelate'
+                  ? "rgba(255,255,255,0.5)" 
+                  : (drawingObject?.type === 'ocr_selection' || drawingObject?.type === 'smart_redact_selection' ? "#fbbf24" : (drawingObject?.type === 'opaque_redact' ? "#000000" : "#ef4444"))
+              }
+              strokeWidth={drawingObject?.type === 'blur' || drawingObject?.type === 'simplify_ui' || drawingObject?.type === 'pixelate' ? 1 : (drawingObject?.type === 'ocr_selection' || drawingObject?.type === 'smart_redact_selection' ? 2 : 4)}
+              fill={
+                drawingObject?.type === 'blur' || drawingObject?.type === 'simplify_ui' || drawingObject?.type === 'pixelate'
+                  ? "rgba(255,255,255,0.2)" 
+                  : (drawingObject?.type === 'ocr_selection' || drawingObject?.type === 'smart_redact_selection' ? "rgba(251, 191, 36, 0.1)" : (drawingObject?.type === 'opaque_redact' ? "#000000" : "transparent"))
+              }
+              dash={drawingObject?.type === 'ocr_selection' || drawingObject?.type === 'smart_redact_selection' ? [4, 4] : undefined}
+              opacity={drawingObject?.type === 'opaque_redact' ? 1 : 0.6}
             />
           )}
 
@@ -736,6 +832,12 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
         overlay
       )}
       <OCRResultToolbar onDismiss={dismissOcrResult} scale={scale} />
+      {activeUtility === 'smart_redact_ai' && (
+        <>
+          <SmartRedactToolbar compositionCanvasRef={compositionCanvasRef} />
+          <SmartRedactOverlay scale={scale} />
+        </>
+      )}
     </>
   );
 }

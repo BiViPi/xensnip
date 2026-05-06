@@ -16,6 +16,8 @@ import { PixelRulerToolbar } from './PixelRulerToolbar';
 import { SpeechBubbleToolbar } from './SpeechBubbleToolbar';
 import { CalloutToolbar } from './CalloutToolbar';
 import { FreehandArrowToolbar } from './FreehandArrowToolbar';
+import { PixelateToolbar } from './PixelateToolbar';
+import { OpaqueRedactToolbar } from './OpaqueRedactToolbar';
 
 interface Props {
   scale: number;
@@ -83,6 +85,14 @@ export function FloatingToolbarManager({ scale, stageRef }: Props) {
 
   if (selectedObject.type === 'freehand_arrow') {
     return <FreehandArrowToolbar anchor={anchor} obj={selectedObject as any} />;
+  }
+  
+  if (selectedObject.type === 'pixelate') {
+    return <PixelateToolbar anchor={anchor} obj={selectedObject as any} />;
+  }
+
+  if (selectedObject.type === 'opaque_redact') {
+    return <OpaqueRedactToolbar anchor={anchor} obj={selectedObject as any} />;
   }
 
   return null;

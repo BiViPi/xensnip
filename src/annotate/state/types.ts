@@ -1,4 +1,7 @@
-export type ToolId = 'select' | 'arrow' | 'rectangle' | 'text' | 'blur' | 'numbered' | 'spotlight' | 'crop' | 'canvas' | 'magnify' | 'simplify_ui' | 'pixel_ruler' | 'speech_bubble' | 'callout' | 'freehand_arrow';
+export type ToolId = 
+  | 'select' | 'arrow' | 'rectangle' | 'text' | 'blur' | 'numbered' | 'spotlight' | 'crop' 
+  | 'canvas' | 'magnify' | 'simplify_ui' | 'pixel_ruler' | 'speech_bubble' | 'callout' 
+  | 'freehand_arrow' | 'pixelate' | 'opaque_redact' | 'smart_redact_ai';
 
 export interface BaseObject {
   id: string;
@@ -138,6 +141,24 @@ export interface FreehandArrowObject extends BaseObject {
   pointerWidth: number;
 }
 
+export interface PixelateObject extends BaseObject {
+  type: 'pixelate';
+  width: number;
+  height: number;
+  pixelSize: number;
+  borderColor: string;
+  borderWidth: number;
+}
+
+export interface OpaqueRedactObject extends BaseObject {
+  type: 'opaque_redact';
+  width: number;
+  height: number;
+  fill: string;
+  borderColor: string;
+  borderWidth: number;
+}
+
 export type AnnotateObject = 
   | ArrowObject 
   | RectangleObject 
@@ -150,4 +171,6 @@ export type AnnotateObject =
   | PixelRulerObject
   | SpeechBubbleObject
   | CalloutObject
-  | FreehandArrowObject;
+  | FreehandArrowObject
+  | PixelateObject
+  | OpaqueRedactObject;

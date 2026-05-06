@@ -23,6 +23,7 @@ import {
   MessageSquare,
   MousePointer2,
   PencilLine,
+  Grid3X3,
 } from 'lucide-react';
 import './Sidebar.css';
 
@@ -204,6 +205,9 @@ function AnnotateTools({ onClose }: { onClose: () => void }) {
 function PrivacyTools({ onClose }: { onClose: () => void }) {
   const tools = [
     { id: 'blur', label: 'Blur', icon: Ghost, hint: 'Blur — drag on canvas' },
+    { id: 'pixelate', label: 'Pixelate', icon: Grid3X3, hint: 'Pixelate — drag on canvas' },
+    { id: 'opaque_redact', label: 'Opaque Redact', icon: SquareIcon, hint: 'Opaque Redact — drag on canvas' },
+    { id: 'smart_redact_ai', label: 'Smart Redact AI', icon: Sparkles, hint: 'Smart Redact AI — auto-detect text', isUtility: true },
   ];
   return <ToolGrid tools={tools} onClose={onClose} />;
 }
