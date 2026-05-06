@@ -49,16 +49,15 @@ body {
   overflow: hidden;
 }
 
-/* Atmospheric Mesh Gradient (Synced with Settings) */
+/* Atmospheric Mesh Gradient (Cleaner, more Apple-like) */
 .xs-shell::before {
   content: "";
   position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle at 70% 30%, rgba(34, 211, 238, 0.08) 0%, transparent 40%),
-    radial-gradient(circle at 30% 70%, rgba(99, 102, 241, 0.08) 0%, transparent 40%);
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at 100% 0%, var(--accent-soft-bg) 0%, transparent 40%);
   pointer-events: none;
   z-index: 0;
 }
@@ -169,12 +168,10 @@ body {
 }
 
 .xs-pill-btn.active {
-  background: linear-gradient(180deg, rgba(101, 104, 240, 0.96) 0%, rgba(78, 70, 229, 0.98) 100%);
-  border-color: rgba(255, 255, 255, 0.12);
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
   color: #fff;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.22),
-    0 6px 12px rgba(65, 62, 178, 0.2);
+  box-shadow: var(--shadow-button-primary);
 }
 
 .xs-icon-btn {
@@ -192,12 +189,10 @@ body {
 }
 
 .xs-icon-btn.active {
-  background: linear-gradient(180deg, rgba(101, 104, 240, 0.96) 0%, rgba(78, 70, 229, 0.98) 100%);
-  border-color: rgba(255, 255, 255, 0.12);
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
   color: #fff;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.22),
-    0 6px 12px rgba(65, 62, 178, 0.2);
+  box-shadow: var(--shadow-button-primary);
 }
 
 /* Swatches */
@@ -340,10 +335,10 @@ body {
 }
 
 .xs-ratio-item.active {
-  background: var(--accent-gradient);
-  border: 1px solid var(--glass-border-active);
-  color: var(--white);
-  box-shadow: var(--shadow-accent-pop);
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: #fff;
+  box-shadow: var(--shadow-button-primary);
 }
 
 /* Slider Popover — Premium Polish */

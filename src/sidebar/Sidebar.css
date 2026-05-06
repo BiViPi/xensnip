@@ -73,8 +73,8 @@
 
 .xs-rail-toggle.active {
   color: #fff;
-  background: linear-gradient(180deg, rgba(101, 104, 240, 0.96) 0%, rgba(78, 70, 229, 0.98) 100%);
-  border-color: rgba(255, 255, 255, 0.12);
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
   box-shadow: var(--shadow-button-primary);
 }
 
@@ -84,8 +84,8 @@
 
 .xs-sidebar-rail.collapsed .xs-rail-toggle {
   color: #fff;
-  background: linear-gradient(180deg, rgba(101, 104, 240, 0.96) 0%, rgba(78, 70, 229, 0.98) 100%);
-  border-color: rgba(255, 255, 255, 0.12);
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
   box-shadow: var(--shadow-button-primary);
 }
 
@@ -135,8 +135,8 @@
 }
 
 .xs-rail-item.active {
-  background: linear-gradient(180deg, rgba(101, 104, 240, 0.96) 0%, rgba(78, 70, 229, 0.98) 100%);
-  border-color: rgba(255, 255, 255, 0.12);
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
   color: #fff;
   box-shadow: var(--shadow-button-primary);
 }
@@ -212,8 +212,8 @@
 }
 
 .xs-tool-icon-btn.active {
-  background: linear-gradient(180deg, rgba(101, 104, 240, 0.96) 0%, rgba(78, 70, 229, 0.98) 100%);
-  border-color: rgba(255, 255, 255, 0.12);
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
   color: #fff;
   box-shadow: var(--shadow-button-primary);
 }
