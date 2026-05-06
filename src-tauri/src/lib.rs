@@ -11,7 +11,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-use tauri::{AppHandle, Manager, WebviewWindow};
+use tauri::{AppHandle, Manager, WebviewWindow, WebviewWindowBuilder, WindowEvent};
 use tauri_plugin_log::{Target, TargetKind};
 use windows::Win32::Graphics::Dwm::{
     DwmSetWindowAttribute, DWMWA_BORDER_COLOR, DWMWA_WINDOW_CORNER_PREFERENCE,
@@ -201,12 +201,20 @@ pub fn run() {
 }
 
 pub fn open_settings_window(app: &AppHandle) -> tauri::Result<()> {
+    log::info!(target: "settings_open", "phase=enter label=settings");
+
     if let Some(window) = app.get_webview_window("settings") {
-        window.set_focus()?;
+        log::info!(target: "settings_open", "phase=reuse label=settings");
+        let _ = window.unminimize();
+        let _ = window.show();
+        let _ = window.set_focus();
+        lift_window_z_order(&window);
         return Ok(());
     }
 
-    let _window = tauri::WebviewWindowBuilder::new(
+    log::info!(target: "settings_open", "phase=create label=settings");
+
+    let window = WebviewWindowBuilder::new(
         app,
         "settings",
         tauri::WebviewUrl::App("settings.html".into()),
@@ -219,9 +227,30 @@ pub fn open_settings_window(app: &AppHandle) -> tauri::Result<()> {
     .focused(true)
     .build()?;
 
-    log::info!(target: "app", "settings window opened");
-    let _ = apply_window_native_style(&_window);
+    let _ = apply_window_native_style(&window);
+    lift_window_z_order(&window);
+
+    window.on_window_event(|event| {
+        if matches!(event, WindowEvent::Destroyed) {
+            log::info!(target: "settings_open", "phase=destroyed label=settings");
+        }
+    });
+
+    if let Ok(hwnd) = window.hwnd() {
+        log::info!(target: "settings_open", "phase=built label=settings hwnd={:?}", hwnd);
+    } else {
+        log::info!(target: "settings_open", "phase=built label=settings hwnd=unavailable");
+    }
+
     Ok(())
+}
+
+fn lift_window_z_order(window: &WebviewWindow) {
+    #[cfg(target_os = "windows")]
+    {
+        let _ = window.set_always_on_top(true);
+        let _ = window.set_always_on_top(false);
+    }
 }
 
 pub fn apply_window_native_style(window: &WebviewWindow) -> tauri::Result<()> {

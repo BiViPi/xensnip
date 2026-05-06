@@ -2,6 +2,7 @@ use crate::asset::{AssetRegistry, AssetResolveResult};
 use crate::capture::CaptureSession;
 use crate::settings::{load_or_create_default, Settings, SavedPreset};
 use std::collections::HashMap;
+use std::sync::mpsc;
 use tauri::image::Image;
 use tauri::{AppHandle, Manager};
 use tauri_plugin_clipboard_manager::ClipboardExt;
@@ -27,15 +28,22 @@ pub fn settings_load(app_handle: AppHandle) -> Settings {
 }
 
 #[tauri::command]
-pub fn open_settings_window(app_handle: AppHandle) -> Result<(), String> {
+pub async fn open_settings_window(app_handle: AppHandle) -> Result<(), String> {
     let app = app_handle.clone();
+    let (tx, rx) = mpsc::channel();
+
     app_handle
         .run_on_main_thread(move || {
-            if let Err(err) = crate::open_settings_window(&app) {
-                log::error!(target: "app", "open_settings_window command failed: {}", err);
-            }
+            let result = crate::open_settings_window(&app).map_err(|e| e.to_string());
+            let _ = tx.send(result);
         })
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string())?;
+
+    tauri::async_runtime::spawn_blocking(move || {
+        rx.recv().map_err(|e| e.to_string())?
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]

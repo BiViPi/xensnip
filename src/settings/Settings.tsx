@@ -93,14 +93,18 @@ export function Settings() {
     }
   };
 
-  const handleCancel = () => {
+  const closeSettingsWindow = async () => {
+    await getCurrentWindow().destroy();
+  };
+
+  const handleCancel = async () => {
     if (loadedRef.current) {
       setDraft(loadedRef.current);
       applyTheme(loadedRef.current.theme);
       void emit("theme-changed", loadedRef.current.theme);
     }
     setErrors({});
-    void getCurrentWindow().close();
+    await closeSettingsWindow();
   };
 
   const handleChangeFolder = async () => {
@@ -116,7 +120,7 @@ export function Settings() {
 
   return (
     <div className="xs-settings-shell">
-      <TitleBar title="Settings" showMaximize={false} />
+      <TitleBar title="Settings" showMaximize={false} onClose={() => { void handleCancel(); }} />
       
       <div className="xs-settings-glow" />
 
@@ -317,7 +321,7 @@ export function Settings() {
           </main>
 
           <footer className="xs-settings-footer">
-            <button className="xs-settings-btn-secondary" onClick={handleCancel} disabled={isSaving}>
+            <button className="xs-settings-btn-secondary" onClick={() => { void handleCancel(); }} disabled={isSaving}>
               Cancel
             </button>
             <button className="xs-settings-btn-primary" onClick={handleSave} disabled={isSaving}>
