@@ -1,7 +1,7 @@
 :root {
   --xs-left-panel-width: 272px;
   --xs-left-rail-width: 52px;
-  --xs-left-panel-bg: var(--surface-base);
+  --xs-left-panel-bg: rgba(22, 28, 44, 0.94);
   --xs-left-panel-blur: 18px;
   --xs-left-panel-border: 1px solid rgba(255, 255, 255, 0.12);
   --xs-left-panel-radius: 16px;
