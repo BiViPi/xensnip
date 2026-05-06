@@ -27,11 +27,11 @@ export function SmartRedactOverlay({ scale }: Props) {
               top: `${c.y * scale}px`,
               width: `${c.width * scale}px`,
               height: `${c.height * scale}px`,
-              border: '2px solid #fbbf24',
-              background: 'rgba(251, 191, 36, 0.15)',
-              borderRadius: '2px',
+              border: '1.5px solid rgba(251, 191, 36, 0.6)',
+              background: 'rgba(251, 191, 36, 0.08)',
+              borderRadius: '3px',
               pointerEvents: 'auto',
-              boxShadow: '0 0 10px rgba(251, 191, 36, 0.3)',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
               display: 'flex',
               alignItems: 'flex-start',
               justifyContent: 'flex-end',
@@ -43,23 +43,26 @@ export function SmartRedactOverlay({ scale }: Props) {
                 updateCandidateStatus(c.id, 'rejected');
               }}
               style={{
-                background: '#ef4444',
+                background: 'rgba(239, 68, 68, 0.9)',
                 color: 'white',
-                border: 'none',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
                 borderRadius: '50%',
-                width: 16,
-                height: 16,
+                width: 18,
+                height: 18,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
-                margin: '-8px -8px 0 0',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                padding: 0
+                margin: '-9px -9px 0 0',
+                boxShadow: '0 2px 5px rgba(0,0,0,0.3)',
+                padding: 0,
+                backdropFilter: 'blur(4px)',
+                transition: 'all 0.2s'
               }}
+              className="xs-candidate-reject-btn"
               title="Reject"
             >
-              <X size={10} strokeWidth={3} />
+              <X size={11} strokeWidth={3} />
             </button>
           </div>
         );

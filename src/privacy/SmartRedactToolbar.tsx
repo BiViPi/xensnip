@@ -3,6 +3,7 @@ import { usePrivacyStore, SmartRedactCandidate } from './store';
 import { useAnnotationStore } from '../annotate/state/store';
 import { detectTextRedactCandidates } from './detectTextRedactCandidates';
 import { getCompositionCoordinates } from '../measure/coordinates';
+import { useMeasureStore } from '../measure/store';
 import { Check, X, Sparkles, Loader2 } from 'lucide-react';
 import { OpaqueRedactObject } from '../annotate/state/types';
 
@@ -13,6 +14,12 @@ interface Props {
 export function SmartRedactToolbar({ compositionCanvasRef }: Props) {
   const { status, setStatus, scope, selectionRect, candidates, setCandidates, reset, setError, error } = usePrivacyStore();
   const { addObject } = useAnnotationStore();
+  const { setActiveUtility } = useMeasureStore();
+
+  const handleClose = () => {
+    reset();
+    setActiveUtility(null);
+  };
 
   const handleDetect = async () => {
     const canvas = compositionCanvasRef.current;
@@ -51,7 +58,7 @@ export function SmartRedactToolbar({ compositionCanvasRef }: Props) {
         applyCandidate(c);
       }
     });
-    reset();
+    handleClose();
   };
 
   const applyCandidate = (c: SmartRedactCandidate) => {
@@ -74,14 +81,14 @@ export function SmartRedactToolbar({ compositionCanvasRef }: Props) {
 
   if (status === 'idle' && !selectionRect && scope === 'selection') {
     return (
-      <div className="xs-ocr-result-toolbar" style={{ bottom: 20 }}>
-        <div className="xs-ocr-chip xs-ocr-chip-ready">
+      <div className="xs-ocr-result-toolbar" style={{ bottom: 32 }}>
+        <div className="xs-floating-toolbar xs-ocr-chip">
           <div className="xs-ocr-chip-body">
             <Sparkles size={14} className="xs-icon-sparkle" />
-            <span className="xs-ocr-chip-label">Drag on canvas to select area for AI Redaction</span>
+            <span className="xs-ocr-chip-label">Drag on canvas to select area</span>
           </div>
           <div className="xs-toolbar-divider" />
-          <button className="xs-ocr-chip-btn xs-ocr-chip-close" onClick={reset} title="Cancel">
+          <button className="xs-toolbar-btn xs-ocr-chip-close" onClick={handleClose} title="Cancel">
             <X size={14} />
           </button>
         </div>
@@ -91,8 +98,8 @@ export function SmartRedactToolbar({ compositionCanvasRef }: Props) {
 
   if (status === 'detecting') {
     return (
-      <div className="xs-ocr-result-toolbar" style={{ bottom: 20 }}>
-        <div className="xs-ocr-chip xs-ocr-chip-running">
+      <div className="xs-ocr-result-toolbar" style={{ bottom: 32 }}>
+        <div className="xs-floating-toolbar xs-ocr-chip">
           <div className="xs-ocr-chip-body">
             <Loader2 size={14} className="xs-icon-spin" />
             <span className="xs-ocr-chip-label">Detecting sensitive text...</span>
@@ -103,27 +110,25 @@ export function SmartRedactToolbar({ compositionCanvasRef }: Props) {
   }
 
   return (
-    <div className="xs-ocr-result-toolbar" style={{ bottom: 20 }}>
-      <div className={`xs-ocr-chip ${status === 'error' ? 'xs-ocr-chip-error' : 'xs-ocr-chip-ready'}`}>
+    <div className="xs-ocr-result-toolbar" style={{ bottom: 32 }}>
+      <div className={`xs-floating-toolbar xs-ocr-chip ${status === 'error' ? 'xs-ocr-chip-error' : ''}`}>
         <div className="xs-ocr-chip-body">
           <Sparkles size={14} className="xs-icon-sparkle" />
-          <span className="xs-ocr-chip-label">
-            {status === 'idle' ? (scope === 'full_canvas' ? 'Smart Redact (Full Canvas)' : 'Region Selected') : 
+          <span className="xs-ocr-chip-label" style={{ marginRight: 8 }}>
+            {status === 'idle' ? (scope === 'full_canvas' ? 'Smart Redact (Full)' : 'Region Ready') : 
              status === 'error' ? `Error: ${error}` : 
              `${candidates.length} candidates found`}
           </span>
         </div>
         
-        <div className="xs-toolbar-divider" />
-        
         {status === 'idle' && (
-          <button className="xs-ocr-chip-btn" onClick={handleDetect}>
-            Detect
+          <button className="xs-toolbar-btn xs-toolbar-btn-primary" onClick={handleDetect}>
+            Detect Text
           </button>
         )}
 
         {status === 'ready' && candidates.length > 0 && (
-          <button className="xs-ocr-chip-btn" onClick={handleApplyAll} title="Apply All">
+          <button className="xs-toolbar-btn xs-toolbar-btn-primary" onClick={handleApplyAll} title="Apply All">
             <Check size={14} style={{ marginRight: 4 }} /> Apply All
           </button>
         )}
@@ -134,7 +139,7 @@ export function SmartRedactToolbar({ compositionCanvasRef }: Props) {
 
         <div className="xs-toolbar-divider" />
         
-        <button className="xs-ocr-chip-btn xs-ocr-chip-close" onClick={reset} title="Cancel">
+        <button className="xs-toolbar-btn xs-ocr-chip-close" onClick={handleClose} title="Cancel">
           <X size={14} />
         </button>
       </div>

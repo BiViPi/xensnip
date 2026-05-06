@@ -57,15 +57,15 @@ export function OCRResultToolbar({ onDismiss, scale }: OCRResultToolbarProps) {
 
     return (
       <>
-        {copied ? <Check size={14} /> : <Copy size={14} />}
         <button
-          className="xs-toolbar-btn xs-ocr-chip-btn"
+          className="xs-toolbar-btn xs-toolbar-btn-primary xs-ocr-chip-btn"
           onClick={copyToClipboard}
           disabled={!hasText}
           title={hasText ? 'Copy extracted text' : 'No text detected'}
         >
+          {copied ? <Check size={14} style={{ marginRight: 6 }} /> : <Copy size={14} style={{ marginRight: 6 }} />}
           <span className="xs-ocr-chip-label">
-            {hasText ? (copied ? 'Copied' : 'Copy') : 'No text'}
+            {hasText ? (copied ? 'Copied' : 'Copy Text') : 'No text'}
           </span>
         </button>
       </>
