@@ -1,31 +1,64 @@
-import { Group, Rect, Path, Text } from 'react-konva';
+import { Group, Path, Text, Circle } from 'react-konva';
 import { SpeechBubbleObject } from '../state/types';
+import { useAnnotationStore } from '../state/store';
 
 interface SpeechBubbleNodeProps {
   obj: SpeechBubbleObject;
+  isSelected: boolean;
   onSelect: () => void;
   onUpdate: (id: string, attrs: Partial<SpeechBubbleObject>) => void;
 }
 
-export const SpeechBubbleNode = ({ obj, onSelect, onUpdate }: SpeechBubbleNodeProps) => {
-  const { x, y, width, height, text, fontSize, fontFamily, fill, textColor, stroke, padding, cornerRadius, tailSide, tailOffset, tailLength, id, draggable } = obj;
+export const SpeechBubbleNode = ({ obj, isSelected, onSelect, onUpdate }: SpeechBubbleNodeProps) => {
+  const { editingTextId, setEditingTextId } = useAnnotationStore();
+  const isEditing = editingTextId === obj.id;
+  const { x, y, width, height, text, fontSize, fontFamily, fill, textColor, stroke, padding, cornerRadius, tailX, tailY, id, draggable } = obj;
 
-  const getTailPoints = () => {
-    const offset = tailOffset * (tailSide === 'top' || tailSide === 'bottom' ? width : height);
-    const halfTailWidth = 10; // Width of the tail base
+  const getBubblePath = () => {
+    const r = cornerRadius;
+    const w = width;
+    const h = height;
+    const spread = 12;
 
-    switch (tailSide) {
-      case 'top':
-        return `M ${offset - halfTailWidth} ${0} L ${offset} ${-tailLength} L ${offset + halfTailWidth} ${0} Z`;
-      case 'bottom':
-        return `M ${offset - halfTailWidth} ${height} L ${offset} ${height + tailLength} L ${offset + halfTailWidth} ${height} Z`;
-      case 'left':
-        return `M ${0} ${offset - halfTailWidth} L ${-tailLength} ${offset} L ${0} ${offset + halfTailWidth} Z`;
-      case 'right':
-        return `M ${width} ${offset - halfTailWidth} L ${width + tailLength} ${offset} L ${width} ${offset + halfTailWidth} Z`;
-      default:
-        return '';
+    // Determine which side is closest to the tail tip to attach the base
+    const distT = Math.abs(tailY);
+    const distB = Math.abs(tailY - h);
+    const distL = Math.abs(tailX);
+    const distR = Math.abs(tailX - w);
+    const minDist = Math.min(distT, distB, distL, distR);
+
+    // Initial path starting at top-left corner
+    let path = `M ${r},0 `;
+
+    // Top side
+    if (minDist === distT) {
+      const bx = Math.max(r + spread, Math.min(w - r - spread, tailX));
+      path += `L ${bx - spread},0 L ${tailX},${tailY} L ${bx + spread},0 `;
     }
+    path += `L ${w - r},0 A ${r},${r} 0 0 1 ${w},${r} `;
+
+    // Right side
+    if (minDist === distR) {
+      const by = Math.max(r + spread, Math.min(h - r - spread, tailY));
+      path += `L ${w},${by - spread} L ${tailX},${tailY} L ${w},${by + spread} `;
+    }
+    path += `L ${w},${h - r} A ${r},${r} 0 0 1 ${w - r},${h} `;
+
+    // Bottom side
+    if (minDist === distB) {
+      const bx = Math.max(r + spread, Math.min(w - r - spread, tailX));
+      path += `L ${bx + spread},${h} L ${tailX},${tailY} L ${bx - spread},${h} `;
+    }
+    path += `L ${r},${h} A ${r},${r} 0 0 1 0,${h - r} `;
+
+    // Left side
+    if (minDist === distL) {
+      const by = Math.max(r + spread, Math.min(h - r - spread, tailY));
+      path += `L 0,${by + spread} L ${tailX},${tailY} L 0,${by - spread} `;
+    }
+    path += `L 0,${r} A ${r},${r} 0 0 1 ${r},0 Z`;
+
+    return path;
   };
 
   return (
@@ -35,28 +68,22 @@ export const SpeechBubbleNode = ({ obj, onSelect, onUpdate }: SpeechBubbleNodePr
       draggable={draggable}
       onClick={onSelect}
       onTap={onSelect}
+      onDblClick={() => setEditingTextId(id)}
+      onDblTap={() => setEditingTextId(id)}
       onDragEnd={(e) => {
-        onUpdate(id, { x: e.target.x(), y: e.target.y() });
+        if (e.target === e.currentTarget) {
+          onUpdate(id, { x: e.target.x(), y: e.target.y() });
+        }
       }}
       id={id}
       name="speech_bubble"
     >
-      {/* Tail */}
       <Path
-        data={getTailPoints()}
+        data={getBubblePath()}
         fill={fill}
         stroke={stroke}
         strokeWidth={1}
         lineJoin="round"
-      />
-      {/* Body */}
-      <Rect
-        width={width}
-        height={height}
-        fill={fill}
-        stroke={stroke}
-        strokeWidth={1}
-        cornerRadius={cornerRadius}
       />
       {/* Text Content */}
       <Text
@@ -69,8 +96,34 @@ export const SpeechBubbleNode = ({ obj, onSelect, onUpdate }: SpeechBubbleNodePr
         padding={padding}
         align="center"
         verticalAlign="middle"
+        opacity={isEditing ? 0 : 1}
         listening={false}
       />
+      {/* Tail Handle */}
+      {isSelected && (
+        <Circle
+          x={tailX}
+          y={tailY}
+          radius={6}
+          fill="#6366F1"
+          stroke="#fff"
+          strokeWidth={2}
+          draggable
+          onDragMove={(e) => {
+            e.cancelBubble = true;
+            const node = e.target;
+            onUpdate(id, { tailX: node.x(), tailY: node.y() });
+          }}
+          onMouseEnter={(e: any) => {
+            const stage = e.target.getStage();
+            stage.container().style.cursor = 'move';
+          }}
+          onMouseLeave={(e: any) => {
+            const stage = e.target.getStage();
+            stage.container().style.cursor = 'default';
+          }}
+        />
+      )}
     </Group>
   );
 };

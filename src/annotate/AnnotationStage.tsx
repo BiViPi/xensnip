@@ -209,9 +209,8 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
         stroke: '#1e1e2e',
         padding: 10,
         cornerRadius: 10,
-        tailSide: 'bottom',
-        tailOffset: 0.5,
-        tailLength: 18,
+        tailX: 80,
+        tailY: 90,
         draggable: true,
       };
       addObject(bubble);

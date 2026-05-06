@@ -136,6 +136,7 @@ export function ObjectsLayer({ compositionCanvasRef, stageWidth, stageHeight, sc
             <SpeechBubbleNode
               key={obj.id}
               obj={obj as any}
+              isSelected={selectedId === obj.id}
               onSelect={() => select(obj.id)}
               onUpdate={updateObject}
             />

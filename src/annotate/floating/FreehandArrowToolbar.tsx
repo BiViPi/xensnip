@@ -4,6 +4,7 @@ import { FreehandArrowObject } from '../state/types';
 import { ColorToggle } from './ColorToggle';
 import { StrokeWidthToggle } from './StrokeWidthToggle';
 import { MousePointer2, Waves } from 'lucide-react';
+import { useState } from 'react';
 
 interface Props {
   anchor: { left: number; top: number; width: number; height: number };
@@ -12,6 +13,11 @@ interface Props {
 
 export function FreehandArrowToolbar({ anchor, obj }: Props) {
   const { updateObject } = useAnnotationStore();
+  const [activePopover, setActivePopover] = useState<string | null>(null);
+
+  const toggle = (id: string) => (open: boolean) => {
+    setActivePopover(open ? id : null);
+  };
   const overlay = document.getElementById('annotation-ui-overlay');
   if (!overlay) return null;
 
@@ -42,11 +48,15 @@ export function FreehandArrowToolbar({ anchor, obj }: Props) {
           color={obj.stroke}
           onChange={(stroke: string) => updateObject(obj.id, { stroke })}
           title="Stroke Color"
+          isOpen={activePopover === 'color'}
+          onToggle={toggle('color')}
         />
         <div className="xs-toolbar-divider" />
         <StrokeWidthToggle
           value={obj.strokeWidth}
           onChange={(strokeWidth: number) => updateObject(obj.id, { strokeWidth })}
+          isOpen={activePopover === 'width'}
+          onToggle={toggle('width')}
         />
       </div>
 

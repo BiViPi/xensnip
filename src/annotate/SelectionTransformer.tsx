@@ -89,16 +89,14 @@ export function SelectionTransformer() {
         points: newPoints,
       });
     } else if (obj.type === 'speech_bubble') {
-      const nextTailLength = obj.tailSide === 'top' || obj.tailSide === 'bottom'
-        ? obj.tailLength * scaleY
-        : obj.tailLength * scaleX;
       updateObject(selectedId, {
         x: node.x(),
         y: node.y(),
         rotation,
         width: obj.width * scaleX,
         height: obj.height * scaleY,
-        tailLength: nextTailLength,
+        tailX: obj.tailX * scaleX,
+        tailY: obj.tailY * scaleY,
       });
     } else if (obj.type === 'callout') {
       const relTargetX = obj.targetX - obj.x;

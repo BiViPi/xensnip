@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { RadiusIcon } from './ToolbarIcons';
 
 interface Props {
@@ -6,16 +5,17 @@ interface Props {
   onChange: (val: number) => void;
   min?: number;
   max?: number;
+  isOpen: boolean;
+  onToggle: (open: boolean) => void;
 }
 
-export function RadiusToggle({ value, onChange, min = 0, max = 24 }: Props) {
-  const [isOpen, setIsOpen] = useState(false);
+export function RadiusToggle({ value, onChange, min = 0, max = 24, isOpen, onToggle }: Props) {
 
   return (
     <div style={{ position: 'relative' }}>
       <button
         className={`xs-toolbar-btn ${isOpen ? 'active' : ''}`}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => onToggle(!isOpen)}
         title="Corner Radius"
       >
         <RadiusIcon />

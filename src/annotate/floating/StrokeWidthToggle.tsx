@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { StrokeWidthIcon } from './ToolbarIcons';
 
 interface Props {
@@ -8,16 +7,17 @@ interface Props {
   max?: number;
   title?: string;
   icon?: React.ReactNode;
+  isOpen: boolean;
+  onToggle: (open: boolean) => void;
 }
 
-export function StrokeWidthToggle({ value, onChange, min = 1, max = 24, title, icon }: Props) {
-  const [isOpen, setIsOpen] = useState(false);
+export function StrokeWidthToggle({ value, onChange, min = 1, max = 24, title, icon, isOpen, onToggle }: Props) {
 
   return (
     <div style={{ position: 'relative' }}>
       <button
         className={`xs-toolbar-btn ${isOpen ? 'active' : ''}`}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => onToggle(!isOpen)}
         title={title || "Line Thickness"}
       >
         {icon || <StrokeWidthIcon />}

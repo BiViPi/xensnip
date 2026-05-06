@@ -106,9 +106,8 @@ export interface SpeechBubbleObject extends BaseObject {
   stroke: string;
   padding: number;
   cornerRadius: number;
-  tailSide: 'top' | 'right' | 'bottom' | 'left';
-  tailOffset: number;
-  tailLength: number;
+  tailX: number;
+  tailY: number;
 }
 
 export interface CalloutObject extends BaseObject {

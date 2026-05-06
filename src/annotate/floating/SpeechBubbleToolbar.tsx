@@ -4,7 +4,8 @@ import { SpeechBubbleObject } from '../state/types';
 import { ColorToggle } from './ColorToggle';
 import { RadiusToggle } from './RadiusToggle';
 import { StrokeWidthToggle } from './StrokeWidthToggle';
-import { Type, MessageSquare, ChevronDown } from 'lucide-react';
+import { Type } from 'lucide-react';
+import { useState } from 'react';
 
 interface Props {
   anchor: { left: number; top: number; width: number; height: number };
@@ -13,19 +14,17 @@ interface Props {
 
 export function SpeechBubbleToolbar({ anchor, obj }: Props) {
   const { updateObject } = useAnnotationStore();
+  const [activePopover, setActivePopover] = useState<string | null>(null);
+  
+  const toggle = (id: string) => (open: boolean) => {
+    setActivePopover(open ? id : null);
+  };
   const overlay = document.getElementById('annotation-ui-overlay');
   if (!overlay) return null;
 
   // Center horizontally relative to object body
   const left = anchor.left + anchor.width / 2;
   const top = anchor.top - 40;
-
-  const sides = [
-    { id: 'top', label: 'Top' },
-    { id: 'bottom', label: 'Bottom' },
-    { id: 'left', label: 'Left' },
-    { id: 'right', label: 'Right' },
-  ] as const;
 
   return createPortal(
     <div
@@ -44,6 +43,8 @@ export function SpeechBubbleToolbar({ anchor, obj }: Props) {
           color={obj.fill}
           onChange={(fill: string) => updateObject(obj.id, { fill })}
           title="Background Color"
+          isOpen={activePopover === 'bg'}
+          onToggle={toggle('bg')}
         />
         <div className="xs-toolbar-divider" />
         <ColorToggle
@@ -51,6 +52,8 @@ export function SpeechBubbleToolbar({ anchor, obj }: Props) {
           onChange={(textColor: string) => updateObject(obj.id, { textColor })}
           icon={<Type size={14} />}
           title="Text Color"
+          isOpen={activePopover === 'text'}
+          onToggle={toggle('text')}
         />
       </div>
 
@@ -64,30 +67,16 @@ export function SpeechBubbleToolbar({ anchor, obj }: Props) {
           title="Font Size"
           min={8}
           max={72}
+          isOpen={activePopover === 'size'}
+          onToggle={toggle('size')}
         />
         <div className="xs-toolbar-divider" />
         <RadiusToggle
           value={obj.cornerRadius}
           onChange={(cornerRadius: number) => updateObject(obj.id, { cornerRadius })}
+          isOpen={activePopover === 'radius'}
+          onToggle={toggle('radius')}
         />
-      </div>
-
-      <div className="xs-toolbar-divider" />
-
-      <div className="xs-toolbar-section">
-        <div className="xs-toolbar-select-wrapper" title="Tail Side">
-          <MessageSquare size={14} className="xs-select-icon" />
-          <select
-            value={obj.tailSide}
-            onChange={(e) => updateObject(obj.id, { tailSide: e.target.value as any })}
-            className="xs-toolbar-select"
-          >
-            {sides.map(s => (
-              <option key={s.id} value={s.id}>{s.label}</option>
-            ))}
-          </select>
-          <ChevronDown size={12} className="xs-select-chevron" />
-        </div>
       </div>
     </div>,
     overlay
