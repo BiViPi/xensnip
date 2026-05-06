@@ -34,6 +34,16 @@
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+[data-theme='light'] .xs-sidebar-rail {
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(18px) saturate(130%);
+  -webkit-backdrop-filter: blur(18px) saturate(130%);
+  border-color: rgba(15, 23, 42, 0.08);
+  box-shadow:
+    0 8px 22px rgba(15, 23, 42, 0.08),
+    0 1px 3px rgba(15, 23, 42, 0.05);
+}
+
 /* ── Popover Anchor (Absolute inside Rail) ── */
 .xs-popover-anchor {
   position: absolute;
@@ -64,6 +74,10 @@
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   margin-bottom: 2px;
   box-shadow: var(--shadow-button);
+}
+
+[data-theme='light'] .xs-rail-toggle {
+  background: rgba(255, 255, 255, 0.82);
 }
 
 .xs-rail-toggle:hover {
@@ -204,6 +218,13 @@
   animation: popoverIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+[data-theme='light'] .xs-sidebar-popover {
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow:
+    0 10px 24px rgba(15, 23, 42, 0.1),
+    0 1px 3px rgba(15, 23, 42, 0.05);
+}
+
 .xs-popover-content {
   padding: 6px;
 }
@@ -234,6 +255,11 @@
   background: var(--surface-raised);
   border-color: var(--border-subtle);
   color: var(--icon-hover);
+}
+
+[data-theme='light'] .xs-tool-icon-btn:hover:not(:disabled):not(.disabled) {
+  background: #F7F9FC;
+  border-color: rgba(15, 23, 42, 0.08);
 }
 
 .xs-tool-icon-btn.active {
