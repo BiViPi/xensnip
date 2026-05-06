@@ -454,8 +454,9 @@ export function QuickAccess() {
   const dotY = centerY + Math.sin(angleRad) * (preset.shadow_offset * previewScale);
 
   return (
-    <div className="xs-shell" style={{ backgroundColor: '#05070a' }}>
+    <div className="xs-shell">
       <TitleBar title="Xensnip" onClose={handleDismiss} />
+      <div className="xs-editor-glow" />
       
       <div className="xs-viewport">
         <LeftPanel 

@@ -1,13 +1,13 @@
 :root {
   /* Backgrounds */
-  --bg-app: #070b16;
-  --bg-canvas: #0b1120;
+  --bg-app: #0f131f;
+  --bg-canvas: #141a2e;
 
   /* Surfaces */
-  --surface-base: rgba(13, 18, 32, 0.92);
-  --surface-panel: rgba(15, 23, 42, 0.88);
-  --surface-raised: rgba(20, 26, 44, 0.94);
-  --surface-overlay: rgba(14, 18, 35, 0.97);
+  --surface-base: rgba(20, 25, 38, 0.92);
+  --surface-panel: rgba(24, 30, 48, 0.88);
+  --surface-raised: rgba(28, 34, 52, 0.94);
+  --surface-overlay: rgba(12, 16, 28, 0.97);
 
   /* Text */
   --text-primary: #f8fafc;

@@ -132,9 +132,13 @@ export function TitleBar({
           top: 0;
           left: 0;
           z-index: 10000;
-          background: rgba(15, 23, 42, 0.6);
-          backdrop-filter: blur(20px);
-          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+          background: rgba(15, 23, 42, 0.4);
+          backdrop-filter: blur(28px) saturate(180%);
+          border-top: 1px solid rgba(255, 255, 255, 0.05);
+          border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+          box-shadow: 
+            inset 0 1px 0 rgba(255, 255, 255, 0.08),
+            0 1px 0 rgba(0, 0, 0, 0.4);
         }
 
         .xs-titlebar-left {
