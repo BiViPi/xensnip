@@ -3,6 +3,7 @@ import { useAnnotationStore } from '../state/store';
 import { FreehandArrowObject } from '../state/types';
 import { ColorToggle } from './ColorToggle';
 import { SliderToggle } from './SliderToggle';
+import { SelectToggle } from './SelectToggle';
 import { MousePointer2, Waves, ChevronRight, ChevronLeft } from 'lucide-react';
 import { useState } from 'react';
 
@@ -24,12 +25,12 @@ export function FreehandArrowToolbar({ anchor, obj }: Props) {
   const left = anchor.left + anchor.width / 2;
   const top = anchor.top - 40;
 
-  const smoothingLevels = [
+  const smoothingOptions = [
     { label: 'Raw', value: 0 },
     { label: 'Low', value: 0.2 },
     { label: 'Mid', value: 0.5 },
     { label: 'High', value: 0.8 },
-  ] as const;
+  ];
 
   return createPortal(
     <div
@@ -75,18 +76,15 @@ export function FreehandArrowToolbar({ anchor, obj }: Props) {
           <div className="xs-toolbar-divider" />
 
           <div className="xs-toolbar-section">
-            <div className="xs-toolbar-select-wrapper" title="Smoothing">
-              <Waves size={14} className="xs-select-icon" />
-              <select
-                value={obj.smoothing}
-                onChange={(e) => updateObject(obj.id, { smoothing: parseFloat(e.target.value) })}
-                className="xs-toolbar-select"
-              >
-                {smoothingLevels.map(s => (
-                  <option key={s.value} value={s.value}>{s.label}</option>
-                ))}
-              </select>
-            </div>
+            <SelectToggle
+              options={smoothingOptions}
+              value={obj.smoothing}
+              onChange={(val) => updateObject(obj.id, { smoothing: val })}
+              icon={<Waves size={14} />}
+              title="Smoothing"
+              isOpen={activePopover === 'smoothing'}
+              onToggle={toggle('smoothing')}
+            />
           </div>
 
           <div className="xs-toolbar-divider" />

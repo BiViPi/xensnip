@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronRight, ChevronLeft, MoonStar } from 'lucide-react';
+import { ChevronRight, ChevronLeft, MoonStar, Blur, Droplets } from 'lucide-react';
 import { useAnnotationStore } from '../state/store';
 import { SimplifyUiObject } from '../state/types';
 import { RadiusIcon } from './ToolbarIcons';
+import { SliderToggle } from './SliderToggle';
+import { RadiusToggle } from './RadiusToggle';
 
 interface Props {
   anchor: { left: number; top: number; width: number; height: number };
@@ -45,135 +47,83 @@ export function SimplifyUiToolbar({ anchor, obj }: Props) {
         <div className="xs-toolbar-section">
           <div className="xs-toolbar-divider" />
 
-          <div style={{ position: 'relative' }}>
-            <button
-              className={`xs-toolbar-btn ${showDim ? 'active' : ''}`}
-              onClick={() => {
-                setShowDim(!showDim);
+          <SliderToggle
+            value={Math.round(obj.dimOpacity * 100)}
+            onChange={(val) => updateObject(obj.id, { dimOpacity: val / 100 })}
+            min={0}
+            max={100}
+            unit="%"
+            isOpen={showDim}
+            onToggle={(open) => {
+              setShowDim(open);
+              if (open) {
                 setShowBlur(false);
                 setShowSaturation(false);
                 setShowRadius(false);
-              }}
-              title="Spotlight Dim"
-            >
-              <MoonStar size={14} />
-            </button>
-            {showDim && (
-              <div className="xs-toolbar-slider-popover">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                  <MoonStar size={12} />
-                  <span style={{ fontSize: 10, color: '#64748b' }}>{Math.round(obj.dimOpacity * 100)}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={Math.round(obj.dimOpacity * 100)}
-                  onChange={(e) => updateObject(obj.id, { dimOpacity: parseInt(e.target.value, 10) / 100 })}
-                  className="xs-toolbar-slider"
-                />
-              </div>
-            )}
-          </div>
+              }
+            }}
+            icon={<MoonStar size={14} />}
+            title="Simplify UI Dim"
+          />
 
           <div className="xs-toolbar-divider" />
 
-          <div style={{ position: 'relative' }}>
-            <button
-              className={`xs-toolbar-btn ${showBlur ? 'active' : ''}`}
-              onClick={() => {
-                setShowBlur(!showBlur);
+          <SliderToggle
+            value={obj.blurRadius}
+            onChange={(val) => updateObject(obj.id, { blurRadius: val })}
+            min={0}
+            max={16}
+            isOpen={showBlur}
+            onToggle={(open) => {
+              setShowBlur(open);
+              if (open) {
                 setShowDim(false);
                 setShowSaturation(false);
                 setShowRadius(false);
-              }}
-              title="Spotlight Soften"
-            >
-              <MoonStar size={14} />
-            </button>
-            {showBlur && (
-              <div className="xs-toolbar-slider-popover">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                  <MoonStar size={12} />
-                  <span style={{ fontSize: 10, color: '#64748b' }}>{obj.blurRadius}px</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="16"
-                  value={obj.blurRadius}
-                  onChange={(e) => updateObject(obj.id, { blurRadius: parseInt(e.target.value, 10) })}
-                  className="xs-toolbar-slider"
-                />
-              </div>
-            )}
-          </div>
+              }
+            }}
+            icon={<Blur size={14} />}
+            title="Simplify UI Soften"
+          />
 
           <div className="xs-toolbar-divider" />
 
-          <div style={{ position: 'relative' }}>
-            <button
-              className={`xs-toolbar-btn ${showSaturation ? 'active' : ''}`}
-              onClick={() => {
-                setShowSaturation(!showSaturation);
+          <SliderToggle
+            value={Math.round(obj.saturation * 100)}
+            onChange={(val) => updateObject(obj.id, { saturation: val / 100 })}
+            min={0}
+            max={100}
+            unit="%"
+            isOpen={showSaturation}
+            onToggle={(open) => {
+              setShowSaturation(open);
+              if (open) {
                 setShowDim(false);
                 setShowBlur(false);
                 setShowRadius(false);
-              }}
-              title="Spotlight Desaturate"
-            >
-              <MoonStar size={14} />
-            </button>
-            {showSaturation && (
-              <div className="xs-toolbar-slider-popover">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                  <MoonStar size={12} />
-                  <span style={{ fontSize: 10, color: '#64748b' }}>{Math.round(obj.saturation * 100)}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={Math.round(obj.saturation * 100)}
-                  onChange={(e) => updateObject(obj.id, { saturation: parseInt(e.target.value, 10) / 100 })}
-                  className="xs-toolbar-slider"
-                />
-              </div>
-            )}
-          </div>
+              }
+            }}
+            icon={<Droplets size={14} />}
+            title="Simplify UI Desaturate"
+          />
 
           <div className="xs-toolbar-divider" />
 
-          <div style={{ position: 'relative' }}>
-            <button
-              className={`xs-toolbar-btn ${showRadius ? 'active' : ''}`}
-              onClick={() => {
-                setShowRadius(!showRadius);
+          <RadiusToggle
+            value={obj.cornerRadius}
+            onChange={(val) => updateObject(obj.id, { cornerRadius: val })}
+            min={0}
+            max={64}
+            isOpen={showRadius}
+            onToggle={(open) => {
+              setShowRadius(open);
+              if (open) {
                 setShowDim(false);
                 setShowBlur(false);
                 setShowSaturation(false);
-              }}
-              title="Spotlight Radius"
-            >
-              <RadiusIcon />
-            </button>
-            {showRadius && (
-              <div className="xs-toolbar-slider-popover">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                  <RadiusIcon />
-                  <span style={{ fontSize: 10, color: '#64748b' }}>{obj.cornerRadius}px</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="64"
-                  value={obj.cornerRadius}
-                  onChange={(e) => updateObject(obj.id, { cornerRadius: parseInt(e.target.value, 10) })}
-                  className="xs-toolbar-slider"
-                />
-              </div>
-            )}
-          </div>
+              }
+            }}
+          />
         </div>
       )}
     </div>,
