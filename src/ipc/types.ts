@@ -7,9 +7,12 @@ export interface Hotkeys {
   active_window: string;
 }
 
+export type ThemeMode = 'dark' | 'light';
+
 export interface Settings {
   version: number;
   hotkeys: Hotkeys;
+  theme: ThemeMode;
   launch_at_startup: boolean;
   play_copy_sound: boolean;
   play_save_sound: boolean;

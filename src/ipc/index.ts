@@ -128,6 +128,10 @@ export async function presetImport(): Promise<number> {
   return await invoke<number>("preset_import");
 }
 
+export async function openSettingsWindow(): Promise<void> {
+  return invoke("open_settings_window");
+}
+
 export async function settingsUpdateLastPreset(preset: EditorPreset): Promise<void> {
   return await invoke<void>("settings_update_last_preset", { preset });
 }

@@ -7,7 +7,8 @@ import {
   assetResolve,
   settingsLoad,
 } from "../ipc/index";
-import { QuickAccessShowPayload, Settings } from "../ipc/types";
+import { QuickAccessShowPayload, Settings, ThemeMode } from "../ipc/types";
+import { applyTheme } from "../styles/applyTheme";
 import { composeToCanvas } from "../compose/compose";
 import { DEFAULT_PRESET, EditorPreset } from "../compose/preset";
 import { preloadWallpaper, getOrLoadWallpaper } from "../compose/core";
@@ -87,7 +88,14 @@ export function QuickAccess() {
   }, []);
 
   useEffect(() => {
-    settingsLoad().then(setSettings).catch(console.error);
+    settingsLoad().then(s => {
+      setSettings(s);
+      applyTheme(s.theme);
+    }).catch(console.error);
+
+    const unlisten = listen<ThemeMode>("theme-changed", (event) => {
+      applyTheme(event.payload);
+    });
     
     const handleResize = () => {
       setViewportSize({
@@ -96,11 +104,17 @@ export function QuickAccess() {
       });
     };
     window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      unlisten.then(fn => fn());
+    };
   }, []);
 
   const refreshSettings = useCallback(() => {
-    settingsLoad().then(setSettings).catch(console.error);
+    settingsLoad().then((s) => {
+      setSettings(s);
+      applyTheme(s.theme);
+    }).catch(console.error);
   }, []);
 
   const showToast = (message: string, type: "success" | "error" = "success") => {

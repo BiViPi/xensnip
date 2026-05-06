@@ -1,6 +1,7 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useEffect, useState } from "react";
 import logo from "../assets/logo.png";
+import "./TitleBar.css";
 
 interface Props {
   title?: string;
@@ -8,7 +9,6 @@ interface Props {
   showMinimize?: boolean;
   showMaximize?: boolean;
   showClose?: boolean;
-  dark?: boolean;
 }
 
 export function TitleBar({
@@ -17,7 +17,6 @@ export function TitleBar({
   showMinimize = true,
   showMaximize = true,
   showClose = true,
-  dark = true
 }: Props) {
   const appWindow = getCurrentWindow();
   const [isMaximized, setIsMaximized] = useState(false);
@@ -77,7 +76,7 @@ export function TitleBar({
   };
 
   return (
-    <div className={`xs-titlebar ${dark ? 'dark' : 'light'}`}>
+    <div className="xs-titlebar">
       {/* Left side: Logo & Title */}
       <div className="xs-titlebar-left">
         <img src={logo} alt="Xensnip" className="xs-titlebar-logo" />
@@ -120,100 +119,6 @@ export function TitleBar({
           </button>
         )}
       </div>
-
-      <style>{`
-        .xs-titlebar {
-          height: 40px;
-          width: 100%;
-          display: flex;
-          align-items: center;
-          user-select: none;
-          position: absolute;
-          top: 0;
-          left: 0;
-          z-index: 10000;
-          background: rgba(15, 23, 42, 0.4);
-          backdrop-filter: blur(28px) saturate(180%);
-          border-top: 1px solid rgba(255, 255, 255, 0.05);
-          border-bottom: 1px solid rgba(255, 255, 255, 0.16);
-          box-shadow: 
-            inset 0 1px 0 rgba(255, 255, 255, 0.08),
-            0 1px 0 rgba(0, 0, 0, 0.4);
-        }
-
-        .xs-titlebar-left {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding-left: 14px;
-          pointer-events: none;
-          flex-shrink: 0;
-          width: 120px;
-        }
-
-        .xs-titlebar-logo {
-          width: 22px;
-          height: 22px;
-          object-fit: contain;
-        }
-
-        .xs-titlebar-text {
-          font-size: 13px;
-          font-weight: 600;
-          color: #f8fafc;
-          letter-spacing: -0.01em;
-          opacity: 0.9;
-        }
-
-        .xs-titlebar-drag-area {
-          flex: 1;
-          height: 100%;
-          cursor: default;
-          background: rgba(0, 0, 0, 0.001);
-          z-index: 10001;
-        }
-
-        .xs-titlebar-controls {
-          display: flex;
-          height: 100%;
-          flex-shrink: 0;
-          z-index: 10002;
-          margin-left: auto;
-          width: auto;
-        }
-        
-        .xs-titlebar-btn {
-          width: 48px;
-          height: 40px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: transparent;
-          border: none;
-          color: #f8fafc;
-          opacity: 0.8;
-          cursor: pointer;
-          transition: all 0.1s ease;
-          position: relative;
-          z-index: 10003;
-          pointer-events: auto !important;
-        }
-
-        .xs-titlebar-btn:hover {
-          opacity: 1;
-          background: rgba(255, 255, 255, 0.12);
-        }
-
-        .xs-titlebar-btn.close:hover {
-          background: #e81123 !important;
-          opacity: 1;
-        }
-
-        .xs-titlebar-btn svg {
-          display: block;
-          pointer-events: none;
-        }
-      `}</style>
     </div>
   );
 }

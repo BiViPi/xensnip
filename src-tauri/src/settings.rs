@@ -26,6 +26,7 @@ fn chrono_now_iso() -> String {
 
 fn default_true() -> bool { true }
 fn default_format() -> String { "PNG".to_string() }
+fn default_theme() -> String { "dark".to_string() }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Settings {
@@ -48,12 +49,14 @@ pub struct Settings {
     pub last_preset: Option<serde_json::Value>,
     #[serde(default)]
     pub default_preset_id: Option<String>,
+    #[serde(default = "default_theme")]
+    pub theme: String,
 }
 
 impl Default for Settings {
     fn default() -> Self {
         Self {
-            version: 6,
+            version: 7,
             hotkeys: Hotkeys {
                 region: "Ctrl+Shift+S".to_string(),
                 active_window: "Ctrl+Alt+W".to_string(),
@@ -67,6 +70,7 @@ impl Default for Settings {
             saved_presets: Vec::new(),
             last_preset: None,
             default_preset_id: None,
+            theme: "dark".to_string(),
         }
     }
 }
@@ -100,6 +104,11 @@ fn migrate_settings_if_needed(settings: &mut Settings) -> bool {
 
     if settings.version < 6 {
         settings.version = 6;
+        changed = true;
+    }
+
+    if settings.version < 7 {
+        settings.version = 7;
         changed = true;
     }
 

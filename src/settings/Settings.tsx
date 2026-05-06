@@ -1,15 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { settingsLoad, settingsSave, selectExportFolder } from "../ipc/index";
-import { Settings as SettingsType, SettingsSaveError } from "../ipc/types";
+import { Settings as SettingsType, SettingsSaveError, ThemeMode } from "../ipc/types";
+import { applyTheme } from "../styles/applyTheme";
+import { emit, listen } from "@tauri-apps/api/event";
 import { Toast } from "../editor/Toast";
 import { HotkeyField } from "./HotkeyField";
 import { TitleBar } from "../editor/TitleBar";
 import "./Settings.css";
 
-import { 
+import {
   LaunchOnStartupIcon, IconSoundIcon, ExportSoundIcon, SavedToIcon, 
-  OutputFormatIcon, MediaQualityIcon, MultipleMonitorsIcon 
+  OutputFormatIcon, MediaQualityIcon, MultipleMonitorsIcon, ThemeIcon 
 } from "../components/icons";
 
 export function Settings() {
@@ -37,6 +39,7 @@ export function Settings() {
         if (!isMounted) return;
         loadedRef.current = nextSettings;
         setDraft(nextSettings);
+        applyTheme(nextSettings.theme);
         setLoadError(null);
       })
       .catch((err) => {
@@ -44,9 +47,15 @@ export function Settings() {
         if (!isMounted) return;
         setLoadError("Failed to load settings.");
       });
+
+    const unlisten = listen<ThemeMode>("theme-changed", (event) => {
+      applyTheme(event.payload);
+    });
+
     return () => {
       isMounted = false;
       if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
+      unlisten.then(fn => fn());
     };
   }, []);
 
@@ -62,6 +71,8 @@ export function Settings() {
     try {
       const result = await settingsSave(draft);
       loadedRef.current = draft;
+      applyTheme(draft.theme);
+      await emit("theme-changed", draft.theme);
       if (result.warnings.length > 0) {
         for (const w of result.warnings) {
           showToast(`Saved. Shortcut '${w.shortcut}' could not be activated.`, "error");
@@ -85,6 +96,8 @@ export function Settings() {
   const handleCancel = () => {
     if (loadedRef.current) {
       setDraft(loadedRef.current);
+      applyTheme(loadedRef.current.theme);
+      void emit("theme-changed", loadedRef.current.theme);
     }
     setErrors({});
     void getCurrentWindow().close();
@@ -115,6 +128,33 @@ export function Settings() {
           <h2>Preferences</h2>
           <p>Configure how XenSnip behaves on your system.</p>
         </header>
+
+        <section className="xs-settings-section">
+          <div className="xs-section-title">APPEARANCE</div>
+          <div className="xs-card">
+            <div className="xs-settings-row">
+              <div className="xs-icon-circle"><ThemeIcon /></div>
+              <div className="xs-field-label">
+                <span className="xs-label-text">Theme</span>
+                <span className="xs-label-desc">Switch between light and dark modes</span>
+              </div>
+              <div className="xs-segmented-control">
+                <div 
+                  className={`xs-segment ${draft.theme === 'dark' ? 'active' : ''}`}
+                  onClick={() => {
+                    setDraft({...draft, theme: 'dark'});
+                  }}
+                >Dark</div>
+                <div 
+                  className={`xs-segment ${draft.theme === 'light' ? 'active' : ''}`}
+                  onClick={() => {
+                    setDraft({...draft, theme: 'light'});
+                  }}
+                >Light</div>
+              </div>
+            </div>
+          </div>
+        </section>
 
         <section className="xs-settings-section">
           <div className="xs-section-title">GENERAL</div>

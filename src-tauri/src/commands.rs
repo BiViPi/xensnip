@@ -27,6 +27,11 @@ pub fn settings_load(app_handle: AppHandle) -> Settings {
 }
 
 #[tauri::command]
+pub fn open_settings_window(app_handle: AppHandle) -> Result<(), String> {
+    crate::open_settings_window(&app_handle).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 pub fn capture_start_region(app_handle: AppHandle) -> Result<(), String> {
     let session = app_handle.state::<CaptureSession>();
     session

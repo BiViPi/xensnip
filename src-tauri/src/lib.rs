@@ -109,6 +109,7 @@ pub fn run() {
             commands::preset_export_pack,
             commands::preset_import,
             commands::settings_update_last_preset,
+            commands::open_settings_window,
         ])
         .setup(|app| {
             app.manage(capture::CaptureSession::new());

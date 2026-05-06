@@ -116,7 +116,7 @@ body {
 }
 
 .xs-dock {
-  background: var(--xs-glass-white);
+  background: var(--surface-base);
   backdrop-filter: var(--xs-blur);
   -webkit-backdrop-filter: var(--xs-blur);
   padding: 8px 12px;
@@ -124,19 +124,18 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--glass-border);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.2),
-    inset 1px 0 0 rgba(255, 255, 255, 0.05),
-    inset -1px 0 0 rgba(255, 255, 255, 0.05),
-    0 16px 36px rgba(0, 0, 0, 0.46),
-    0 2px 10px rgba(0, 0, 0, 0.26);
+    inset 0 1px 0 var(--glass-rim),
+    inset 1px 0 0 rgba(255, 255, 255, 0.04),
+    inset -1px 0 0 rgba(255, 255, 255, 0.04),
+    var(--shadow-panel);
 }
 
 .xs-divider {
   width: 1px;
   height: 22px;
-  background: rgba(255, 255, 255, 0.09);
+  background: var(--glass-divider);
   margin: 0 2px;
 }
 
@@ -153,8 +152,8 @@ body {
 }
 
 .xs-pill-btn {
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
   border-radius: 8px;
   padding: 0 12px;
   height: 34px;
@@ -266,14 +265,14 @@ body {
   bottom: calc(100% + 16px);
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(15, 23, 42, 0.97);
+  background: var(--surface-overlay);
   border-radius: 16px;
   padding: 12px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: var(--shadow-popover);
+  border: 1px solid var(--glass-border);
   min-width: auto;
   animation: xs-slide 0.3s cubic-bezier(0.2, 1, 0.3, 1);
-  color: var(--xs-text);
+  color: var(--text-primary);
   z-index: 1000;
 }
 
@@ -287,13 +286,13 @@ body {
 .xs-ratio-warning-title {
   font-size: 14px;
   font-weight: 700;
-  color: #f8fafc;
+  color: var(--text-primary);
 }
 
 .xs-ratio-warning-text {
   font-size: 12px;
   line-height: 1.45;
-  color: #94a3b8;
+  color: var(--text-secondary);
 }
 
 .xs-ratio-warning-actions {

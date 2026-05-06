@@ -8,6 +8,7 @@ export * from './toolbar/PresetIcon';
 export * from './toolbar/ChevronIcon';
 export * from './toolbar/CopyIcon';
 export * from './toolbar/ExportIcon';
+export * from './toolbar/SettingsIcon';
 
 // Shadow Panel Icons
 export * from './shadow-panel/ShadowPanelIcon';
@@ -24,6 +25,7 @@ export * from './settings/SavedToIcon';
 export * from './settings/OutputFormatIcon';
 export * from './settings/MediaQualityIcon';
 export * from './settings/MultipleMonitorsIcon';
+export * from './settings/ThemeIcon';
 
 // Sidebar Icons
 export * from './sidebar/AnnotateIcon';

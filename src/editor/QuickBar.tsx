@@ -1,7 +1,7 @@
 import { EditorPreset } from "../compose/preset";
 import { 
   RatioIcon, BackgroundIcon, PaddingIcon, RadiusIcon, 
-  ShadowIcon, PresetIcon, ChevronIcon, CopyIcon, ExportIcon 
+  ShadowIcon, PresetIcon, ChevronIcon, CopyIcon, ExportIcon, SettingsIcon 
 } from "../components/icons";
 import { composeToBlob, composeDocumentToBytes } from "../compose/compose";
 import { ScreenshotDocument } from "./useScreenshotDocuments";
@@ -9,7 +9,7 @@ import { composeWithAnnotations } from "../compose/composeWithAnnotations";
 import { useAnnotationStore, useHasAnnotations } from "../annotate/state/store";
 import copySound from "../assets/sounds/copy.ogg";
 import exportSound from "../assets/sounds/export.ogg";
-import { clipboardWriteImage, exportSaveMedia } from "../ipc/index";
+import { clipboardWriteImage, exportSaveMedia, openSettingsWindow } from "../ipc/index";
 import { Settings } from "../ipc/types";
 import { RatioControl } from "./controls/Ratio";
 import { SliderControl } from "./controls/Slider";
@@ -258,6 +258,14 @@ export function QuickBar({
       <div style={{ display: 'flex', gap: '12px' }}>
         <button className="xs-btn xs-action-primary" onClick={handleCopy} disabled={isActionInFlight}><CopyIcon /> Copy</button>
         <button className="xs-btn xs-action-secondary" onClick={handleExport} disabled={isActionInFlight}><ExportIcon /> Export</button>
+        <div className="xs-divider" />
+        <button 
+          className="xs-btn xs-icon-btn" 
+          onClick={() => openSettingsWindow()} 
+          title="Settings"
+        >
+          <SettingsIcon />
+        </button>
       </div>
     </div>
   );
