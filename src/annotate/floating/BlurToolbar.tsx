@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useAnnotationStore } from '../state/store';
 import { BlurObject } from '../state/types';
 import { ChevronRight, ChevronLeft, Ghost } from 'lucide-react';
+import { SliderToggle } from './SliderToggle';
 
 interface Props {
   anchor: { left: number; top: number; width: number; height: number };
@@ -41,29 +42,17 @@ export function BlurToolbar({ anchor, obj }: Props) {
         <div className="xs-toolbar-section">
           <div className="xs-toolbar-divider" />
           
-          <Ghost size={14} color="#64748b" />
-
-          <div style={{ position: 'relative' }}>
-            <button 
-              className="xs-toolbar-text"
-              style={{ minWidth: '40px' }}
-              onClick={() => setShowSlider(!showSlider)}
-            >
-              Blur: {obj.blurRadius}
-            </button>
-            {showSlider && (
-              <div className="xs-toolbar-slider-popover">
-                <span style={{ fontSize: 10, color: '#64748b', marginBottom: 4 }}>Intensity</span>
-                <input 
-                  type="range" 
-                  min="1" max="50" 
-                  value={obj.blurRadius}
-                  onChange={(e) => updateObject(obj.id, { blurRadius: parseInt(e.target.value) })}
-                  className="xs-toolbar-slider"
-                />
-              </div>
-            )}
-          </div>
+          <SliderToggle
+            value={obj.blurRadius}
+            onChange={(val) => updateObject(obj.id, { blurRadius: val })}
+            min={1}
+            max={50}
+            unit=""
+            isOpen={showSlider}
+            onToggle={setShowSlider}
+            icon={<Ghost size={14} />}
+            title="Blur Intensity"
+          />
         </div>
       )}
     </div>,

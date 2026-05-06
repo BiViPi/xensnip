@@ -3,7 +3,8 @@ import { createPortal } from 'react-dom';
 import { useAnnotationStore } from '../state/store';
 import { ArrowObject } from '../state/types';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
-import { DashedLineIcon, PaletteIcon, SolidLineIcon, StrokeWidthIcon } from './ToolbarIcons';
+import { DashedLineIcon, PaletteIcon, SolidLineIcon } from './ToolbarIcons';
+import { SliderToggle } from './SliderToggle';
 
 interface Props {
   anchor: { left: number; top: number; width: number; height: number };
@@ -64,34 +65,16 @@ export function ArrowToolbar({ anchor, obj }: Props) {
 
           <div className="xs-toolbar-divider" />
 
-          <div style={{ position: 'relative' }}>
-            <button
-              className={`xs-toolbar-btn ${showThickness ? 'active' : ''}`}
-              onClick={() => {
-                setShowThickness(!showThickness);
-                setShowColors(false);
-              }}
-              title="Line Thickness"
-            >
-              <StrokeWidthIcon />
-            </button>
-            {showThickness && (
-              <div className="xs-toolbar-slider-popover">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                  <StrokeWidthIcon />
-                  <span style={{ fontSize: 10, color: '#64748b' }}>{obj.strokeWidth}px</span>
-                </div>
-                <input
-                  type="range"
-                  min="1"
-                  max="24"
-                  value={obj.strokeWidth}
-                  onChange={(e) => updateObject(obj.id, { strokeWidth: parseInt(e.target.value) })}
-                  className="xs-toolbar-slider"
-                />
-              </div>
-            )}
-          </div>
+          <SliderToggle
+            value={obj.strokeWidth}
+            onChange={(val) => updateObject(obj.id, { strokeWidth: val })}
+            isOpen={showThickness}
+            onToggle={(open) => {
+              setShowThickness(open);
+              if (open) setShowColors(false);
+            }}
+            title="Line Thickness"
+          />
 
           <div className="xs-toolbar-divider" />
 

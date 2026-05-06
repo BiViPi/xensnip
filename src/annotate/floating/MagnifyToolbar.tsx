@@ -3,7 +3,8 @@ import { createPortal } from 'react-dom';
 import { ChevronRight, ChevronLeft, ZoomIn, SquareSquare } from 'lucide-react';
 import { useAnnotationStore } from '../state/store';
 import { MagnifyObject } from '../state/types';
-import { RadiusIcon } from './ToolbarIcons';
+import { RadiusToggle } from './RadiusToggle';
+import { SliderToggle } from './SliderToggle';
 
 interface Props {
   anchor: { left: number; top: number; width: number; height: number };
@@ -44,100 +45,61 @@ export function MagnifyToolbar({ anchor, obj }: Props) {
         <div className="xs-toolbar-section">
           <div className="xs-toolbar-divider" />
 
-          <div style={{ position: 'relative' }}>
-            <button
-              className={`xs-toolbar-btn ${showZoom ? 'active' : ''}`}
-              onClick={() => {
-                setShowZoom(!showZoom);
+          <SliderToggle
+            value={Math.round(obj.zoom * 100)}
+            onChange={(val) => updateObject(obj.id, { zoom: val / 100 })}
+            min={100}
+            max={400}
+            step={10}
+            unit="%"
+            isOpen={showZoom}
+            onToggle={(open) => {
+              setShowZoom(open);
+              if (open) {
                 setShowRadius(false);
                 setShowBorder(false);
-              }}
-              title="Magnify Zoom"
-            >
-              <ZoomIn size={14} />
-            </button>
-            {showZoom && (
-              <div className="xs-toolbar-slider-popover">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                  <ZoomIn size={12} />
-                  <span style={{ fontSize: 10, color: '#64748b' }}>{Math.round(obj.zoom * 100)}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="100"
-                  max="400"
-                  step="10"
-                  value={Math.round(obj.zoom * 100)}
-                  onChange={(e) => updateObject(obj.id, { zoom: parseInt(e.target.value, 10) / 100 })}
-                  className="xs-toolbar-slider"
-                />
-              </div>
-            )}
-          </div>
+              }
+            }}
+            icon={<ZoomIn size={14} />}
+            title="Magnify Zoom"
+          />
 
           <div className="xs-toolbar-divider" />
 
-          <div style={{ position: 'relative' }}>
-            <button
-              className={`xs-toolbar-btn ${showRadius ? 'active' : ''}`}
-              onClick={() => {
-                setShowRadius(!showRadius);
+          <RadiusToggle
+            value={obj.cornerRadius}
+            onChange={(val) => updateObject(obj.id, { cornerRadius: val })}
+            min={0}
+            max={64}
+            isOpen={showRadius}
+            onToggle={(open) => {
+              setShowRadius(open);
+              if (open) {
                 setShowZoom(false);
                 setShowBorder(false);
-              }}
-              title="Magnify Radius"
-            >
-              <RadiusIcon />
-            </button>
-            {showRadius && (
-              <div className="xs-toolbar-slider-popover">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                  <RadiusIcon />
-                  <span style={{ fontSize: 10, color: '#64748b' }}>{obj.cornerRadius}px</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="64"
-                  value={obj.cornerRadius}
-                  onChange={(e) => updateObject(obj.id, { cornerRadius: parseInt(e.target.value, 10) })}
-                  className="xs-toolbar-slider"
-                />
-              </div>
-            )}
-          </div>
+              }
+            }}
+          />
 
           <div className="xs-toolbar-divider" />
 
-          <div style={{ position: 'relative' }}>
-            <button
-              className={`xs-toolbar-btn ${showBorder ? 'active' : ''}`}
-              onClick={() => {
-                setShowBorder(!showBorder);
+          <SliderToggle
+            value={Math.round(obj.borderOpacity * 100)}
+            onChange={(val) => updateObject(obj.id, { borderOpacity: val / 100 })}
+            min={0}
+            max={100}
+            unit="%"
+            isOpen={showBorder}
+            onToggle={(open) => {
+              setShowBorder(open);
+              if (open) {
                 setShowZoom(false);
                 setShowRadius(false);
-              }}
-              title="Border Opacity"
-            >
-              <SquareSquare size={14} />
-            </button>
-            {showBorder && (
-              <div className="xs-toolbar-slider-popover">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                  <SquareSquare size={12} />
-                  <span style={{ fontSize: 10, color: '#64748b' }}>{Math.round(obj.borderOpacity * 100)}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={Math.round(obj.borderOpacity * 100)}
-                  onChange={(e) => updateObject(obj.id, { borderOpacity: parseInt(e.target.value, 10) / 100 })}
-                  className="xs-toolbar-slider"
-                />
-              </div>
-            )}
-          </div>
+              }
+            }}
+            icon={<SquareSquare size={14} />}
+            title="Border Opacity"
+          />
         </div>
       )}
     </div>,

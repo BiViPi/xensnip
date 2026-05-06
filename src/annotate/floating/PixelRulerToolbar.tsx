@@ -4,6 +4,7 @@ import { useAnnotationStore } from '../state/store';
 import { PixelRulerObject } from '../state/types';
 import { ChevronRight, ChevronLeft, Square } from 'lucide-react';
 import { PaletteIcon, StrokeWidthIcon } from './ToolbarIcons';
+import { SliderToggle } from './SliderToggle';
 
 interface Props {
   anchor: { left: number; top: number; width: number; height: number };
@@ -75,34 +76,19 @@ export function PixelRulerToolbar({ anchor, obj }: Props) {
           <div className="xs-toolbar-divider" />
 
           {/* Thickness */}
-          <div style={{ position: 'relative' }}>
-            <button
-              className={`xs-toolbar-btn ${showThickness ? 'active' : ''}`}
-              onClick={() => {
-                setShowThickness(!showThickness);
-                setShowColors(false);
-              }}
-              title="Stroke Thickness"
-            >
-              <StrokeWidthIcon />
-            </button>
-            {showThickness && (
-              <div className="xs-toolbar-slider-popover">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                  <StrokeWidthIcon />
-                  <span style={{ fontSize: 10, color: '#64748b' }}>{obj.strokeWidth}px</span>
-                </div>
-                <input
-                  type="range"
-                  min="1"
-                  max="12"
-                  value={obj.strokeWidth}
-                  onChange={(e) => updateObject(obj.id, { strokeWidth: parseInt(e.target.value) })}
-                  className="xs-toolbar-slider"
-                />
-              </div>
-            )}
-          </div>
+          <SliderToggle
+            value={obj.strokeWidth}
+            onChange={(val) => updateObject(obj.id, { strokeWidth: val })}
+            min={1}
+            max={12}
+            isOpen={showThickness}
+            onToggle={(open) => {
+              setShowThickness(open);
+              if (open) setShowColors(false);
+            }}
+            icon={<StrokeWidthIcon />}
+            title="Stroke Thickness"
+          />
 
           <div className="xs-toolbar-divider" />
 

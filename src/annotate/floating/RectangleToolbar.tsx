@@ -3,7 +3,9 @@ import { createPortal } from 'react-dom';
 import { useAnnotationStore } from '../state/store';
 import { RectangleObject } from '../state/types';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
-import { CloudLineIcon, DashedLineIcon, PaletteIcon, RadiusIcon, SolidLineIcon, StrokeWidthIcon } from './ToolbarIcons';
+import { CloudLineIcon, DashedLineIcon, PaletteIcon, RadiusIcon, SolidLineIcon } from './ToolbarIcons';
+import { SliderToggle } from './SliderToggle';
+import { RadiusToggle } from './RadiusToggle';
 
 interface Props {
   anchor: { left: number; top: number; width: number; height: number };
@@ -67,35 +69,19 @@ export function RectangleToolbar({ anchor, obj }: Props) {
 
           <div className="xs-toolbar-divider" />
 
-          <div style={{ position: 'relative' }}>
-            <button
-              className={`xs-toolbar-btn ${showThickness ? 'active' : ''}`}
-              onClick={() => {
-                setShowThickness(!showThickness);
+          <SliderToggle
+            value={obj.strokeWidth}
+            onChange={(val) => updateObject(obj.id, { strokeWidth: val })}
+            isOpen={showThickness}
+            onToggle={(open) => {
+              setShowThickness(open);
+              if (open) {
                 setShowRadius(false);
                 setShowColors(false);
-              }}
-              title="Line Thickness"
-            >
-              <StrokeWidthIcon />
-            </button>
-            {showThickness && (
-              <div className="xs-toolbar-slider-popover">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                  <StrokeWidthIcon />
-                  <span style={{ fontSize: 10, color: '#64748b' }}>{obj.strokeWidth}px</span>
-                </div>
-                <input
-                  type="range"
-                  min="1"
-                  max="24"
-                  value={obj.strokeWidth}
-                  onChange={(e) => updateObject(obj.id, { strokeWidth: parseInt(e.target.value) })}
-                  className="xs-toolbar-slider"
-                />
-              </div>
-            )}
-          </div>
+              }
+            }}
+            title="Line Thickness"
+          />
 
           <div className="xs-toolbar-divider" />
 
@@ -130,35 +116,18 @@ export function RectangleToolbar({ anchor, obj }: Props) {
             <>
               <div className="xs-toolbar-divider" />
 
-              <div style={{ position: 'relative' }}>
-                <button
-                  className={`xs-toolbar-btn ${showRadius ? 'active' : ''}`}
-                  onClick={() => {
-                    setShowRadius(!showRadius);
+              <RadiusToggle
+                value={obj.cornerRadius}
+                onChange={(val) => updateObject(obj.id, { cornerRadius: val })}
+                isOpen={showRadius}
+                onToggle={(open) => {
+                  setShowRadius(open);
+                  if (open) {
                     setShowThickness(false);
                     setShowColors(false);
-                  }}
-                  title="Corner Radius"
-                >
-                  <RadiusIcon />
-                </button>
-                {showRadius && (
-                  <div className="xs-toolbar-slider-popover">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                      <RadiusIcon />
-                      <span style={{ fontSize: 10, color: '#64748b' }}>{obj.cornerRadius}px</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="0"
-                      max="24"
-                      value={obj.cornerRadius}
-                      onChange={(e) => updateObject(obj.id, { cornerRadius: parseInt(e.target.value) })}
-                      className="xs-toolbar-slider"
-                    />
-                  </div>
-                )}
-              </div>
+                  }
+                }}
+              />
             </>
           )}
         </div>

@@ -1,3 +1,4 @@
+import React from 'react';
 import { StrokeWidthIcon } from './ToolbarIcons';
 
 interface Props {
@@ -5,20 +6,33 @@ interface Props {
   onChange: (val: number) => void;
   min?: number;
   max?: number;
+  step?: number;
+  unit?: string;
   title?: string;
   icon?: React.ReactNode;
   isOpen: boolean;
   onToggle: (open: boolean) => void;
 }
 
-export function StrokeWidthToggle({ value, onChange, min = 1, max = 24, title, icon, isOpen, onToggle }: Props) {
+export function SliderToggle({ 
+  value, 
+  onChange, 
+  min = 1, 
+  max = 24, 
+  step = 1,
+  unit = 'px',
+  title, 
+  icon, 
+  isOpen, 
+  onToggle 
+}: Props) {
 
   return (
     <div style={{ position: 'relative' }}>
       <button
         className={`xs-toolbar-btn ${isOpen ? 'active' : ''}`}
         onClick={() => onToggle(!isOpen)}
-        title={title || "Line Thickness"}
+        title={title || "Adjustment"}
       >
         {icon || <StrokeWidthIcon />}
       </button>
@@ -30,12 +44,13 @@ export function StrokeWidthToggle({ value, onChange, min = 1, max = 24, title, i
                 type="range"
                 min={min}
                 max={max}
+                step={step}
                 value={value}
-                onChange={(e) => onChange(parseInt(e.target.value))}
+                onChange={(e) => onChange(parseFloat(e.target.value))}
                 className="xs-slider-input"
               />
             </div>
-            <span className="xs-slider-value-text">{value}px</span>
+            <span className="xs-slider-value-text">{value}{unit}</span>
           </div>
         </div>
       )}
