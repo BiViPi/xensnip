@@ -13,6 +13,9 @@ import { SimplifyUiToolbar } from './SimplifyUiToolbar';
 import { useMeasureStore } from '../../measure/store';
 import { ColorPickerToolbar } from '../../measure/ColorPickerToolbar';
 import { PixelRulerToolbar } from './PixelRulerToolbar';
+import { SpeechBubbleToolbar } from './SpeechBubbleToolbar';
+import { CalloutToolbar } from './CalloutToolbar';
+import { FreehandArrowToolbar } from './FreehandArrowToolbar';
 
 interface Props {
   scale: number;
@@ -68,6 +71,18 @@ export function FloatingToolbarManager({ scale, stageRef }: Props) {
 
   if (selectedObject.type === 'pixel_ruler') {
     return <PixelRulerToolbar anchor={anchor} obj={selectedObject as any} />;
+  }
+
+  if (selectedObject.type === 'speech_bubble') {
+    return <SpeechBubbleToolbar anchor={anchor} obj={selectedObject as any} />;
+  }
+
+  if (selectedObject.type === 'callout') {
+    return <CalloutToolbar anchor={anchor} obj={selectedObject as any} />;
+  }
+
+  if (selectedObject.type === 'freehand_arrow') {
+    return <FreehandArrowToolbar anchor={anchor} obj={selectedObject as any} />;
   }
 
   return null;

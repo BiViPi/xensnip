@@ -20,6 +20,9 @@ import {
   Grid,
   Pipette,
   ScanText,
+  MessageSquare,
+  MousePointer2,
+  PencilLine,
 } from 'lucide-react';
 import './Sidebar.css';
 
@@ -208,6 +211,9 @@ function PrivacyTools({ onClose }: { onClose: () => void }) {
 function StepsTools({ onClose }: { onClose: () => void }) {
   const tools = [
     { id: 'numbered', label: 'Numbered Steps', icon: Hash, hint: 'Numbered Steps — click on canvas' },
+    { id: 'speech_bubble', label: 'Speech Bubble', icon: MessageSquare, hint: 'Speech Bubble — click on canvas' },
+    { id: 'callout', label: 'Callout', icon: MousePointer2, hint: 'Callout — drag from target to label' },
+    { id: 'freehand_arrow', label: 'Freehand Arrow', icon: PencilLine, hint: 'Freehand Arrow — drag to sketch' },
   ];
   return <ToolGrid tools={tools} onClose={onClose} />;
 }

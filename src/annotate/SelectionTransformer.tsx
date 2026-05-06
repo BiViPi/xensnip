@@ -32,14 +32,16 @@ export function SelectionTransformer() {
       return;
     }
 
-    if (selectedObject?.type === 'text' || selectedObject?.type === 'numbered' || editingTextId === selectedId) {
+    const RESIZE_DISABLED_TYPES = new Set(['text', 'numbered']);
+    if (RESIZE_DISABLED_TYPES.has(selectedObject?.type || '') || editingTextId === selectedId) {
       transformerRef.current.nodes([]);
       transformerRef.current.getLayer().batchDraw();
       return;
     }
 
     transformerRef.current.nodes([selectedNode]);
-    if (selectedNode.className === 'Group' && selectedObject?.type !== 'magnify' && selectedObject?.type !== 'pixel_ruler') {
+    const RESIZE_ENABLED_GROUPS = new Set(['magnify', 'pixel_ruler', 'speech_bubble', 'callout']);
+    if (selectedNode.className === 'Group' && !RESIZE_ENABLED_GROUPS.has(selectedObject?.type || '')) {
       transformerRef.current.enabledAnchors([]);
     } else {
       transformerRef.current.enabledAnchors([...fullResizeAnchors]);
@@ -74,6 +76,41 @@ export function SelectionTransformer() {
         y: node.y(),
         rotation,
         points: newPoints as [number, number, number, number],
+      });
+    } else if (obj.type === 'freehand_arrow') {
+      const freehandObj = obj as any;
+      const newPoints = freehandObj.points.map((v: number, i: number) =>
+        i % 2 === 0 ? v * scaleX : v * scaleY
+      );
+      updateObject(selectedId, {
+        x: node.x(),
+        y: node.y(),
+        rotation,
+        points: newPoints,
+      });
+    } else if (obj.type === 'speech_bubble') {
+      const nextTailLength = obj.tailSide === 'top' || obj.tailSide === 'bottom'
+        ? obj.tailLength * scaleY
+        : obj.tailLength * scaleX;
+      updateObject(selectedId, {
+        x: node.x(),
+        y: node.y(),
+        rotation,
+        width: obj.width * scaleX,
+        height: obj.height * scaleY,
+        tailLength: nextTailLength,
+      });
+    } else if (obj.type === 'callout') {
+      const relTargetX = obj.targetX - obj.x;
+      const relTargetY = obj.targetY - obj.y;
+      updateObject(selectedId, {
+        x: node.x(),
+        y: node.y(),
+        rotation,
+        width: obj.width * scaleX,
+        height: obj.height * scaleY,
+        targetX: node.x() + relTargetX * scaleX,
+        targetY: node.y() + relTargetY * scaleY,
       });
     } else if (obj.type === 'rectangle' || obj.type === 'blur' || obj.type === 'spotlight' || obj.type === 'magnify' || obj.type === 'simplify_ui') {
       updateObject(selectedId, {

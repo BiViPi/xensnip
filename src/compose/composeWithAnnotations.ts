@@ -11,6 +11,9 @@ import { createSpotlightNodes } from "../annotate/renderers/SpotlightRenderer";
 import { renderMagnify } from "../annotate/renderers/MagnifyRenderer";
 import { renderSimplifyUi } from "../annotate/renderers/SimplifyUiRenderer";
 import { renderPixelRuler } from "../annotate/renderers/PixelRulerRenderer";
+import { createSpeechBubbleNode } from "../annotate/renderers/SpeechBubbleRenderer";
+import { createCalloutNode } from "../annotate/renderers/CalloutRenderer";
+import { createFreehandArrowNode } from "../annotate/renderers/FreehandArrowRenderer";
 
 export async function composeWithAnnotations(
   image: HTMLImageElement,
@@ -70,6 +73,12 @@ export async function composeWithAnnotations(
         renderSimplifyUi(ctx, obj as any, sourceCanvas);
       } else if (obj.type === 'pixel_ruler') {
         renderPixelRuler(ctx, obj as any);
+      } else if (obj.type === 'speech_bubble') {
+        layer.add(createSpeechBubbleNode(obj as any));
+      } else if (obj.type === 'callout') {
+        layer.add(createCalloutNode(obj as any));
+      } else if (obj.type === 'freehand_arrow') {
+        layer.add(createFreehandArrowNode(obj as any));
       }
     }
     

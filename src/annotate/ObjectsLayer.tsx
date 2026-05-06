@@ -8,6 +8,9 @@ import { SpotlightNode } from './objects/SpotlightNode';
 import { MagnifyNode } from './objects/MagnifyNode';
 import { SimplifyUiNode } from './objects/SimplifyUiNode';
 import { PixelRulerNode } from './objects/PixelRulerNode';
+import { SpeechBubbleNode } from './objects/SpeechBubbleNode';
+import { CalloutNode } from './objects/CalloutNode';
+import { FreehandArrowNode } from './objects/FreehandArrowNode';
 
 interface Props {
   compositionCanvasRef: React.RefObject<HTMLCanvasElement | null>;
@@ -125,6 +128,36 @@ export function ObjectsLayer({ compositionCanvasRef, stageWidth, stageHeight, sc
               onSelect={() => select(obj.id)}
               onChange={(attrs) => updateObject(obj.id, attrs)}
               scale={scale}
+            />
+          );
+        }
+        if (obj.type === 'speech_bubble') {
+          return (
+            <SpeechBubbleNode
+              key={obj.id}
+              obj={obj as any}
+              onSelect={() => select(obj.id)}
+              onUpdate={updateObject}
+            />
+          );
+        }
+        if (obj.type === 'callout') {
+          return (
+            <CalloutNode
+              key={obj.id}
+              obj={obj as any}
+              onSelect={() => select(obj.id)}
+              onUpdate={updateObject}
+            />
+          );
+        }
+        if (obj.type === 'freehand_arrow') {
+          return (
+            <FreehandArrowNode
+              key={obj.id}
+              obj={obj as any}
+              onSelect={() => select(obj.id)}
+              onUpdate={updateObject}
             />
           );
         }

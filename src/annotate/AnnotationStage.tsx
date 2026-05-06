@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Stage, Layer, Arrow, Rect } from 'react-konva';
 import { useAnnotationStore } from './state/store';
 import { ObjectsLayer } from './ObjectsLayer';
-import { ArrowObject, RectangleObject, TextObject, BlurObject, NumberedObject, SpotlightObject, MagnifyObject, SimplifyUiObject, PixelRulerObject } from './state/types';
+import { ArrowObject, RectangleObject, TextObject, BlurObject, NumberedObject, SpotlightObject, MagnifyObject, SimplifyUiObject, PixelRulerObject, SpeechBubbleObject, CalloutObject, FreehandArrowObject } from './state/types';
+import { getTextEditableContract } from './state/textEditable';
 import { SelectionTransformer } from './SelectionTransformer';
 import { createPortal } from 'react-dom';
 import { getSpotlightCornerRadius } from './renderers/spotlightLayout';
@@ -31,6 +32,9 @@ const TOOL_CURSOR: Record<string, string> = {
   text: 'text',
   numbered: 'cell',
   pixel_ruler: 'crosshair',
+  speech_bubble: 'crosshair',
+  callout: 'crosshair',
+  freehand_arrow: 'crosshair',
   crop: 'default',
   canvas: 'default',
 };
@@ -54,15 +58,15 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
   const stageWidth = width / scale;
   const stageHeight = height / scale;
 
-  const editingText = objects.find((obj): obj is TextObject => obj.type === 'text' && obj.id === editingTextId);
+  const contract = getTextEditableContract(objects.find(obj => obj.id === editingTextId) || null);
   const overlay = document.getElementById('annotation-ui-overlay');
 
   useEffect(() => {
-    if (!editingText || !textareaRef.current) return;
+    if (!contract || !textareaRef.current) return;
 
     textareaRef.current.focus();
     textareaRef.current.select();
-  }, [editingText?.id]);
+  }, [contract?.id]);
 
   useEffect(() => {
     if (activeUtility === 'ocr_extract') return;
@@ -187,6 +191,45 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
       addObject(numbered);
       select(newId);
       setActiveTool('select');
+    } else if (activeTool === 'speech_bubble') {
+      const newId = `obj-${Date.now()}`;
+      const bubble: SpeechBubbleObject = {
+        id: newId,
+        type: 'speech_bubble',
+        x: stageX - 80,
+        y: stageY - 36,
+        rotation: 0,
+        width: 160,
+        height: 72,
+        text: 'Type here...',
+        fontSize: 14,
+        fontFamily: 'Inter, sans-serif',
+        fill: '#ffffff',
+        textColor: '#1e1e2e',
+        stroke: '#1e1e2e',
+        padding: 10,
+        cornerRadius: 10,
+        tailSide: 'bottom',
+        tailOffset: 0.5,
+        tailLength: 18,
+        draggable: true,
+      };
+      addObject(bubble);
+      select(newId);
+      setEditingTextId(newId);
+      setActiveTool('select');
+    } else if (activeTool === 'callout') {
+      setDrawingObject({
+        type: 'callout',
+        start: { x: stageX, y: stageY },
+        end: { x: stageX, y: stageY }
+      });
+    } else if (activeTool === 'freehand_arrow') {
+      setDrawingObject({
+        type: 'freehand_arrow',
+        start: { x: stageX, y: stageY },
+        points: [0, 0]
+      });
     } else {
       const clickedOnEmpty = e.target === stage;
       if (clickedOnEmpty && activeTool === 'select') {
@@ -197,9 +240,9 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
   };
 
   const closeTextEditor = (value: string) => {
-    if (!editingText) return;
+    if (!contract) return;
 
-    updateObject(editingText.id, { text: value || 'Type here...' });
+    updateObject(contract.id, { text: value || 'Type here...' });
     setEditingTextId(null);
   };
 
@@ -241,6 +284,23 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
       }
     }
 
+    if (drawingObject.type === 'freehand_arrow') {
+      const dx = stageX - drawingObject.start.x;
+      const dy = stageY - drawingObject.start.y;
+      
+      const lastX = drawingObject.points[drawingObject.points.length - 2];
+      const lastY = drawingObject.points[drawingObject.points.length - 1];
+      const distSq = (dx - lastX) ** 2 + (dy - lastY) ** 2;
+
+      if (distSq > 16) { // 4px minimum movement
+        setDrawingObject({
+          ...drawingObject,
+          points: [...drawingObject.points, dx, dy]
+        });
+      }
+      return;
+    }
+
     setDrawingObject({
       ...drawingObject,
       end: { x: endX, y: endY }
@@ -249,6 +309,39 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
 
   const handleMouseUp = () => {
     if (!drawingObject) return;
+
+    if (drawingObject.type === 'freehand_arrow') {
+      let totalPathLength = 0;
+      for (let i = 2; i < drawingObject.points.length; i += 2) {
+        const segDx = drawingObject.points[i] - drawingObject.points[i - 2];
+        const segDy = drawingObject.points[i + 1] - drawingObject.points[i - 1];
+        totalPathLength += Math.sqrt(segDx * segDx + segDy * segDy);
+      }
+
+      if (totalPathLength > 20) {
+        const newId = `obj-${Date.now()}`;
+        const arrow: FreehandArrowObject = {
+          id: newId,
+          type: 'freehand_arrow',
+          x: drawingObject.start.x,
+          y: drawingObject.start.y,
+          rotation: 0,
+          points: drawingObject.points,
+          stroke: '#ef4444',
+          strokeWidth: 4,
+          smoothing: 0.5,
+          pointerLength: 12,
+          pointerWidth: 12,
+          draggable: true,
+        };
+        addObject(arrow);
+        select(newId);
+        setActiveTool('select');
+      }
+
+      setDrawingObject(null);
+      return;
+    }
 
     const dx = drawingObject.end.x - drawingObject.start.x;
     const dy = drawingObject.end.y - drawingObject.start.y;
@@ -412,6 +505,32 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
           draggable: true,
         };
         addObject(ruler);
+      } else if (drawingObject.type === 'callout') {
+        const callout: CalloutObject = {
+          id: newId,
+          type: 'callout',
+          x: drawingObject.end.x,
+          y: drawingObject.end.y,
+          rotation: 0,
+          width: 120,
+          height: 48,
+          text: 'Callout',
+          fontSize: 14,
+          fontFamily: 'Inter, sans-serif',
+          fill: '#ffffff',
+          textColor: '#1e1e2e',
+          stroke: '#1e1e2e',
+          padding: 8,
+          cornerRadius: 4,
+          targetX: drawingObject.start.x,
+          targetY: drawingObject.start.y,
+          lineColor: '#1e1e2e',
+          lineWidth: 2,
+          draggable: true,
+        };
+        addObject(callout);
+        select(newId);
+        setEditingTextId(newId);
       }
       select(newId);
       setActiveTool('select');
@@ -573,10 +692,10 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
           )}
         </Layer>
       </Stage>
-      {editingText && overlay && createPortal(
+      {contract && overlay && createPortal(
         <textarea
           ref={textareaRef}
-          defaultValue={editingText.text === 'Type here...' ? '' : editingText.text}
+          defaultValue={contract.currentText === 'Type here...' ? '' : contract.currentText}
           onBlur={(e) => closeTextEditor(e.target.value)}
           onMouseDown={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}
@@ -593,16 +712,18 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
           placeholder="Type here..."
           style={{
             position: 'absolute',
-            left: `${editingText.x * scale}px`,
-            top: `${editingText.y * scale}px`,
-            minWidth: `${120 * scale}px`,
-            minHeight: `${32 * scale}px`,
-            fontSize: `${editingText.fontSize * scale}px`,
-            fontFamily: editingText.fontFamily,
-            color: editingText.fill,
+            left: `${contract.overlayX * scale}px`,
+            top: `${contract.overlayY * scale}px`,
+            width: contract.fixedSize ? `${contract.overlayWidth * scale}px` : undefined,
+            height: contract.fixedSize ? `${contract.overlayHeight * scale}px` : undefined,
+            minWidth: !contract.fixedSize ? `${contract.overlayWidth * scale}px` : undefined,
+            minHeight: !contract.fixedSize ? `${contract.overlayHeight * scale}px` : undefined,
+            fontSize: `${contract.fontSize * scale}px`,
+            fontFamily: contract.fontFamily,
+            color: contract.textColor,
             background: 'transparent',
             border: '1px dashed rgba(99, 102, 241, 0.65)',
-            padding: `${editingText.padding * scale}px`,
+            padding: 0,
             margin: 0,
             outline: 'none',
             resize: 'none',

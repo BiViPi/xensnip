@@ -1,4 +1,4 @@
-export type ToolId = 'select' | 'arrow' | 'rectangle' | 'text' | 'blur' | 'numbered' | 'spotlight' | 'crop' | 'canvas' | 'magnify' | 'simplify_ui' | 'pixel_ruler';
+export type ToolId = 'select' | 'arrow' | 'rectangle' | 'text' | 'blur' | 'numbered' | 'spotlight' | 'crop' | 'canvas' | 'magnify' | 'simplify_ui' | 'pixel_ruler' | 'speech_bubble' | 'callout' | 'freehand_arrow';
 
 export interface BaseObject {
   id: string;
@@ -94,4 +94,61 @@ export interface PixelRulerObject extends BaseObject {
   showBackground: boolean;
 }
 
-export type AnnotateObject = ArrowObject | RectangleObject | TextObject | BlurObject | NumberedObject | SpotlightObject | MagnifyObject | SimplifyUiObject | PixelRulerObject;
+export interface SpeechBubbleObject extends BaseObject {
+  type: 'speech_bubble';
+  width: number;
+  height: number;
+  text: string;
+  fontSize: number;
+  fontFamily: string;
+  fill: string;
+  textColor: string;
+  stroke: string;
+  padding: number;
+  cornerRadius: number;
+  tailSide: 'top' | 'right' | 'bottom' | 'left';
+  tailOffset: number;
+  tailLength: number;
+}
+
+export interface CalloutObject extends BaseObject {
+  type: 'callout';
+  width: number;
+  height: number;
+  text: string;
+  fontSize: number;
+  fontFamily: string;
+  fill: string;
+  textColor: string;
+  stroke: string;
+  padding: number;
+  cornerRadius: number;
+  targetX: number;
+  targetY: number;
+  lineColor: string;
+  lineWidth: number;
+}
+
+export interface FreehandArrowObject extends BaseObject {
+  type: 'freehand_arrow';
+  points: number[];
+  stroke: string;
+  strokeWidth: number;
+  smoothing: number;
+  pointerLength: number;
+  pointerWidth: number;
+}
+
+export type AnnotateObject = 
+  | ArrowObject 
+  | RectangleObject 
+  | TextObject 
+  | BlurObject 
+  | NumberedObject 
+  | SpotlightObject 
+  | MagnifyObject 
+  | SimplifyUiObject 
+  | PixelRulerObject
+  | SpeechBubbleObject
+  | CalloutObject
+  | FreehandArrowObject;
