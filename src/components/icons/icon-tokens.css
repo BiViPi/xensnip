@@ -11,4 +11,6 @@
   --icon-accent-purple-start: #f8f3ea;
   --icon-accent-purple-end: #ddd4c7;
   --icon-accent-orange: var(--state-warning);
+  --icon-accent-indigo: var(--accent-primary);
+  --icon-accent-indigo-light: var(--accent-hover);
 }

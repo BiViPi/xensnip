@@ -21,9 +21,9 @@ export const RadiusIcon = () => {
     <circle cx="88" cy="96" r="14" fill={`url(#${ids.mountain})`} />
     <path d="M 56 186 L 94 140 A 6 6 0 0 1 104 140 L 132 174 L 148 120 A 6 6 0 0 1 158 120 L 200 180 L 200 196 A 8 8 0 0 1 192 204 L 64 204 A 8 8 0 0 1 56 196 Z" fill={`url(#${ids.mountain})`} />
     <path d="M 128 44 L 76 44 A 32 32 0 0 0 44 76 L 44 180 A 32 32 0 0 0 76 212 L 180 212 A 32 32 0 0 0 212 180 L 212 128" fill="none" stroke="var(--icon-stroke-dark)" strokeWidth="12" strokeLinecap="round" />
-    <path d="M 144 44 L 180 44 A 32 32 0 0 1 212 76 L 212 112" fill="none" stroke={`url(#${ids.grad})`} strokeWidth="12" strokeLinecap="round" />
-    <g fill="var(--icon-accent-blue)"><circle cx="132" cy="60" r="4" /><circle cx="196" cy="124" r="4" /></g>
-    <path d="M 140 60 A 56 56 0 0 1 196 116" fill="none" stroke="var(--icon-accent-blue)" strokeWidth="4" strokeLinecap="round" strokeDasharray="8 10" />
+    <path d="M 144 44 L 180 44 A 32 32 0 0 1 212 76 L 212 112" fill="none" stroke="var(--icon-accent-indigo)" strokeWidth="12" strokeLinecap="round" />
+    <g fill="var(--icon-accent-indigo)"><circle cx="132" cy="60" r="4" /><circle cx="196" cy="124" r="4" /></g>
+    <path d="M 140 60 A 56 56 0 0 1 196 116" fill="none" stroke="var(--icon-accent-indigo)" strokeWidth="4" strokeLinecap="round" strokeDasharray="8 10" />
     <g transform="translate(192, 192)">
       <circle cx="0" cy="0" r="24" fill="var(--icon-bg-primary)" filter={`url(#${ids.glow})`} />
       <circle cx="0" cy="0" r="24" fill="var(--icon-bg-primary)" />
