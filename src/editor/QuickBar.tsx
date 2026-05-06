@@ -120,6 +120,25 @@ export function QuickBar({
     } finally { setIsActionInFlight(false); }
   };
 
+  const handleOpenSettings = async () => {
+    onActivePopChange(null);
+
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+
+    await new Promise<void>((resolve) => {
+      window.requestAnimationFrame(() => resolve());
+    });
+
+    try {
+      await openSettingsWindow();
+    } catch (err) {
+      console.error("Failed to open settings window", err);
+      showToast("Failed to open settings", "error");
+    }
+  };
+
   return (
     <div className="xs-dock">
       <div style={{ display: 'flex', gap: '8px' }}>
@@ -198,7 +217,7 @@ export function QuickBar({
             <div className="xs-pop" style={{ minWidth: '240px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <SliderControl label="Radius" min={0} max={48} value={preset.radius} onChange={v => setPreset(p => ({ ...p, radius: v }))} />
-                <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '8px 4px' }} />
+                <div className="xs-pop-divider" />
                 <SliderControl label="Border" min={0} max={12} value={preset.border_width} onChange={v => setPreset(p => ({ ...p, border_width: v }))} />
                 <div style={{ display: 'flex', gap: '8px', marginTop: '4px', padding: '4px 2px' }}>
                   {[
@@ -209,11 +228,7 @@ export function QuickBar({
                     <button
                       key={c.color}
                       className={`xs-color-swatch ${preset.border_color === c.color ? 'active' : ''}`}
-                      style={{ 
-                        width: '24px', height: '24px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.15)',
-                        background: c.color, cursor: 'pointer', transition: 'all 0.2s',
-                        boxShadow: preset.border_color === c.color ? '0 0 0 2px #6366F1' : 'none'
-                      }}
+                      style={{ background: c.color }}
                       onClick={() => setPreset(p => ({ ...p, border_color: c.color }))}
                       title={c.label}
                     />
@@ -261,7 +276,7 @@ export function QuickBar({
         <div className="xs-divider" />
         <button 
           className="xs-btn xs-icon-btn" 
-          onClick={() => openSettingsWindow()} 
+          onClick={() => void handleOpenSettings()} 
           title="Settings"
         >
           <SettingsIcon />

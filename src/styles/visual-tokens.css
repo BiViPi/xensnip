@@ -51,6 +51,18 @@
   /* Controls */
   --control-bg: rgba(7, 11, 22, 0.4);
   --control-inner-rim: rgba(255, 255, 255, 0.05);
+  --hotkey-bg: rgba(0, 0, 0, 0.3);
+  --hotkey-border: rgba(255, 255, 255, 0.1);
+  --hotkey-text: var(--accent-primary);
+  --icon-badge-bg: linear-gradient(180deg, rgba(24, 31, 52, 0.95) 0%, rgba(16, 22, 39, 0.96) 100%);
+
+  /* UI Components */
+  --panel-bg: var(--bg-app);
+  --panel-border: var(--border-subtle);
+  --toast-bg: rgba(15, 23, 42, 0.95);
+  --toast-border: rgba(99, 102, 241, 0.3);
+  --canvas-bg: #000000;
+  --canvas-border: rgba(255, 255, 255, 0.05);
 
   /* TitleBar */
   --titlebar-bg: rgba(15, 23, 42, 0.4);
@@ -64,6 +76,7 @@
   --shadow-popover: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
   --shadow-button: 0 2px 4px rgba(0, 0, 0, 0.2);
   --shadow-button-primary: 0 4px 12px rgba(99, 102, 241, 0.3);
+  --shadow-canvas: 0 32px 64px rgba(0, 0, 0, 0.5);
 }
 
 :root[data-theme='light'] {
@@ -119,6 +132,18 @@
   /* Controls */
   --control-bg: rgba(0, 0, 0, 0.04);
   --control-inner-rim: rgba(255, 255, 255, 0.1);
+  --hotkey-bg: rgba(0, 0, 0, 0.04);
+  --hotkey-border: rgba(0, 0, 0, 0.08);
+  --hotkey-text: var(--accent-primary);
+  --icon-badge-bg: var(--surface-raised);
+
+  /* UI Components */
+  --panel-bg: var(--surface-base);
+  --panel-border: var(--border-subtle);
+  --toast-bg: var(--surface-overlay);
+  --toast-border: var(--accent-cyan-soft);
+  --canvas-bg: var(--bg-app);
+  --canvas-border: var(--border-subtle);
 
   /* TitleBar */
   --titlebar-bg: rgba(255, 255, 255, 0.6);
@@ -132,4 +157,5 @@
   --shadow-popover: 0 12px 40px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.05);
   --shadow-button: 0 2px 4px rgba(0, 0, 0, 0.05);
   --shadow-button-primary: 0 4px 12px rgba(79, 70, 229, 0.2);
+  --shadow-canvas: 0 16px 48px rgba(0, 0, 0, 0.12);
 }

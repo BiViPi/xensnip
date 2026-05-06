@@ -101,9 +101,9 @@ body {
 .xs-canvas {
   display: block;
   border-radius: 12px;
-  box-shadow: var(--xs-shadow-canvas);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  background: #000;
+  box-shadow: var(--shadow-canvas);
+  border: 1px solid var(--canvas-border);
+  background: var(--canvas-bg);
 }
 
 /* ─── The Dock (xs-dock) ───────────────────────────────────────────────── */
@@ -241,22 +241,20 @@ body {
 }
 
 .xs-action-secondary {
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--xs-text);
+  background: var(--control-bg);
+  color: var(--text-primary);
   padding: 8px 18px;
   border-radius: 10px;
   font-weight: 600;
   font-size: 13px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 6px 14px rgba(0, 0, 0, 0.16);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-sm);
   gap: 6px;
 }
 
 .xs-action-secondary:hover {
-  background: rgba(255, 255, 255, 0.11);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: var(--surface-raised);
+  border-color: var(--border-focus);
 }
 
 /* Popovers (Card pop-out) */
@@ -324,11 +322,11 @@ body {
 .xs-ratio-item {
   padding: 6px 0;
   border: none;
-  background: rgba(255, 255, 255, 0.04);
-  color: #94a3b8;
+  background: var(--control-bg);
+  color: var(--text-tertiary);
   font-size: 12px;
   font-weight: 600;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
@@ -337,20 +335,16 @@ body {
 }
 
 .xs-ratio-item:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #f8fafc;
+  background: var(--surface-raised);
+  color: var(--text-primary);
 }
 
 .xs-ratio-item.active {
-  background: linear-gradient(180deg, rgba(101, 104, 240, 0.96) 0%, rgba(78, 70, 229, 0.98) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #fff;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.22),
-    0 8px 16px rgba(65, 62, 178, 0.28);
+  background: var(--accent-gradient);
+  border: 1px solid var(--glass-border-active);
+  color: var(--white);
+  box-shadow: var(--shadow-accent-pop);
 }
-
-
 
 /* Slider Popover — Premium Polish */
 .xs-slider-pop {
@@ -371,13 +365,13 @@ body {
 }
 
 .xs-slider-value-badge {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--control-bg);
   padding: 4px 10px;
   border-radius: 6px;
   display: flex;
   align-items: center;
   gap: 2px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
 }
 
 .xs-slider-value {
@@ -436,13 +430,11 @@ body {
   height: 8px;
   transform: translateY(-50%);
   border-radius: 999px;
-  background:
-    linear-gradient(180deg, rgba(24, 31, 52, 0.96) 0%, rgba(11, 17, 34, 0.98) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--control-bg);
+  border: 1px solid var(--border-subtle);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.28),
-    0 4px 10px rgba(0, 0, 0, 0.2);
+    inset 0 1px 0 var(--control-inner-rim),
+    0 4px 10px rgba(0, 0, 0, 0.1);
   pointer-events: none;
 }
 
@@ -1052,6 +1044,41 @@ body {
 }
 
 /* Modal System */
+.xs-settings-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* QuickBar Helper Classes */
+.xs-pop-divider {
+  height: 1px;
+  background: var(--glass-divider);
+  margin: 8px 4px;
+}
+
+.xs-color-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.xs-color-swatch.active {
+  box-shadow: 0 0 0 2px var(--accent-primary);
+}
+
 .xs-modal-overlay {
   position: absolute;
   inset: 0;
@@ -1568,14 +1595,19 @@ body {
   width: 30px !important;
   height: 60px !important;
   padding: 0 !important;
-  background: rgba(20, 25, 35, 0.95);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-right: none;
-  border-radius: 8px 0 0 8px;
+  background: var(--canvas-bg);
+  .xs-canvas {
+  background: var(--canvas-bg);
+  border: 1px solid var(--canvas-border);
+  box-shadow: 0 12px 48px rgba(0,0,0,0.4);
+  position: relative;
+  overflow: hidden;
+  max-width: 100%;
+  max-height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
+}
   color: #64748b;
   cursor: pointer;
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1724,4 +1756,23 @@ body {
 .xs-bg-grid.v-rect .xs-bg-tile.active {
   border-color: #fff;
   box-shadow: 0 0 0 1.5px var(--xs-accent), 0 0 20px rgba(99, 102, 241, 0.5);
+}
+/* QuickBar Helper Classes */
+.xs-pop-divider {
+  height: 1px;
+  background: var(--glass-divider);
+  margin: 8px 4px;
+}
+
+.xs-color-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.xs-color-swatch.active {
+  box-shadow: 0 0 0 2px var(--accent-primary);
 }

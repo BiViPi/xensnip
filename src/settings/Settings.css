@@ -59,6 +59,36 @@ body {
   position: relative;
 }
 
+.xs-settings-status-shell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.xs-settings-status-card {
+  width: min(100%, 320px);
+  padding: 20px;
+  border-radius: 16px;
+  background: var(--surface-base);
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    inset 0 1px 0 var(--glass-rim),
+    var(--shadow-panel);
+}
+
+.xs-settings-status-card h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  color: var(--text-primary);
+}
+
+.xs-settings-status-card p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
 /* Hide scrollbar by default, show thin on hover */
 .xs-settings-content::-webkit-scrollbar {
   width: 4px;
@@ -348,19 +378,61 @@ input:checked+.xs-slider:before {
   }
 }
 
-/* Custom Hotkey Field Overrides */
+.xs-hotkey-container {
+  position: relative;
+  min-width: 120px;
+}
+
 .xs-hotkey-input {
-  background: rgba(0, 0, 0, 0.3) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  border-radius: 6px !important;
-  padding: 4px 10px !important;
-  font-size: 11px !important;
-  color: #60a5fa !important;
-  font-family: 'JetBrains Mono', 'Cascadia Code', monospace !important;
-  font-weight: 600 !important;
-  min-width: 100px;
-  text-align: center;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+  background: var(--hotkey-bg);
+  border: 1px solid var(--hotkey-border);
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  font-family: 'JetBrains Mono', 'Cascadia Code', monospace;
+  font-size: 11px;
+  outline: none;
+}
+
+.xs-hotkey-input:hover {
+  border-color: var(--accent-primary-soft);
+  background: var(--surface-raised);
+}
+
+.xs-hotkey-input.listening {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 12px var(--accent-primary-soft);
+  background: var(--accent-primary-soft);
+}
+
+.xs-hotkey-value {
+  color: var(--hotkey-text);
+  font-weight: 700;
+}
+
+.xs-hotkey-listening {
+  color: var(--text-tertiary);
+  font-style: italic;
+  animation: xs-pulse 1.5s infinite;
+}
+
+.xs-field-error {
+  color: var(--state-danger);
+  font-size: 11px;
+  margin-top: 4px;
+  position: absolute;
+  right: 0;
+}
+
+@keyframes xs-pulse {
+  0% { opacity: 0.5; }
+  50% { opacity: 1; }
+  100% { opacity: 0.5; }
 }
 
 /* Redesign Additions */
@@ -368,16 +440,16 @@ input:checked+.xs-slider:before {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: linear-gradient(180deg, rgba(24, 31, 52, 0.95) 0%, rgba(16, 22, 39, 0.96) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--icon-badge-bg);
+  border: 1px solid var(--glass-border);
   display: flex;
   align-items: center;
   justify-content: center;
   margin-right: 12px;
   flex-shrink: 0;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.14),
-    0 8px 16px rgba(0, 0, 0, 0.22);
+    inset 0 1px 0 var(--glass-rim),
+    0 8px 16px rgba(0, 0, 0, 0.1);
 }
 
 .xs-icon-circle img {
@@ -470,16 +542,16 @@ input:checked+.xs-slider:before {
   bottom: 48px;
   left: 16px;
   right: 16px;
-  background: rgba(15, 23, 42, 0.95);
+  background: var(--toast-bg);
   backdrop-filter: blur(16px);
-  border: 1px solid rgba(99, 102, 241, 0.3);
+  border: 1px solid var(--toast-border);
   padding: 10px 16px;
   border-radius: 12px;
   display: flex;
   align-items: center;
   gap: 12px;
   z-index: 1000;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  box-shadow: var(--shadow-popover);
   animation: toastIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -503,13 +575,13 @@ input:checked+.xs-slider:before {
 .toast-title {
   font-size: 12px;
   font-weight: 500;
-  color: #f1f5f9;
+  color: var(--text-primary);
 }
 
 .toast-close-btn {
   background: transparent;
   border: none;
-  color: #64748b;
+  color: var(--text-tertiary);
   cursor: pointer;
   padding: 4px;
   margin-left: auto;
@@ -518,7 +590,7 @@ input:checked+.xs-slider:before {
 }
 
 .toast-close-btn:hover {
-  color: #f1f5f9;
+  color: var(--text-primary);
 }
 
 @keyframes toastIn {

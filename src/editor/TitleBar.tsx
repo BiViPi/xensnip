@@ -1,4 +1,4 @@
-import { getCurrentWindow } from "@tauri-apps/api/window";
+import { getCurrentWindow, type Window } from "@tauri-apps/api/window";
 import { useEffect, useState } from "react";
 import logo from "../assets/logo.png";
 import "./TitleBar.css";
@@ -18,10 +18,20 @@ export function TitleBar({
   showMaximize = true,
   showClose = true,
 }: Props) {
-  const appWindow = getCurrentWindow();
+  const [appWindow, setAppWindow] = useState<Window | null>(null);
   const [isMaximized, setIsMaximized] = useState(false);
 
   useEffect(() => {
+    try {
+      setAppWindow(getCurrentWindow());
+    } catch (err) {
+      console.error("[TitleBar] Failed to resolve current window", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!appWindow) return;
+
     // Initial state check
     const checkState = async () => {
       const maximized = await appWindow.isMaximized();
@@ -39,11 +49,13 @@ export function TitleBar({
   }, [appWindow]);
 
   const handleMinimize = () => {
+    if (!appWindow) return;
     console.log("[TitleBar] Action: Minimize");
     void appWindow.minimize();
   };
 
   const handleMaximize = async () => {
+    if (!appWindow) return;
     console.log("[TitleBar] Action: Maximize/Restore Toggle. Current UI State:", isMaximized);
     // Explicitly check current state from OS before acting
     const currentlyMaximized = await appWindow.isMaximized();
@@ -72,7 +84,7 @@ export function TitleBar({
   const handleClose = () => {
     console.log("[TitleBar] Action: Close");
     if (onClose) onClose();
-    else appWindow.close();
+    else if (appWindow) void appWindow.close();
   };
 
   return (
@@ -93,12 +105,12 @@ export function TitleBar({
       {/* Controls Area - Fixed width to prevent overlap */}
       <div className="xs-titlebar-controls">
         {showMinimize && (
-          <button onClick={handleMinimize} className="xs-titlebar-btn" title="Minimize">
+          <button onClick={handleMinimize} className="xs-titlebar-btn" title="Minimize" disabled={!appWindow}>
             <svg width="14" height="14" viewBox="0 0 16 16"><rect fill="currentColor" x="3" y="7.5" width="10" height="1" /></svg>
           </button>
         )}
         {showMaximize && (
-          <button onClick={handleMaximize} className="xs-titlebar-btn" title={isMaximized ? "Restore" : "Maximize"}>
+          <button onClick={handleMaximize} className="xs-titlebar-btn" title={isMaximized ? "Restore" : "Maximize"} disabled={!appWindow}>
             {isMaximized ? (
               <svg width="14" height="14" viewBox="0 0 16 16">
                 <rect x="5.5" y="3.5" width="7" height="7" fill="none" stroke="currentColor" strokeWidth="1.2" />
@@ -112,7 +124,7 @@ export function TitleBar({
           </button>
         )}
         {showClose && (
-          <button onClick={handleClose} className="xs-titlebar-btn close" title="Close">
+          <button onClick={handleClose} className="xs-titlebar-btn close" title="Close" disabled={!onClose && !appWindow}>
             <svg width="14" height="14" viewBox="0 0 16 16">
               <path fill="none" stroke="currentColor" strokeWidth="1.2" d="M4 4 L12 12 M4 12 L12 4" />
             </svg>

@@ -28,7 +28,14 @@ pub fn settings_load(app_handle: AppHandle) -> Settings {
 
 #[tauri::command]
 pub fn open_settings_window(app_handle: AppHandle) -> Result<(), String> {
-    crate::open_settings_window(&app_handle).map_err(|e| e.to_string())
+    let app = app_handle.clone();
+    app_handle
+        .run_on_main_thread(move || {
+            if let Err(err) = crate::open_settings_window(&app) {
+                log::error!(target: "app", "open_settings_window command failed: {}", err);
+            }
+        })
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]

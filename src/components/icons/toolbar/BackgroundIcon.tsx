@@ -32,17 +32,17 @@ export const BackgroundIcon = () => {
     <circle cx="115" cy="240" r="7" fill="#FF5F5A" />
     <circle cx="138" cy="240" r="7" fill="#FFBC2E" />
     <circle cx="161" cy="240" r="7" fill="#28CA42" />
-    <rect x="250" y="237" width="65" height="7" rx="3.5" fill="#D3DBE8" />
+    <rect x="250" y="237" width="65" height="7" rx="3.5" fill="var(--icon-stroke-medium)" opacity="0.4" />
     <rect x="110" y="270" width="110" height="95" rx="12" fill={`url(#${ids.gradImg})`} />
     <g clipPath={`url(#${ids.clipImg})`}>
-      <circle cx="185" cy="295" r="11" fill="#E2EDFF" opacity="0.9" />
-      <polygon points="85,380 145,305 205,380" fill="#1C52D2" />
-      <polygon points="140,380 190,325 240,380" fill="#3676FF" />
+      <circle cx="185" cy="295" r="11" fill="var(--icon-bg-primary)" opacity="0.9" />
+      <polygon points="85,380 145,305 205,380" fill="var(--icon-accent-blue)" />
+      <polygon points="140,380 190,325 240,380" fill="var(--icon-accent-blue-light)" />
     </g>
-    <rect x="240" y="275" width="85" height="8" rx="4" fill="#D3DBE8" />
-    <rect x="240" y="300" width="85" height="8" rx="4" fill="#D3DBE8" />
-    <rect x="240" y="325" width="65" height="8" rx="4" fill="#D3DBE8" />
-    <rect x="240" y="350" width="38" height="8" rx="4" fill="#D3DBE8" />
+    <rect x="240" y="275" width="85" height="8" rx="4" fill="var(--icon-stroke-medium)" opacity="0.3" />
+    <rect x="240" y="300" width="85" height="8" rx="4" fill="var(--icon-stroke-medium)" opacity="0.3" />
+    <rect x="240" y="325" width="65" height="8" rx="4" fill="var(--icon-stroke-medium)" opacity="0.3" />
+    <rect x="240" y="350" width="38" height="8" rx="4" fill="var(--icon-stroke-medium)" opacity="0.3" />
   </svg>
   );
 };

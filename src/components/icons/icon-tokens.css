@@ -1,4 +1,4 @@
-:root {
+[data-theme='dark'] {
   /* Aligned to semantic tokens */
   --icon-bg-primary: var(--text-primary);
   --icon-bg-card: var(--surface-panel);
@@ -10,6 +10,23 @@
   --icon-accent-blue-light: #fffaf2;
   --icon-accent-purple-start: #f8f3ea;
   --icon-accent-purple-end: #ddd4c7;
+  --icon-accent-orange: var(--state-warning);
+  --icon-accent-indigo: var(--accent-primary);
+  --icon-accent-indigo-light: var(--accent-hover);
+}
+
+[data-theme='light'] {
+  /* Aligned to semantic tokens */
+  --icon-bg-primary: var(--text-primary);
+  --icon-bg-card: var(--surface-panel);
+  --icon-stroke-dark: #334155; /* Charcoal */
+  --icon-stroke-medium: #64748b;
+
+  /* Charcoal/Dark-Slate led icon artwork */
+  --icon-accent-blue: #475569;
+  --icon-accent-blue-light: #94a3b8;
+  --icon-accent-purple-start: #6366f1;
+  --icon-accent-purple-end: #4f46e5;
   --icon-accent-orange: var(--state-warning);
   --icon-accent-indigo: var(--accent-primary);
   --icon-accent-indigo-light: var(--accent-hover);

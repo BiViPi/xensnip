@@ -71,21 +71,21 @@ export const PresetIcon = () => {
     </g>
     <g id="ui-elements-preset">
       <g id="row-1-preset">
-        <path d="M 95 158 L 90 158 L 90 163 M 90 167 L 90 172 L 95 172 M 105 158 L 110 158 L 110 163 M 110 167 L 110 172 L 105 172" fill="none" stroke="#8c77ff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M 95 158 L 90 158 L 90 163 M 90 167 L 90 172 L 95 172 M 105 158 L 110 158 L 110 163 M 110 167 L 110 172 L 105 172" fill="none" stroke="var(--icon-accent-indigo)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
         <rect x="135" y="162" width="90" height="6" rx="3" fill="var(--icon-bg-card)"/>
         <rect x="135" y="162" width="60" height="6" rx="3" fill={`url(#${ids.sliderFill1})`}/>
         <circle cx="195" cy="165" r="9.5" fill={`url(#${ids.knob1})`}/>
       </g>
       <g id="row-2-preset">
-        <rect x="90" y="210" width="20" height="16" rx="3.5" fill="none" stroke="#d56cff" strokeWidth="2.5" strokeLinejoin="round"/>
-        <circle cx="96" cy="215" r="2.5" fill="#d56cff"/>
-        <path d="M 90 224 L 97 217 L 101 221 L 105 216 L 110 222" fill="none" stroke="#d56cff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+        <rect x="90" y="210" width="20" height="16" rx="3.5" fill="none" stroke="var(--icon-accent-purple-start)" strokeWidth="2.5" strokeLinejoin="round"/>
+        <circle cx="96" cy="215" r="2.5" fill="var(--icon-accent-purple-start)"/>
+        <path d="M 90 224 L 97 217 L 101 221 L 105 216 L 110 222" fill="none" stroke="var(--icon-accent-purple-start)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
         <rect x="135" y="212" width="90" height="6" rx="3" fill="var(--icon-bg-card)"/>
         <rect x="135" y="212" width="45" height="6" rx="3" fill={`url(#${ids.sliderFill2})`}/>
         <circle cx="180" cy="215" r="9.5" fill={`url(#${ids.knob2})`}/>
       </g>
       <g id="row-3-preset">
-        <rect x="91" y="261" width="18" height="18" rx="4" fill="none" stroke="#ff9f4a" strokeWidth="2.5" strokeDasharray="5 4.5" strokeDashoffset="1" strokeLinecap="round"/>
+        <rect x="91" y="261" width="18" height="18" rx="4" fill="none" stroke="var(--icon-accent-orange)" strokeWidth="2.5" strokeDasharray="5 4.5" strokeDashoffset="1" strokeLinecap="round"/>
         <rect x="135" y="267" width="90" height="6" rx="3" fill="var(--icon-bg-card)"/>
         <rect x="135" y="267" width="30" height="6" rx="3" fill={`url(#${ids.sliderFill3})`}/>
         <circle cx="165" cy="270" r="9.5" fill={`url(#${ids.knob3})`}/>
