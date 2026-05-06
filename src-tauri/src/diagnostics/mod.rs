@@ -10,8 +10,8 @@ pub enum CaptureMode {
 #[derive(Debug, Serialize, Clone)]
 pub enum CaptureMethod {
     WgcWindow,
-    WgcMonitor,
     GdiBitblt,
+    GdiWindow,
 }
 
 #[derive(Debug, Serialize, Clone)]

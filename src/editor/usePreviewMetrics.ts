@@ -37,8 +37,10 @@ export function usePreviewMetrics(
       viewportSize.height - topInset - bottomInset - dockReserve
     );
 
+    // PIXEL PERFECT PREVIEW: Never upscale the screenshot by default.
+    // This ensures maximum sharpness like ShareX. We only scale DOWN if the image is larger than the viewport.
     const previewScale = dims.canvasW > 0 
-      ? Math.min(previewBudgetW / dims.canvasW, previewBudgetH / dims.canvasH, 2)
+      ? Math.min(previewBudgetW / dims.canvasW, previewBudgetH / dims.canvasH, 1.0)
       : 1;
     const devicePixelRatio = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
     const previewRenderScale = clamp(Math.max(1, previewScale) * devicePixelRatio, 1, 2);
@@ -51,7 +53,7 @@ export function usePreviewMetrics(
     const previewCenterOffsetX = 0;
     const previewViewportCenterOffsetX = (leftPanelReserve - rightRailReserve) / 2;
 
-    return {
+    const result = {
       dims,
       previewScale,
       previewRenderScale,
@@ -69,5 +71,9 @@ export function usePreviewMetrics(
         dockReserve,
       }
     };
+    if (image) {
+      console.debug(`[MP-D Meta] previewScale: ${previewScale.toFixed(4)}, previewRenderScale: ${previewRenderScale.toFixed(4)}, DPR: ${devicePixelRatio}`);
+    }
+    return result;
   }, [image, preset, viewportSize, panelReserveWidth]);
 }

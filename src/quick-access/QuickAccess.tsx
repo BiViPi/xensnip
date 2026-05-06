@@ -271,6 +271,8 @@ export function QuickAccess() {
       await assetResolve(nextAssetId, "quick_access_ui");
 
       const bytes = await assetReadPng(nextAssetId);
+      console.debug(`[MP-A] Raw asset bytes: ${bytes.length}, ID: ${nextAssetId}`);
+
       const blob = new Blob([bytes], { type: "image/png" });
       const url = URL.createObjectURL(blob);
 
@@ -280,6 +282,7 @@ export function QuickAccess() {
         img.onload = resolve;
         img.onerror = () => reject(new Error("Failed to load blob image"));
       });
+      console.debug(`[MP-B] Loaded image: ${img.naturalWidth}x${img.naturalHeight}`);
 
       const thumb = await generateThumbnail(img);
 

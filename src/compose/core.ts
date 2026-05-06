@@ -17,39 +17,32 @@ export function getCompositionDimensions(
   preset: EditorPreset
 ): CompositionDimensions {
   const { padding, ratio } = preset;
+  const borderTotal = preset.border_width * 2;
 
-  let canvasW: number;
-  let canvasH: number;
+  const drawW = imageW;
+  const drawH = imageH;
 
-  if (ratio === "Auto") {
-    // Keep the composition canvas stable. Padding only changes how much
-    // the screenshot shrinks inside the canvas, not the canvas bounds.
-    canvasW = imageW;
-    canvasH = imageH;
-  } else {
+  const minCanvasW = imageW + padding * 2 + borderTotal;
+  const minCanvasH = imageH + padding * 2 + borderTotal;
+
+  let canvasW: number = minCanvasW;
+  let canvasH: number = minCanvasH;
+
+  if (ratio !== "Auto") {
     const [rw, rh] = parseRatio(ratio);
     const targetAspect = rw / rh;
-    const currentAspect = imageW / imageH;
+    const currentAspect = minCanvasW / minCanvasH;
 
     if (currentAspect > targetAspect) {
-      canvasW = imageW;
-      canvasH = imageW / targetAspect;
+      canvasW = minCanvasW;
+      canvasH = minCanvasW / targetAspect;
     } else {
-      canvasH = imageH;
-      canvasW = imageH * targetAspect;
+      canvasH = minCanvasH;
+      canvasW = minCanvasH * targetAspect;
     }
   }
 
-  // Padding and border now inset the screenshot inside a fixed canvas.
-  const borderTotal = preset.border_width * 2;
-  const safeW = Math.max(1, canvasW - padding * 2 - borderTotal);
-  const safeH = Math.max(1, canvasH - padding * 2 - borderTotal);
-  const scale = Math.min(safeW / imageW, safeH / imageH, 1);
-  
-  const drawW = imageW * scale;
-  const drawH = imageH * scale;
-
-  return {
+  const result = {
     canvasW: Math.round(canvasW),
     canvasH: Math.round(canvasH),
     drawX: Math.round((canvasW - drawW) / 2),
@@ -57,6 +50,8 @@ export function getCompositionDimensions(
     drawW: Math.round(drawW),
     drawH: Math.round(drawH)
   };
+  
+  return result;
 }
 
 function parseRatio(ratio: RatioOption): [number, number] {
@@ -74,10 +69,6 @@ export function getOrLoadWallpaper(wpId: string): HTMLImageElement | null {
   return wallpaperCache[wpId] || null;
 }
 
-/**
- * Preloads a wallpaper into the cache. 
- * Returns a promise that resolves when the image is ready.
- */
 export async function preloadWallpaper(wpId: string): Promise<HTMLImageElement> {
   if (wallpaperCache[wpId]) return wallpaperCache[wpId];
   const url = WALLPAPER_MAP[wpId];
@@ -100,7 +91,6 @@ export function drawComposition(
   preset: EditorPreset,
   dims: CompositionDimensions
 ): void {
-  // 0. RESET STATE
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   const { canvasW, canvasH, drawX, drawY, drawW, drawH } = dims;
   const { 
@@ -109,10 +99,9 @@ export function drawComposition(
     shadow_enabled, shadow_blur, shadow_opacity, shadow_angle, shadow_offset 
   } = preset;
 
-  // Clear
   ctx.clearRect(0, 0, canvasW, canvasH);
 
-  // 1. Background
+  // --- LAYER 1: BACKGROUND ---
   if (bg_mode === "Solid") {
     ctx.fillStyle = bg_value || "#000000";
     ctx.fillRect(0, 0, canvasW, canvasH);
@@ -157,96 +146,71 @@ export function drawComposition(
     }
   }
 
-  // 2. Image Rendering
-  const finalX = drawX;
-  const finalY = drawY;
-  const finalW = drawW;
-  const finalH = drawH;
-
-  // 3. 3D Glass Frame & Dynamic Lighting (The "Volumetric" effect)
-  const framePadding = preset.border_width; // Dynamic thickness of the glass frame
-  const fx = finalX - framePadding;
-  const fy = finalY - framePadding;
-  const fw = finalW + framePadding * 2;
-  const fh = finalH + framePadding * 2;
+  const framePadding = preset.border_width;
+  const fx = drawX - framePadding;
+  const fy = drawY - framePadding;
+  const fw = drawW + framePadding * 2;
+  const fh = drawH + framePadding * 2;
   const fr = radius + framePadding;
 
+  // --- LAYER 2: SHADOW & GLASS BASE (BEHIND SCREENSHOT) ---
   if (shadow_enabled) {
     ctx.save();
     const angleRad = (shadow_angle - 90) * (Math.PI / 180);
     const shadowX = Math.cos(angleRad) * shadow_offset;
     const shadowY = Math.sin(angleRad) * shadow_offset;
-    
     const offscreenOffset = 10000;
     ctx.shadowOffsetX = shadowX + offscreenOffset;
     ctx.shadowOffsetY = shadowY;
     ctx.shadowBlur = shadow_blur;
     ctx.shadowColor = `rgba(0, 0, 0, ${shadow_opacity})`;
-    
     ctx.fillStyle = "black"; 
     roundedRect(ctx, fx - offscreenOffset, fy, fw, fh, fr);
     ctx.fill();
     ctx.restore();
+  }
 
-    // 3b. Draw the actual Border/Glass material
+  // Draw the actual Glass Material behind the image
+  if (framePadding > 0) {
     ctx.save();
     ctx.fillStyle = preset.border_color || "rgba(15, 23, 42, 0.8)"; 
     roundedRect(ctx, fx, fy, fw, fh, fr);
     ctx.fill();
     ctx.restore();
+  }
 
-    // Draw the Frame Highlights (Multi-layered "Soft Bevel" Effect)
+  // --- LAYER 3: SCREENSHOT ---
+  ctx.save();
+  const finalX = Math.round(drawX);
+  const finalY = Math.round(drawY);
+  ctx.imageSmoothingEnabled = false;
+  if (radius > 0) {
+    roundedRect(ctx, finalX, finalY, drawW, drawH, radius);
+    ctx.clip();
+  }
+  ctx.drawImage(image, finalX, finalY, drawW, drawH);
+  ctx.restore();
+
+  // --- LAYER 4: BORDER HIGHLIGHT (ON TOP) ---
+  if (framePadding > 0) {
     ctx.save();
-    const lightAngleRad = (shadow_angle + 180 - 90) * (Math.PI / 180);
-    const lx0 = fx + fw / 2 + Math.cos(lightAngleRad) * (fw / 2);
-    const ly0 = fy + fh / 2 + Math.sin(lightAngleRad) * (fh / 2);
-    const lx1 = fx + fw / 2 - Math.cos(lightAngleRad) * (fw / 2);
-    const ly1 = fy + fh / 2 - Math.sin(lightAngleRad) * (fh / 2);
-
-    const frameGrad = ctx.createLinearGradient(lx0, ly0, lx1, ly1);
-    frameGrad.addColorStop(0, "rgba(255, 255, 255, 0.8)");
-    frameGrad.addColorStop(0.3, "rgba(255, 255, 255, 0.1)");
-    frameGrad.addColorStop(1, "rgba(255, 255, 255, 0)");
-
-    roundedRect(ctx, fx, fy, fw, fh, fr);
-    
-    ctx.globalAlpha = 0.3;
-    ctx.strokeStyle = frameGrad;
-    ctx.lineWidth = 14; 
-    ctx.stroke();
-
-    ctx.globalAlpha = 0.5;
-    ctx.lineWidth = 6;
-    ctx.stroke();
-
-    ctx.globalAlpha = 1.0;
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-    ctx.restore();
-  } else {
-    // Flat background mode
-    ctx.save();
-    ctx.fillStyle = preset.border_color || "#1e293b"; 
-    roundedRect(ctx, fx, fy, fw, fh, fr);
-    ctx.fill();
-    
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
+    // 1. Draw a very subtle inner highlight at the edge where image meets frame
     ctx.lineWidth = 1;
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
+    roundedRect(ctx, finalX, finalY, drawW, drawH, radius);
+    ctx.stroke();
+
+    // 2. Draw the outer "Rim Light" highlight (The Premium Border)
+    ctx.lineWidth = 1.5;
+    const rimGrad = ctx.createLinearGradient(fx, fy, fx + fw, fy + fh);
+    rimGrad.addColorStop(0, "rgba(255, 255, 255, 0.4)");
+    rimGrad.addColorStop(0.5, "rgba(255, 255, 255, 0.1)");
+    rimGrad.addColorStop(1, "rgba(255, 255, 255, 0.3)");
+    ctx.strokeStyle = rimGrad;
+    roundedRect(ctx, fx + 0.75, fy + 0.75, fw - 1.5, fh - 1.5, fr);
     ctx.stroke();
     ctx.restore();
   }
-
-  // 4. Draw the Main Image with subtle inner separation
-  ctx.save();
-  // Small drop shadow inside the frame to lift the image
-  ctx.shadowColor = "rgba(0,0,0,0.3)";
-  ctx.shadowBlur = 10;
-  ctx.shadowOffsetY = 2;
-  
-  roundedRect(ctx, finalX, finalY, finalW, finalH, radius);
-  ctx.clip();
-  ctx.drawImage(image, finalX, finalY, finalW, finalH);
-  ctx.restore();
 }
 
 function roundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
