@@ -66,7 +66,7 @@ export const PresetIcon = () => {
       <rect x="101" y="91" width="168" height="168" rx="29" fill="none" stroke={`url(#${ids.edgeHighlight})`} strokeWidth="2"/>
     </g>
     <g>
-      <rect x="70" y="120" width="180" height="180" rx="30" fill="var(--icon-bg-primary)"/> {/* sau này khi làm light theme thì panel này chuyển lại nền đen */}
+      <rect x="70" y="120" width="180" height="180" rx="30" fill="var(--icon-bg-primary)" stroke="var(--icon-border-soft)" strokeWidth="2"/>
       <rect x="71" y="121" width="178" height="178" rx="29" fill="none" stroke={`url(#${ids.edgeHighlight})`} strokeWidth="2"/>
     </g>
     <g id="ui-elements-preset">

@@ -24,7 +24,7 @@ export const PaddingIcon = () => {
     <use href={`#${ids.arrow}`} transform="rotate(90 250 250)" />
     <use href={`#${ids.arrow}`} transform="rotate(180 250 250)" />
     <use href={`#${ids.arrow}`} transform="rotate(270 250 250)" />
-    <rect x="155" y="155" width="190" height="190" rx="28" fill="#F2F6FF" stroke="#161E36" strokeWidth="14" filter={`url(#${ids.shadow})`} />
+    <rect x="155" y="155" width="190" height="190" rx="28" fill="var(--icon-bg-primary)" stroke="var(--icon-border-soft)" strokeWidth="14" filter={`url(#${ids.shadow})`} />
   </svg>
   );
 };

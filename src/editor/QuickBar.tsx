@@ -222,8 +222,8 @@ export function QuickBar({
                 <div style={{ display: 'flex', gap: '8px', marginTop: '4px', padding: '4px 2px' }}>
                   {[
                     { label: 'Dark', color: 'rgba(10, 15, 30, 0.85)' },
-                    { label: 'White', color: 'rgba(255, 255, 255, 0.6)' },
-                    { label: 'Glass', color: 'rgba(255, 255, 255, 0.15)' }
+                    { label: 'White', color: 'rgba(255, 255, 255, 0.95)' },
+                    { label: 'Glass', color: 'rgba(186, 230, 253, 0.4)' }
                   ].map(c => (
                     <button
                       key={c.color}

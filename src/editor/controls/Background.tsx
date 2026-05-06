@@ -57,6 +57,72 @@ function BackgroundModeIcon({ mode }: { mode: BackgroundMode }) {
   );
 }
 
+function GradientSlider({
+  label,
+  value,
+  min,
+  max,
+  unit,
+  stepDelta,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  unit: string;
+  stepDelta: number;
+  onChange: (value: number) => void;
+}) {
+  const pct = ((value - min) / (max - min)) * 100;
+  const ratio = pct / 100;
+  const fillWidth = `calc(${pct}% + ${(9 - 18 * ratio).toFixed(2)}px)`;
+
+  const step = (delta: number) => {
+    const next = Math.min(max, Math.max(min, value + delta));
+    onChange(next);
+  };
+
+  return (
+    <div className="xs-slider-pop xs-slider-mini">
+      <div className="xs-slider-header">
+        <span className="xs-slider-label">{label}</span>
+        <div className="xs-slider-value-badge">
+          <span className="xs-slider-value">{value}</span>
+          <span className="xs-slider-unit">{unit}</span>
+        </div>
+      </div>
+
+      <div className="xs-slider-row">
+        <button className="xs-slider-action" onClick={() => step(-stepDelta)} aria-label={`Decrease ${label}`}>
+          -
+        </button>
+        <div
+          className="xs-slider-track-container"
+          style={
+            {
+              "--pct": `${pct}%`,
+              "--fill-width": fillWidth,
+            } as React.CSSProperties
+          }
+        >
+          <input
+            type="range"
+            min={min}
+            max={max}
+            value={value}
+            onChange={(e) => onChange(parseInt(e.target.value, 10))}
+            className="xs-slider-input"
+          />
+        </div>
+        <button className="xs-slider-action" onClick={() => step(stepDelta)} aria-label={`Increase ${label}`}>
+          +
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function BackgroundControl({ preset, onChange }: Props) {
   const { bg_mode, bg_value, bg_colors, bg_gradient_type, bg_angle, bg_radius } = preset;
 
@@ -90,42 +156,43 @@ export function BackgroundControl({ preset, onChange }: Props) {
       </div>
 
       <div className="xs-bg-main">
-
         <div className="xs-bg-content">
           <div className="xs-bg-grid v-rect">
-            {bg_mode === "Wallpaper" && WALLPAPER_PRESETS.map((wp) => (
-              <button
-                key={wp.id}
-                className={`xs-bg-tile ${bg_value === wp.id ? "active" : ""}`}
-                style={{ 
-                  backgroundImage: `url(${WALLPAPER_MAP[wp.id]})`,
-                  backgroundSize: "cover",
-                  backgroundPosition: "center"
-                }}
-                onClick={() => onChange({ bg_value: wp.id })}
-              />
-            ))}
+            {bg_mode === "Wallpaper" &&
+              WALLPAPER_PRESETS.map((wp) => (
+                <button
+                  key={wp.id}
+                  className={`xs-bg-tile ${bg_value === wp.id ? "active" : ""}`}
+                  style={{
+                    backgroundImage: `url(${WALLPAPER_MAP[wp.id]})`,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                  }}
+                  onClick={() => onChange({ bg_value: wp.id })}
+                />
+              ))}
 
-            {bg_mode === "Gradient" && GRADIENT_PRESETS.map((colors, i) => (
-              <button
-                key={i}
-                className={`xs-bg-tile ${JSON.stringify(bg_colors) === JSON.stringify(colors) ? "active" : ""}`}
-                style={{ background: `linear-gradient(45deg, ${colors.join(", ")})` }}
-                onClick={() => onChange({ bg_colors: colors })}
-              />
-            ))}
+            {bg_mode === "Gradient" &&
+              GRADIENT_PRESETS.map((colors, i) => (
+                <button
+                  key={i}
+                  className={`xs-bg-tile ${JSON.stringify(bg_colors) === JSON.stringify(colors) ? "active" : ""}`}
+                  style={{ background: `linear-gradient(45deg, ${colors.join(", ")})` }}
+                  onClick={() => onChange({ bg_colors: colors })}
+                />
+              ))}
 
-            {bg_mode === "Solid" && SOLID_PRESETS.map((color) => (
-              <button
-                key={color}
-                className={`xs-bg-tile solid ${bg_value === color ? "active" : ""}`}
-                style={{ background: color }}
-                onClick={() => onChange({ bg_value: color })}
-              />
-            ))}
+            {bg_mode === "Solid" &&
+              SOLID_PRESETS.map((color) => (
+                <button
+                  key={color}
+                  className={`xs-bg-tile solid ${bg_value === color ? "active" : ""}`}
+                  style={{ background: color }}
+                  onClick={() => onChange({ bg_value: color })}
+                />
+              ))}
           </div>
 
-          {/* Gradient-only controls */}
           {bg_mode === "Gradient" && (
             <div className="xs-bg-controls-compact">
               <div className="xs-sub-toggle">
@@ -142,37 +209,25 @@ export function BackgroundControl({ preset, onChange }: Props) {
 
               <div className="xs-slider-group">
                 {bg_gradient_type === "Linear" ? (
-                  <div className="xs-slider-mini">
-                    <div className="xs-slider-header">
-                      <span className="xs-slider-label">Angle</span>
-                      <span className="xs-slider-val">{bg_angle}°</span>
-                    </div>
-                    <input
-                      type="range"
-                      min={0}
-                      max={360}
-                      value={bg_angle}
-                      onChange={(e) => onChange({ bg_angle: parseInt(e.target.value) })}
-                      className="xs-slider-input"
-                      style={{ "--pct": `${(bg_angle / 360) * 100}%` } as any}
-                    />
-                  </div>
+                  <GradientSlider
+                    label="Angle"
+                    value={bg_angle}
+                    min={0}
+                    max={360}
+                    unit="deg"
+                    stepDelta={15}
+                    onChange={(value) => onChange({ bg_angle: value })}
+                  />
                 ) : (
-                  <div className="xs-slider-mini">
-                    <div className="xs-slider-header">
-                      <span className="xs-slider-label">Radius</span>
-                      <span className="xs-slider-val">{bg_radius}%</span>
-                    </div>
-                    <input
-                      type="range"
-                      min={10}
-                      max={200}
-                      value={bg_radius}
-                      onChange={(e) => onChange({ bg_radius: parseInt(e.target.value) })}
-                      className="xs-slider-input"
-                      style={{ "--pct": `${((bg_radius - 10) / 190) * 100}%` } as any}
-                    />
-                  </div>
+                  <GradientSlider
+                    label="Radius"
+                    value={bg_radius}
+                    min={10}
+                    max={200}
+                    unit="%"
+                    stepDelta={10}
+                    onChange={(value) => onChange({ bg_radius: value })}
+                  />
                 )}
               </div>
             </div>

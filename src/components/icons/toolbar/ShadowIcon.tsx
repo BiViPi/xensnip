@@ -19,7 +19,7 @@ export const ShadowIcon = () => {
       </linearGradient>
     </defs>
     <rect x="104" y="104" width="104" height="104" rx="24" fill={`url(#${ids.fill})`} stroke={`url(#${ids.stroke})`} strokeWidth="10" />
-    <path d="M 120 80 L 160 80 A 24 24 0 0 1 184 104 L 184 160 A 24 24 0 0 1 160 184 L 104 184 A 24 24 0 0 1 80 160 L 80 120 Z" fill="var(--icon-bg-primary)" />
+    <path d="M 120 80 L 160 80 A 24 24 0 0 1 184 104 L 184 160 A 24 24 0 0 1 160 184 L 104 184 A 24 24 0 0 1 80 160 L 80 120 Z" fill="var(--icon-bg-primary)" stroke="var(--icon-border-soft)" strokeWidth="1.5" />
     <path d="M 120 80 L 160 80 A 24 24 0 0 1 184 104 L 184 160 A 24 24 0 0 1 160 184 L 104 184 A 24 24 0 0 1 80 160 L 80 120" fill="none" stroke="var(--icon-stroke-dark)" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" />
     <path d="M 80 48 Q 80 80 48 80 Q 80 80 80 112 Q 80 80 112 80 Q 80 80 80 48 Z" fill="var(--icon-accent-blue)" />
   </svg>

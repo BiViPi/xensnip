@@ -13,21 +13,23 @@
   --icon-accent-orange: var(--state-warning);
   --icon-accent-indigo: var(--accent-primary);
   --icon-accent-indigo-light: var(--accent-hover);
+  --icon-border-soft: rgba(255, 255, 255, 0.1);
 }
 
 [data-theme='light'] {
   /* Aligned to semantic tokens */
-  --icon-bg-primary: var(--text-primary);
+  --icon-bg-primary: #F8FAFC; /* Near-white filled areas */
   --icon-bg-card: var(--surface-panel);
-  --icon-stroke-dark: #334155; /* Charcoal */
-  --icon-stroke-medium: #64748b;
+  --icon-stroke-dark: #334155; /* Charcoal for outlines */
+  --icon-stroke-medium: #64748B;
 
-  /* Charcoal/Dark-Slate led icon artwork */
-  --icon-accent-blue: #475569;
-  --icon-accent-blue-light: #94a3b8;
-  --icon-accent-purple-start: #6366f1;
-  --icon-accent-purple-end: #4f46e5;
+  /* Indigo-led icon artwork for inactive state */
+  --icon-accent-blue: var(--accent-primary);
+  --icon-accent-blue-light: var(--accent-hover);
+  --icon-accent-purple-start: #6366F1;
+  --icon-accent-purple-end: #4F46E5;
   --icon-accent-orange: var(--state-warning);
   --icon-accent-indigo: var(--accent-primary);
   --icon-accent-indigo-light: var(--accent-hover);
+  --icon-border-soft: rgba(0, 0, 0, 0.1);
 }

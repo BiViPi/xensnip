@@ -79,7 +79,7 @@
 }
 
 .xs-rail-toggle.active:hover {
-  background: linear-gradient(180deg, rgba(101, 104, 240, 0.96) 0%, rgba(78, 70, 229, 0.98) 100%);
+  background: var(--accent-hover);
 }
 
 .xs-sidebar-rail.collapsed .xs-rail-toggle {
@@ -135,14 +135,18 @@
 }
 
 .xs-rail-item.active {
-  background: var(--accent-primary);
-  border-color: var(--accent-primary);
+  background: var(--accent-gradient);
+  border-color: rgba(255, 255, 255, 0.2);
   color: #fff;
   box-shadow: var(--shadow-button-primary);
+  
+  /* Icon contrast fix */
+  --icon-accent-blue: #F8FAFC;
+  --icon-accent-blue-light: #FFFFFF;
 }
 
 .xs-rail-item.active:hover:not(:disabled):not(.locked) {
-  background: linear-gradient(180deg, rgba(101, 104, 240, 0.96) 0%, rgba(78, 70, 229, 0.98) 100%);
+  background: var(--accent-hover);
 }
 
 .xs-rail-item:disabled,
@@ -212,14 +216,18 @@
 }
 
 .xs-tool-icon-btn.active {
-  background: var(--accent-primary);
-  border-color: var(--accent-primary);
+  background: var(--accent-gradient);
+  border-color: rgba(255, 255, 255, 0.2);
   color: #fff;
   box-shadow: var(--shadow-button-primary);
+
+  /* Icon contrast fix */
+  --icon-accent-blue: #F8FAFC;
+  --icon-accent-blue-light: #FFFFFF;
 }
 
 .xs-tool-icon-btn.active:hover:not(:disabled):not(.disabled) {
-  background: linear-gradient(180deg, rgba(101, 104, 240, 0.96) 0%, rgba(78, 70, 229, 0.98) 100%);
+  background: var(--accent-hover);
 }
 
 .xs-tool-icon-btn.disabled,
