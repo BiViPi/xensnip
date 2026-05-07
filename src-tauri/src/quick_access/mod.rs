@@ -35,6 +35,56 @@ impl ActiveAsset {
     }
 }
 
+pub struct ReadyRegistry(Arc<Mutex<bool>>);
+
+impl ReadyRegistry {
+    pub fn new() -> Self {
+        Self(Arc::new(Mutex::new(false)))
+    }
+
+    pub fn set_ready(&self, ready: bool) {
+        if let Ok(mut state) = self.0.lock() {
+            *state = ready;
+        }
+    }
+
+    pub fn is_ready(&self) -> bool {
+        if let Ok(state) = self.0.lock() {
+            *state
+        } else {
+            false
+        }
+    }
+}
+
+pub struct PendingShow(Arc<Mutex<Option<QuickAccessShowPayload>>>);
+
+impl PendingShow {
+    pub fn new() -> Self {
+        Self(Arc::new(Mutex::new(None)))
+    }
+
+    pub fn set(&self, payload: QuickAccessShowPayload) {
+        if let Ok(mut pending) = self.0.lock() {
+            *pending = Some(payload);
+        }
+    }
+
+    pub fn take(&self) -> Option<QuickAccessShowPayload> {
+        if let Ok(mut pending) = self.0.lock() {
+            pending.take()
+        } else {
+            None
+        }
+    }
+
+    pub fn clear(&self) {
+        if let Ok(mut pending) = self.0.lock() {
+            *pending = None;
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MonitorWorkAreaLogical {
     pub x: i32,
@@ -71,6 +121,17 @@ const EDITOR_MIN_WIDTH: u32 = 720;
 const EDITOR_MIN_HEIGHT: u32 = 480;
 const QA_MARGIN: i32 = 16;
 const QA_LABEL: &str = "quick-access";
+
+pub fn pre_warm(app: &AppHandle) {
+    if app.get_webview_window(QA_LABEL).is_some() {
+        return;
+    }
+
+    match spawn_empty_window(app, false, false) {
+        Ok(_) => log::info!(target: "perf", "[PREWARM] Hidden QA window created"),
+        Err(err) => log::warn!(target: "perf", "[PREWARM] Failed to create hidden QA window: {:?}", err),
+    }
+}
 
 pub fn emit_show(app: &AppHandle, asset_id: &str, capture_meta: CapturePositionMeta) {
     let Some(registry) = app.try_state::<crate::asset::AssetRegistry>() else {
@@ -113,21 +174,28 @@ pub fn emit_show(app: &AppHandle, asset_id: &str, capture_meta: CapturePositionM
             *current = Some(asset_id.to_string());
         }
 
-        // Reposition and focus
-        let (x, y) = compute_position(&capture_meta);
-        let _ = existing.show();
-        let _ = existing.unminimize();
-        let _ = existing.set_position(tauri::LogicalPosition::new(x as f64, y as f64));
-        let _ = existing.set_focus();
+        let ready = app
+            .try_state::<ReadyRegistry>()
+            .map(|state| state.is_ready())
+            .unwrap_or(false);
 
-        match existing.emit("quick-access-show", &payload) {
-            Ok(()) => {
-                log::info!(target: "quick_access", "quick-access-show emit ok (reuse) asset_id={}", asset_id);
+        if ready {
+            show_existing_window(&existing, &payload);
+            match existing.emit("quick-access-show", &payload) {
+                Ok(()) => {
+                    log::info!(target: "quick_access", "quick-access-show emit ok (reuse) asset_id={}", asset_id);
+                }
+                Err(err) => {
+                    log::error!(target: "quick_access", "quick-access-show emit failed (reuse) asset_id={} err={}", asset_id, err);
+                }
             }
-            Err(err) => {
-                log::error!(target: "quick_access", "quick-access-show emit failed (reuse) asset_id={} err={}", asset_id, err);
+        } else {
+            log::info!(target: "perf", "[PREWARM] QA window exists but is not ready; queueing payload");
+            if let Some(pending) = app.try_state::<PendingShow>() {
+                pending.set(payload.clone());
             }
         }
+
         let _ = registry.release(asset_id, "capture_engine");
     } else {
         log::info!(target: "perf", "[COLD] Spawning new QA window");
@@ -145,9 +213,21 @@ pub fn emit_show(app: &AppHandle, asset_id: &str, capture_meta: CapturePositionM
     }
 }
 
-pub fn dismiss(app: &AppHandle, _asset_id: &str) {
+pub fn dismiss(app: &AppHandle, asset_id: &str) {
+    if let Some(registry) = app.try_state::<crate::asset::AssetRegistry>() {
+        let _ = registry.release(asset_id, "quick_access_ui");
+        let _ = registry.release(asset_id, "quick_access_orchestrator");
+    }
+
+    if let Some(active_asset) = app.try_state::<ActiveAsset>() {
+        let mut current = active_asset.0.lock().unwrap();
+        if current.as_deref() == Some(asset_id) {
+            *current = None;
+        }
+    }
+
     if let Some(window) = app.get_webview_window(QA_LABEL) {
-        let _ = window.close();
+        let _ = window.hide();
     }
 }
 
@@ -159,8 +239,24 @@ pub fn focus_window(app: &AppHandle) {
         return;
     }
 
-    if let Err(err) = spawn_empty_window(app) {
+    if let Err(err) = spawn_empty_window(app, true, true) {
         log::error!(target: "quick_access", "Failed to spawn empty editor window: {:?}", err);
+    }
+}
+
+pub fn mark_ready(app: &AppHandle) {
+    if let Some(ready) = app.try_state::<ReadyRegistry>() {
+        ready.set_ready(true);
+    }
+
+    if let Some(window) = app.get_webview_window(QA_LABEL) {
+        if let Some(payload) = app.try_state::<PendingShow>().and_then(|pending| pending.take()) {
+            log::info!(target: "perf", "[PREWARM] QA window became ready; flushing pending payload");
+            show_existing_window(&window, &payload);
+            if let Err(err) = window.emit("quick-access-show", &payload) {
+                log::error!(target: "quick_access", "quick-access-show emit failed after ready flush asset_id={} err={}", payload.asset_id, err);
+            }
+        }
     }
 }
 
@@ -196,6 +292,12 @@ fn spawn_window(
     let asset_id = asset_id.to_string();
     window.on_window_event(move |event| {
         if matches!(event, WindowEvent::Destroyed) {
+            if let Some(ready) = app_handle.try_state::<ReadyRegistry>() {
+                ready.set_ready(false);
+            }
+            if let Some(pending) = app_handle.try_state::<PendingShow>() {
+                pending.clear();
+            }
             if let Some(registry) = app_handle.try_state::<crate::asset::AssetRegistry>() {
                 let _ = registry.release(&asset_id, "quick_access_ui");
                 let _ = registry.release(&asset_id, "quick_access_orchestrator");
@@ -215,7 +317,7 @@ fn spawn_window(
     Ok(())
 }
 
-fn spawn_empty_window(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
+fn spawn_empty_window(app: &AppHandle, focused: bool, visible: bool) -> Result<(), Box<dyn std::error::Error>> {
     let window = WebviewWindowBuilder::new(
         app,
         QA_LABEL,
@@ -227,21 +329,37 @@ fn spawn_empty_window(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>>
     .always_on_top(false)
     .skip_taskbar(false)
     .transparent(true)
-    .focused(true)
+    .focused(focused)
+    .visible(visible)
     .inner_size(EDITOR_WIDTH as f64, EDITOR_HEIGHT as f64)
     .min_inner_size(EDITOR_MIN_WIDTH as f64, EDITOR_MIN_HEIGHT as f64)
     .build()?;
 
     let _ = crate::apply_window_native_style(&window);
 
-    window.on_window_event(|event| {
+    let app_handle = app.clone();
+    window.on_window_event(move |event| {
         if matches!(event, WindowEvent::Destroyed) {
+            if let Some(ready) = app_handle.try_state::<ReadyRegistry>() {
+                ready.set_ready(false);
+            }
+            if let Some(pending) = app_handle.try_state::<PendingShow>() {
+                pending.clear();
+            }
             log::info!(target: "quick_access", "Empty editor window destroyed.");
         }
     });
 
     log::info!(target: "quick_access", "Empty editor window spawned from tray.");
     Ok(())
+}
+
+fn show_existing_window(window: &tauri::WebviewWindow, payload: &QuickAccessShowPayload) {
+    let (x, y) = compute_position(&payload.capture_meta);
+    let _ = window.show();
+    let _ = window.unminimize();
+    let _ = window.set_position(tauri::LogicalPosition::new(x as f64, y as f64));
+    let _ = window.set_focus();
 }
 
 fn compute_position(meta: &CapturePositionMeta) -> (i32, i32) {

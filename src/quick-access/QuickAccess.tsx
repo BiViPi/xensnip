@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   assetReadPng,
   assetRelease,
+  quickAccessMarkReady,
   assetResolve,
   perfLog,
   settingsLoad,
@@ -399,6 +400,9 @@ export function QuickAccess() {
     }).then((fn) => {
       if (mounted) {
         unlisten = fn;
+        void quickAccessMarkReady().then(() => {
+          void perfLog("Quick Access window listener attached and ready");
+        }).catch(console.error);
       } else {
         fn();
       }

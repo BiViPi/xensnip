@@ -96,6 +96,7 @@ pub fn run() {
             commands::asset_read_png,
             commands::quick_access_dismiss,
             commands::quick_access_set_busy,
+            commands::quick_access_mark_ready,
             commands::clipboard_write_image,
             commands::export_save_media,
             commands::select_export_folder,
@@ -117,6 +118,10 @@ pub fn run() {
             app.manage(asset::AssetRegistry::new());
             app.manage(quick_access::BusyRegistry::new());
             app.manage(quick_access::ActiveAsset::new());
+            app.manage(quick_access::ReadyRegistry::new());
+            app.manage(quick_access::PendingShow::new());
+
+            quick_access::pre_warm(app.handle());
 
             let app_handle = app.handle();
             let settings = settings::load_or_create_default(app_handle);

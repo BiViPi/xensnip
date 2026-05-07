@@ -247,6 +247,12 @@ pub fn quick_access_set_busy(app_handle: AppHandle, asset_id: String, busy: bool
     Ok(())
 }
 
+#[tauri::command]
+pub fn quick_access_mark_ready(app_handle: AppHandle) -> Result<(), String> {
+    crate::quick_access::mark_ready(&app_handle);
+    Ok(())
+}
+
 fn preset_name_exists(saved_presets: &[SavedPreset], candidate: &str, exclude_id: Option<&str>) -> bool {
     saved_presets
         .iter()

@@ -96,6 +96,10 @@ export async function quickAccessSetBusy(assetId: string, busy: boolean): Promis
   return await invoke<void>("quick_access_set_busy", { assetId, busy });
 }
 
+export async function quickAccessMarkReady(): Promise<void> {
+  return await invoke<void>("quick_access_mark_ready");
+}
+
 export async function presetSave(savedPreset: SavedPreset): Promise<void> {
   return await invoke<void>("preset_save", { savedPreset });
 }
