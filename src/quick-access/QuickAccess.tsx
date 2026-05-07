@@ -235,6 +235,8 @@ export function QuickAccess() {
       showToast("Capture is no longer available.", "error");
     }
   }, [bootstrapAsset]);
+  const bootstrapWithToastRef = useRef(bootstrapWithToast);
+  bootstrapWithToastRef.current = bootstrapWithToast;
 
   const clearAllInSession = useCallback(() => {
     documents.forEach(doc => {
@@ -254,7 +256,7 @@ export function QuickAccess() {
     let unlisten: null | (() => void) = null;
     void listen<QuickAccessShowPayload>("quick-access-show", (event) => {
       refreshSettings();
-      void bootstrapWithToast(event.payload.asset_id);
+      void bootstrapWithToastRef.current(event.payload.asset_id);
     }).then((fn) => {
       if (mounted) {
         unlisten = fn;
@@ -277,7 +279,7 @@ export function QuickAccess() {
     const initialId = searchParams.get("asset_id");
     if (initialId) {
       initialAssetHandledRef.current = true;
-      void bootstrapWithToast(initialId);
+      void bootstrapWithToastRef.current(initialId);
     }
   }, []);
 

@@ -2,9 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Stage, Layer, Arrow, Rect } from 'react-konva';
 import { useAnnotationStore } from './state/store';
 import { ObjectsLayer } from './ObjectsLayer';
-import { getTextEditableContract } from './state/textEditable';
 import { SelectionTransformer } from './SelectionTransformer';
-import { createPortal } from 'react-dom';
 import { getSpotlightCornerRadius } from './renderers/spotlightLayout';
 import { useMeasureStore } from '../measure/store';
 import { GridOverlay } from '../measure/GridOverlay';
@@ -13,6 +11,7 @@ import { usePrivacyStore } from '../privacy/store';
 import { SmartRedactToolbar } from '../privacy/SmartRedactToolbar';
 import { SmartRedactOverlay } from '../privacy/SmartRedactOverlay';
 import { useAnnotationPointerHandlers } from './useAnnotationPointerHandlers';
+import { TextInlineEditor } from './TextInlineEditor';
 
 interface AnnotationStageProps {
   width: number;
@@ -62,19 +61,11 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
     reset: resetPrivacy,
   } = usePrivacyStore();
 
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const ocrRequestIdRef = useRef<number>(0);
   const stageWidth = width / scale;
   const stageHeight = height / scale;
 
-  const contract = getTextEditableContract(objects.find(obj => obj.id === editingTextId) || null);
   const overlay = document.getElementById('annotation-ui-overlay');
-
-  useEffect(() => {
-    if (!contract || !textareaRef.current) return;
-    textareaRef.current.focus();
-    textareaRef.current.select();
-  }, [contract?.id]);
 
   useEffect(() => {
     if (activeUtility === 'ocr_extract') return;
@@ -99,8 +90,8 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
   };
 
   const closeTextEditor = (value: string) => {
-    if (!contract) return;
-    updateObject(contract.id, { text: value || 'Type here...' });
+    if (!editingTextId) return;
+    updateObject(editingTextId, { text: value || 'Type here...' });
     setEditingTextId(null);
   };
 
@@ -284,50 +275,14 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
           )}
         </Layer>
       </Stage>
-      {contract && overlay && createPortal(
-        <textarea
-          ref={textareaRef}
-          defaultValue={contract.currentText === 'Type here...' ? '' : contract.currentText}
-          onBlur={(e) => closeTextEditor(e.target.value)}
-          onMouseDown={(e) => e.stopPropagation()}
-          onClick={(e) => e.stopPropagation()}
-          onKeyDown={(e) => {
-            e.stopPropagation();
-            if (e.key === 'Escape') {
-              setEditingTextId(null);
-            }
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              closeTextEditor(e.currentTarget.value);
-            }
-          }}
-          placeholder="Type here..."
-          style={{
-            position: 'absolute',
-            left: `${contract.overlayX * scale}px`,
-            top: `${contract.overlayY * scale}px`,
-            width: contract.fixedSize ? `${contract.overlayWidth * scale}px` : undefined,
-            height: contract.fixedSize ? `${contract.overlayHeight * scale}px` : undefined,
-            minWidth: !contract.fixedSize ? `${contract.overlayWidth * scale}px` : undefined,
-            minHeight: !contract.fixedSize ? `${contract.overlayHeight * scale}px` : undefined,
-            fontSize: `${contract.fontSize * scale}px`,
-            fontFamily: contract.fontFamily,
-            color: contract.textColor,
-            background: 'transparent',
-            border: '1px dashed rgba(99, 102, 241, 0.65)',
-            padding: 0,
-            margin: 0,
-            outline: 'none',
-            resize: 'none',
-            overflow: 'hidden',
-            pointerEvents: 'auto',
-            zIndex: 1001,
-            lineHeight: 1.1,
-            display: 'block',
-          }}
-        />,
-        overlay
-      )}
+      <TextInlineEditor
+        editingTextId={editingTextId}
+        objects={objects}
+        overlay={overlay}
+        scale={scale}
+        onClose={closeTextEditor}
+        onCancel={() => setEditingTextId(null)}
+      />
       <OCRResultToolbar onDismiss={dismissOcrResult} scale={scale} />
       {activeUtility === 'smart_redact_ai' && (
         <>
