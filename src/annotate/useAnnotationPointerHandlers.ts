@@ -18,6 +18,7 @@ import {
 } from './state/types';
 import { getCompositionCoordinates } from '../measure/coordinates';
 import { extractTextFromCanvas } from '../measure/ocr';
+import { DrawingObject } from './state/drawingTypes';
 
 interface UseAnnotationPointerHandlersDeps {
   scale: number;
@@ -44,7 +45,7 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
   handleMouseDown: (e: any) => void;
   handleMouseMove: (e: any) => void;
   handleMouseUp: () => void;
-  drawingObject: any;
+  drawingObject: DrawingObject | null;
 } {
   const {
     scale,
@@ -67,7 +68,7 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
   const { activeTool, select, addObject, setActiveTool, objects, setEditingTextId } =
     useAnnotationStore();
 
-  const [drawingObject, setDrawingObject] = useState<any>(null);
+  const [drawingObject, setDrawingObject] = useState<DrawingObject | null>(null);
 
   const handleMouseDown = useCallback(
     (e: any) => {

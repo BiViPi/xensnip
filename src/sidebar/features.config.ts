@@ -11,7 +11,7 @@ import {
 export interface SidebarFeature {
   id: FeatureId;
   label: string;
-  icon: any;
+  icon: React.ComponentType<{ className?: string; size?: number }>;
   enabled: boolean;
   locked?: boolean;
 }

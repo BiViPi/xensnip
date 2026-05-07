@@ -1,7 +1,23 @@
 import Konva from 'konva';
 import { getCompositionDimensions, drawComposition, preloadWallpaper } from "./core";
 import type { EditorPreset } from "./preset";
-import { AnnotateObject } from "../annotate/state/types";
+import { 
+  AnnotateObject, 
+  ArrowObject, 
+  RectangleObject, 
+  TextObject, 
+  BlurObject, 
+  NumberedObject, 
+  SpotlightObject, 
+  MagnifyObject, 
+  SimplifyUiObject, 
+  PixelRulerObject, 
+  SpeechBubbleObject, 
+  CalloutObject, 
+  FreehandArrowObject, 
+  PixelateObject, 
+  OpaqueRedactObject 
+} from "../annotate/state/types";
 import { createArrowNode } from "../annotate/renderers/ArrowRenderer";
 import { createRectangleNode } from "../annotate/renderers/RectangleRenderer";
 import { createTextNode } from "../annotate/renderers/TextRenderer";
@@ -54,37 +70,31 @@ export async function composeWithAnnotations(
     const layer = new Konva.Layer();
     stage.add(layer);
 
-    for (const obj of objects) {
-      if (obj.type === 'blur') {
-        renderBlur(ctx, obj, canvas);
-      } else if (obj.type === 'arrow') {
-        layer.add(createArrowNode(obj as any));
-      } else if (obj.type === 'rectangle') {
-        layer.add(createRectangleNode(obj as any));
-      } else if (obj.type === 'text') {
-        layer.add(createTextNode(obj as any));
-      } else if (obj.type === 'numbered') {
-        layer.add(createNumberedNode(obj as any));
-      } else if (obj.type === 'spotlight') {
-        for (const node of createSpotlightNodes(obj as any, dims.canvasW, dims.canvasH)) {
+    const RENDERERS: Record<AnnotateObject['type'], (obj: any) => void> = {
+      blur: (obj: BlurObject) => renderBlur(ctx, obj, canvas),
+      arrow: (obj: ArrowObject) => layer.add(createArrowNode(obj)),
+      rectangle: (obj: RectangleObject) => layer.add(createRectangleNode(obj)),
+      text: (obj: TextObject) => layer.add(createTextNode(obj)),
+      numbered: (obj: NumberedObject) => layer.add(createNumberedNode(obj)),
+      spotlight: (obj: SpotlightObject) => {
+        for (const node of createSpotlightNodes(obj, dims.canvasW, dims.canvasH)) {
           layer.add(node);
         }
-      } else if (obj.type === 'magnify') {
-        renderMagnify(ctx, obj as any, sourceCanvas);
-      } else if (obj.type === 'simplify_ui') {
-        renderSimplifyUi(ctx, obj as any, sourceCanvas);
-      } else if (obj.type === 'pixel_ruler') {
-        renderPixelRuler(ctx, obj as any);
-      } else if (obj.type === 'speech_bubble') {
-        layer.add(createSpeechBubbleNode(obj as any));
-      } else if (obj.type === 'callout') {
-        layer.add(createCalloutNode(obj as any));
-      } else if (obj.type === 'freehand_arrow') {
-        layer.add(createFreehandArrowNode(obj as any));
-      } else if (obj.type === 'pixelate') {
-        renderPixelate(ctx, obj as any, sourceCanvas);
-      } else if (obj.type === 'opaque_redact') {
-        renderOpaqueRedact(ctx, obj as any);
+      },
+      magnify: (obj: MagnifyObject) => renderMagnify(ctx, obj, sourceCanvas),
+      simplify_ui: (obj: SimplifyUiObject) => renderSimplifyUi(ctx, obj, sourceCanvas),
+      pixel_ruler: (obj: PixelRulerObject) => renderPixelRuler(ctx, obj),
+      speech_bubble: (obj: SpeechBubbleObject) => layer.add(createSpeechBubbleNode(obj)),
+      callout: (obj: CalloutObject) => layer.add(createCalloutNode(obj)),
+      freehand_arrow: (obj: FreehandArrowObject) => layer.add(createFreehandArrowNode(obj)),
+      pixelate: (obj: PixelateObject) => renderPixelate(ctx, obj, sourceCanvas),
+      opaque_redact: (obj: OpaqueRedactObject) => renderOpaqueRedact(ctx, obj),
+    };
+
+    for (const obj of objects) {
+      const renderer = RENDERERS[obj.type];
+      if (renderer) {
+        renderer(obj);
       }
     }
     

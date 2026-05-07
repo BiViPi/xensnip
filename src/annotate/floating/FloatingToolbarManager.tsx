@@ -1,5 +1,22 @@
 import React from 'react';
+import Konva from 'konva';
 import { useAnnotationStore } from '../state/store';
+import { 
+  ArrowObject, 
+  RectangleObject, 
+  TextObject, 
+  BlurObject, 
+  NumberedObject, 
+  SpotlightObject, 
+  MagnifyObject, 
+  SimplifyUiObject, 
+  PixelRulerObject, 
+  SpeechBubbleObject, 
+  CalloutObject, 
+  FreehandArrowObject, 
+  PixelateObject, 
+  OpaqueRedactObject 
+} from '../state/types';
 import { useObjectAnchor } from './useObjectAnchor';
 import './FloatingToolbar.css';
 import { ArrowToolbar } from './ArrowToolbar';
@@ -21,7 +38,7 @@ import { OpaqueRedactToolbar } from './OpaqueRedactToolbar';
 
 interface Props {
   scale: number;
-  stageRef: React.RefObject<any>;
+  stageRef: React.RefObject<Konva.Stage | null>;
 }
 
 export function FloatingToolbarManager({ scale, stageRef }: Props) {
@@ -40,59 +57,59 @@ export function FloatingToolbarManager({ scale, stageRef }: Props) {
   if (!selectedObject) return null;
 
   if (selectedObject.type === 'arrow') {
-    return <ArrowToolbar anchor={anchor} obj={selectedObject as any} />;
+    return <ArrowToolbar anchor={anchor} obj={selectedObject as ArrowObject} />;
   }
   
   if (selectedObject.type === 'rectangle') {
-    return <RectangleToolbar anchor={anchor} obj={selectedObject as any} />;
+    return <RectangleToolbar anchor={anchor} obj={selectedObject as RectangleObject} />;
   }
 
   if (selectedObject.type === 'text') {
-    return <TextToolbar anchor={anchor} obj={selectedObject as any} />;
+    return <TextToolbar anchor={anchor} obj={selectedObject as TextObject} />;
   }
 
   if (selectedObject.type === 'blur') {
-    return <BlurToolbar anchor={anchor} obj={selectedObject as any} />;
+    return <BlurToolbar anchor={anchor} obj={selectedObject as BlurObject} />;
   }
 
   if (selectedObject.type === 'numbered') {
-    return <NumberedToolbar anchor={anchor} obj={selectedObject as any} />;
+    return <NumberedToolbar anchor={anchor} obj={selectedObject as NumberedObject} />;
   }
 
   if (selectedObject.type === 'spotlight') {
-    return <SpotlightToolbar anchor={anchor} obj={selectedObject as any} />;
+    return <SpotlightToolbar anchor={anchor} obj={selectedObject as SpotlightObject} />;
   }
 
   if (selectedObject.type === 'magnify') {
-    return <MagnifyToolbar anchor={anchor} obj={selectedObject as any} />;
+    return <MagnifyToolbar anchor={anchor} obj={selectedObject as MagnifyObject} />;
   }
 
   if (selectedObject.type === 'simplify_ui') {
-    return <SimplifyUiToolbar anchor={anchor} obj={selectedObject as any} />;
+    return <SimplifyUiToolbar anchor={anchor} obj={selectedObject as SimplifyUiObject} />;
   }
 
   if (selectedObject.type === 'pixel_ruler') {
-    return <PixelRulerToolbar anchor={anchor} obj={selectedObject as any} />;
+    return <PixelRulerToolbar anchor={anchor} obj={selectedObject as PixelRulerObject} />;
   }
 
   if (selectedObject.type === 'speech_bubble') {
-    return <SpeechBubbleToolbar anchor={anchor} obj={selectedObject as any} />;
+    return <SpeechBubbleToolbar anchor={anchor} obj={selectedObject as SpeechBubbleObject} />;
   }
 
   if (selectedObject.type === 'callout') {
-    return <CalloutToolbar anchor={anchor} obj={selectedObject as any} />;
+    return <CalloutToolbar anchor={anchor} obj={selectedObject as CalloutObject} />;
   }
 
   if (selectedObject.type === 'freehand_arrow') {
-    return <FreehandArrowToolbar anchor={anchor} obj={selectedObject as any} />;
+    return <FreehandArrowToolbar anchor={anchor} obj={selectedObject as FreehandArrowObject} />;
   }
   
   if (selectedObject.type === 'pixelate') {
-    return <PixelateToolbar anchor={anchor} obj={selectedObject as any} />;
+    return <PixelateToolbar anchor={anchor} obj={selectedObject as PixelateObject} />;
   }
 
   if (selectedObject.type === 'opaque_redact') {
-    return <OpaqueRedactToolbar anchor={anchor} obj={selectedObject as any} />;
+    return <OpaqueRedactToolbar anchor={anchor} obj={selectedObject as OpaqueRedactObject} />;
   }
 
   return null;

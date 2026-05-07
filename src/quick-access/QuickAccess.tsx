@@ -1,6 +1,7 @@
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useCallback, useEffect, useRef, useState } from "react";
+import Konva from "konva";
 import {
   assetRelease,
   quickAccessMarkReady,
@@ -54,7 +55,7 @@ export function QuickAccess() {
   const [isLeftPanelCollapsed, setIsLeftPanelCollapsed] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const stageRef = useRef<any>(null);
+  const stageRef = useRef<Konva.Stage | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   const initialAssetHandledRef = useRef(false);

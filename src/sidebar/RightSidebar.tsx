@@ -1,8 +1,19 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { useSidebarStore, FeatureId } from './store';
 import { useAnnotationStore } from '../annotate/state/store';
-import { useMeasureStore } from '../measure/store';
+import { ToolId } from '../annotate/state/types';
+import { useMeasureStore, MeasureUtilityToolId } from '../measure/store';
 import { FEATURES } from './features.config';
+import { LucideIcon, } from 'lucide-react';
+
+interface FeatureToolItem {
+  id: string;
+  label: string;
+  icon: LucideIcon | React.ComponentType<{ className?: string; size?: number }>;
+  hint?: string;
+  isUtility?: boolean;
+  disabled?: boolean;
+}
 import {
   ChevronDown,
   ChevronUp,
@@ -155,22 +166,23 @@ function FeaturePopover({ featureId, onClose }: { featureId: FeatureId; onClose:
 }
 
 // Each tool row: icon only, label as title/tooltip
-function ToolGrid({ tools, onClose }: { tools: any[]; onClose: () => void }) {
+function ToolGrid({ tools, onClose }: { tools: FeatureToolItem[]; onClose: () => void }) {
   const { activeTool, setActiveTool } = useAnnotationStore();
   const { activeUtility, setActiveUtility, setGridVisible, gridVisible } = useMeasureStore();
 
-  const handleToolClick = (tool: any) => {
+  const handleToolClick = (tool: FeatureToolItem) => {
     if (tool.isUtility) {
       if (tool.id === 'grid_overlay') {
         setGridVisible(!gridVisible);
         // Leave activeUtility as is for passive grid
       } else {
-        const nextUtility = activeUtility === tool.id ? null : tool.id;
-        setActiveUtility(nextUtility as any);
+        const utilityId = tool.id as MeasureUtilityToolId;
+        const nextUtility = activeUtility === utilityId ? null : utilityId;
+        setActiveUtility(nextUtility);
         setActiveTool('select');
       }
     } else {
-      setActiveTool(tool.id as any);
+      setActiveTool(tool.id as ToolId);
       setActiveUtility(null);
     }
     onClose(); // auto-close popover after tool selection

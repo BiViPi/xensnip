@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import Konva from 'konva';
 import { Stage, Layer, Arrow, Rect } from 'react-konva';
 import { useAnnotationStore } from './state/store';
 import { ObjectsLayer } from './ObjectsLayer';
@@ -18,7 +19,7 @@ interface AnnotationStageProps {
   height: number;
   scale: number;
   compositionCanvasRef: React.RefObject<HTMLCanvasElement | null>;
-  stageRef: React.RefObject<any>;
+  stageRef: React.RefObject<Konva.Stage | null>;
 }
 
 const TOOL_CURSOR: Record<string, string> = {

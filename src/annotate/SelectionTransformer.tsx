@@ -1,11 +1,13 @@
 import { useEffect, useRef } from 'react';
+import Konva from 'konva';
 import { Transformer } from 'react-konva';
 import { useAnnotationStore } from './state/store';
+import { ArrowObject, PixelRulerObject, FreehandArrowObject, SpeechBubbleObject, CalloutObject } from './state/types';
 
 export function SelectionTransformer() {
   const { selectedId, updateObject, objects, editingTextId } = useAnnotationStore();
-  const transformerRef = useRef<any>(null);
-  const selectedObject = objects.find((o) => o.id === selectedId);
+  const transformerRef = useRef<Konva.Transformer | null>(null);
+  const selectedObject = objects.find((o: any) => o.id === selectedId);
   const fullResizeAnchors = [
     'top-left',
     'top-center',
@@ -21,12 +23,12 @@ export function SelectionTransformer() {
     if (!transformerRef.current) return;
 
     const stage = transformerRef.current.getStage();
-    if (!selectedId) {
+    if (!stage || !selectedId) {
       transformerRef.current.nodes([]);
       return;
     }
 
-    const selectedNode = stage.findOne((node: any) => node.id() === selectedId);
+    const selectedNode = stage.findOne((node: Konva.Node) => node.id() === selectedId);
     if (!selectedNode) {
       transformerRef.current.nodes([]);
       return;
@@ -35,7 +37,8 @@ export function SelectionTransformer() {
     const RESIZE_DISABLED_TYPES = new Set(['text', 'numbered']);
     if (RESIZE_DISABLED_TYPES.has(selectedObject?.type || '') || editingTextId === selectedId) {
       transformerRef.current.nodes([]);
-      transformerRef.current.getLayer().batchDraw();
+      const layer = transformerRef.current.getLayer();
+      if (layer) layer.batchDraw();
       return;
     }
 
@@ -46,7 +49,8 @@ export function SelectionTransformer() {
     } else {
       transformerRef.current.enabledAnchors([...fullResizeAnchors]);
     }
-    transformerRef.current.getLayer().batchDraw();
+    const finalLayer = transformerRef.current.getLayer();
+    if (finalLayer) finalLayer.batchDraw();
   }, [selectedId, selectedObject?.type, editingTextId, objects]);
 
   if (!selectedId) return null;
@@ -60,11 +64,11 @@ export function SelectionTransformer() {
     node.scaleX(1);
     node.scaleY(1);
 
-    const obj = objects.find((o) => o.id === selectedId);
+    const obj = objects.find((o: any) => o.id === selectedId);
     if (!obj) return;
 
     if (obj.type === 'arrow' || obj.type === 'pixel_ruler') {
-      const arrowObj = obj as any;
+      const arrowObj = obj as ArrowObject | PixelRulerObject;
       const newPoints = [
         arrowObj.points[0] * scaleX,
         arrowObj.points[1] * scaleY,
@@ -78,7 +82,7 @@ export function SelectionTransformer() {
         points: newPoints as [number, number, number, number],
       });
     } else if (obj.type === 'freehand_arrow') {
-      const freehandObj = obj as any;
+      const freehandObj = obj as FreehandArrowObject;
       const newPoints = freehandObj.points.map((v: number, i: number) =>
         i % 2 === 0 ? v * scaleX : v * scaleY
       );
@@ -89,24 +93,26 @@ export function SelectionTransformer() {
         points: newPoints,
       });
     } else if (obj.type === 'speech_bubble') {
+      const bubbleObj = obj as SpeechBubbleObject;
       updateObject(selectedId, {
         x: node.x(),
         y: node.y(),
         rotation,
-        width: obj.width * scaleX,
-        height: obj.height * scaleY,
-        tailX: obj.tailX * scaleX,
-        tailY: obj.tailY * scaleY,
+        width: bubbleObj.width * scaleX,
+        height: bubbleObj.height * scaleY,
+        tailX: bubbleObj.tailX * scaleX,
+        tailY: bubbleObj.tailY * scaleY,
       });
     } else if (obj.type === 'callout') {
-      const relTargetX = obj.targetX - obj.x;
-      const relTargetY = obj.targetY - obj.y;
+      const calloutObj = obj as CalloutObject;
+      const relTargetX = calloutObj.targetX - calloutObj.x;
+      const relTargetY = calloutObj.targetY - calloutObj.y;
       updateObject(selectedId, {
         x: node.x(),
         y: node.y(),
         rotation,
-        width: obj.width * scaleX,
-        height: obj.height * scaleY,
+        width: calloutObj.width * scaleX,
+        height: calloutObj.height * scaleY,
         targetX: node.x() + relTargetX * scaleX,
         targetY: node.y() + relTargetY * scaleY,
       });
