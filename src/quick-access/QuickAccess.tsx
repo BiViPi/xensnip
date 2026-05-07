@@ -379,17 +379,16 @@ export function QuickAccess() {
 
   const clearAllInSession = useCallback(() => {
     documents.forEach(doc => {
-      doc.annotation.objects = [];
-      doc.cropBounds = null;
-      doc.undoStack = [];
-    });
-    // Trigger re-render of thumbnails
-    documents.forEach(doc => {
+      patchDocument(doc.id, {
+        annotation: { ...doc.annotation, objects: [], selectedId: null, editingTextId: null },
+        cropBounds: null,
+        undoStack: [],
+      });
       generateThumbnail(doc.image).then(thumb => {
-        doc.thumbnailSrc = thumb;
+        patchDocument(doc.id, { thumbnailSrc: thumb });
       });
     });
-  }, [documents]);
+  }, [documents, patchDocument]);
 
   useEffect(() => {
     let mounted = true;

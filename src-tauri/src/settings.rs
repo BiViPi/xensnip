@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
+use std::io;
 use std::path::PathBuf;
 use tauri::AppHandle;
 use tauri::Manager;
@@ -94,37 +95,41 @@ fn migrate_settings_if_needed(settings: &mut Settings) -> bool {
 
     if settings.version < 4 {
         settings.version = 4;
+        // v4: no data migration needed; serde defaults cover new fields
         changed = true;
     }
 
     if settings.version < 5 {
         settings.version = 5;
+        // v5: no data migration needed; serde defaults cover new fields
         changed = true;
     }
 
     if settings.version < 6 {
         settings.version = 6;
+        // v6: no data migration needed; serde defaults cover new fields
         changed = true;
     }
 
     if settings.version < 7 {
         settings.version = 7;
+        // v7: no data migration needed; serde defaults cover new fields
         changed = true;
     }
 
     changed
 }
 
-pub fn get_settings_path(app_handle: &AppHandle) -> PathBuf {
+pub fn get_settings_path(app_handle: &AppHandle) -> Result<PathBuf, io::Error> {
     let mut path = app_handle
         .path()
         .app_config_dir()
-        .expect("Failed to get app config dir");
+        .map_err(|e| io::Error::new(io::ErrorKind::NotFound, e.to_string()))?;
     if !path.exists() {
-        fs::create_dir_all(&path).expect("Failed to create app config dir");
+        fs::create_dir_all(&path)?;
     }
     path.push("settings.json");
-    path
+    Ok(path)
 }
 
 #[derive(Debug, thiserror::Error, serde::Serialize)]
@@ -148,25 +153,36 @@ pub struct SettingsSaveResult {
 }
 
 pub fn load_or_create_default(app_handle: &AppHandle) -> Settings {
-    let path = get_settings_path(app_handle);
+    let path = match get_settings_path(app_handle) {
+        Ok(p) => p,
+        Err(e) => {
+            log::error!(target: "settings", "failed to resolve settings path: {}", e);
+            return Settings::default();
+        }
+    };
 
     if path.exists() {
-        let content = fs::read_to_string(&path).expect("Failed to read settings file");
-        match serde_json::from_str::<Settings>(&content) {
-            Ok(mut settings) => {
-                if migrate_settings_if_needed(&mut settings) {
-                    let _ = save_settings(app_handle, &settings).map_err(|e| {
-                        log::error!(target: "settings", "failed to save migrated settings: {}", e);
-                    });
+        match fs::read_to_string(&path) {
+            Ok(content) => match serde_json::from_str::<Settings>(&content) {
+                Ok(mut settings) => {
+                    if migrate_settings_if_needed(&mut settings) {
+                        let _ = save_settings(app_handle, &settings).map_err(|e| {
+                            log::error!(target: "settings", "failed to save migrated settings: {}", e);
+                        });
+                    }
+                    settings
                 }
-                settings
-            }
-            Err(_) => {
-                let defaults = Settings::default();
-                let _ = save_settings(app_handle, &defaults).map_err(|e| {
-                    log::error!(target: "settings", "failed to save default settings after parse error: {}", e);
-                });
-                defaults
+                Err(_) => {
+                    let defaults = Settings::default();
+                    let _ = save_settings(app_handle, &defaults).map_err(|e| {
+                        log::error!(target: "settings", "failed to save default settings after parse error: {}", e);
+                    });
+                    defaults
+                }
+            },
+            Err(e) => {
+                log::error!(target: "settings", "failed to read settings file: {}", e);
+                Settings::default()
             }
         }
     } else {
@@ -178,9 +194,10 @@ pub fn load_or_create_default(app_handle: &AppHandle) -> Settings {
     }
 }
 
-pub fn save_settings(app_handle: &AppHandle, settings: &Settings) -> Result<(), std::io::Error> {
-    let path = get_settings_path(app_handle);
-    let content = serde_json::to_string_pretty(settings).expect("Failed to serialize settings");
+pub fn save_settings(app_handle: &AppHandle, settings: &Settings) -> Result<(), io::Error> {
+    let path = get_settings_path(app_handle)?;
+    let content = serde_json::to_string_pretty(settings)
+        .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e.to_string()))?;
     fs::write(path, content)?;
     Ok(())
 }

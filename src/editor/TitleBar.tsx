@@ -50,22 +50,18 @@ export function TitleBar({
 
   const handleMinimize = () => {
     if (!appWindow) return;
-    console.log("[TitleBar] Action: Minimize");
     void appWindow.minimize();
   };
 
   const handleMaximize = async () => {
     if (!appWindow) return;
-    console.log("[TitleBar] Action: Maximize/Restore Toggle. Current UI State:", isMaximized);
     // Explicitly check current state from OS before acting
     const currentlyMaximized = await appWindow.isMaximized();
 
     try {
       if (currentlyMaximized) {
-        console.log("[TitleBar] Command: unmaximize()");
         await appWindow.unmaximize();
       } else {
-        console.log("[TitleBar] Command: maximize()");
         await appWindow.maximize();
       }
 
@@ -82,7 +78,6 @@ export function TitleBar({
   };
 
   const handleClose = () => {
-    console.log("[TitleBar] Action: Close");
     if (onClose) onClose();
     else if (appWindow) void appWindow.close();
   };

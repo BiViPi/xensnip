@@ -71,9 +71,6 @@ export function usePreviewMetrics(
         dockReserve,
       }
     };
-    if (image) {
-      console.debug(`[MP-D Meta] previewScale: ${previewScale.toFixed(4)}, previewRenderScale: ${previewRenderScale.toFixed(4)}, DPR: ${devicePixelRatio}`);
-    }
     return result;
   }, [image, preset, viewportSize, panelReserveWidth]);
 }

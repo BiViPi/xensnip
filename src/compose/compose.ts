@@ -32,7 +32,6 @@ export function composeToCanvas(
   ctx.clearRect(0, 0, scaledCanvasW, scaledCanvasH);
   ctx.imageSmoothingEnabled = targetScale > 1;
   ctx.imageSmoothingQuality = "high";
-  console.debug(`[MP-D] Preview canvas: ${scaledCanvasW}x${scaledCanvasH}, renderScale: ${renderScale}`);
   ctx.drawImage(compositionCanvas, 0, 0, scaledCanvasW, scaledCanvasH);
 }
 
@@ -63,7 +62,6 @@ export async function composeToBlob(image: HTMLImageElement, preset: EditorPrese
       reader.onload = () => {
         const arrayBuffer = reader.result as ArrayBuffer;
         const blobBytes = new Uint8Array(arrayBuffer);
-        console.debug(`[MP-E] Export blob: ${canvas.width}x${canvas.height}, bytes: ${blobBytes.length}, format: ${format}`);
         resolve(blobBytes);
       };
       reader.onerror = () => reject(new Error("FileReader failed"));
