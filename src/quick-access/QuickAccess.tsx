@@ -2,11 +2,8 @@ import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  assetReadPng,
   assetRelease,
   quickAccessMarkReady,
-  assetResolve,
-  perfLog,
   settingsLoad,
 } from "../ipc/index";
 import { QuickAccessShowPayload, Settings, ThemeMode } from "../ipc/types";
@@ -14,7 +11,6 @@ import { applyTheme } from "../styles/applyTheme";
 import { composeToCanvas } from "../compose/compose";
 import { DEFAULT_PRESET, EditorPreset } from "../compose/preset";
 import { preloadWallpaper, getOrLoadWallpaper } from "../compose/core";
-import { autoBalance } from "../editor/autoBalance";
 import { QuickBar } from "../editor/QuickBar";
 import { Toast } from "../editor/Toast";
 import { TitleBar } from "../editor/TitleBar";
@@ -27,15 +23,15 @@ import { FloatingToolbarManager } from "../annotate/floating/FloatingToolbarMana
 import { useAnnotationStore } from "../annotate/state/store";
 import { useCropTool } from "../editor/useCropTool";
 import { CropOverlay } from "../editor/CropOverlay";
-import { registerHistoryRecorder, withHistorySuspended } from "../editor/historyBridge";
-import { useScreenshotDocuments, ScreenshotDocument, DocumentStateSnapshot, DocumentUndoSnapshot } from "../editor/useScreenshotDocuments";
+import { registerHistoryRecorder } from "../editor/historyBridge";
+import { useScreenshotDocuments, ScreenshotDocument, DocumentStateSnapshot } from "../editor/useScreenshotDocuments";
 import { generateThumbnail } from "../editor/generateThumbnail";
 import { LeftPanel } from "../left-panel/LeftPanel";
+import { ShadowDotOverlay } from "../editor/ShadowDotOverlay";
+import { useEditorUndoStack } from "../editor/useEditorUndoStack";
+import { useAssetBootstrap } from "./useAssetBootstrap";
 import "./QuickAccess.css";
 
-// EditorSnapshot is replaced by DocumentUndoSnapshot in the per-document stack
-
-const HISTORY_LIMIT = 50;
 const LEFT_PANEL_MIN_WIDTH = 220;
 const LEFT_PANEL_MAX_WIDTH = 272;
 const LEFT_PANEL_COLLAPSED_WIDTH = 52;
@@ -51,7 +47,6 @@ export function QuickAccess() {
   const [preset, setPreset] = useState<EditorPreset>(DEFAULT_PRESET);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [isActionInFlight, setIsActionInFlight] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [wallpaperFlip, setWallpaperFlip] = useState(0);
   const [isPresetManagerOpen, setIsPresetManagerOpen] = useState(false);
@@ -63,8 +58,6 @@ export function QuickAccess() {
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   const initialAssetHandledRef = useRef(false);
-  const undoStackRef = useRef<DocumentUndoSnapshot[]>([]);
-  const bootstrapAssetRef = useRef<(assetId: string) => Promise<void> | void>(() => {});
 
   const { 
     documents, 
@@ -146,6 +139,13 @@ export function QuickAccess() {
     }
   });
 
+  const { pushHistorySnapshot, handleUndo, undoStackRef } = useEditorUndoStack({
+    image,
+    cropBounds,
+    setImage,
+    setCropBounds,
+  });
+
   const flushActiveDocument = useCallback(() => {
     if (!activeDocumentId) return;
     const s = useAnnotationStore.getState();
@@ -162,75 +162,7 @@ export function QuickAccess() {
       image: image || undefined
     };
     switchToDocument(activeDocumentId, snap);
-  }, [activeDocumentId, cropBounds, image, switchToDocument]);
-
-  const buildAnnotationSnapshot = useCallback(() => {
-    const s = useAnnotationStore.getState();
-    return {
-      activeTool: s.activeTool,
-      objects: s.objects.map(obj => ({ ...obj })),
-      selectedId: s.selectedId,
-      editingTextId: s.editingTextId,
-      toolbarCollapsed: s.toolbarCollapsed,
-    };
-  }, []);
-
-  const buildSnapshot = useCallback((): DocumentUndoSnapshot | null => {
-    if (!image?.src) return null;
-
-    return {
-      imageSrc: image.src,
-      annotation: buildAnnotationSnapshot(),
-      cropBounds: cropBounds ? { ...cropBounds } : null,
-    };
-  }, [cropBounds, image, buildAnnotationSnapshot]);
-
-  const loadSnapshotImage = useCallback(async (src: string) => {
-    const img = new Image();
-    img.src = src;
-    await new Promise<void>((resolve, reject) => {
-      img.onload = () => resolve();
-      img.onerror = () => reject(new Error("Failed to restore snapshot image"));
-    });
-    return img;
-  }, []);
-
-  const pushHistorySnapshot = useCallback(() => {
-    const snapshot = buildSnapshot();
-    if (!snapshot) return;
-
-    const previous = undoStackRef.current[undoStackRef.current.length - 1];
-    if (
-      previous &&
-      previous.imageSrc === snapshot.imageSrc &&
-      JSON.stringify(previous.annotation) === JSON.stringify(snapshot.annotation) &&
-      JSON.stringify(previous.cropBounds) === JSON.stringify(snapshot.cropBounds)
-    ) {
-      return;
-    }
-
-    undoStackRef.current.push(snapshot);
-    if (undoStackRef.current.length > HISTORY_LIMIT) {
-      undoStackRef.current.shift();
-    }
-  }, [buildSnapshot]);
-
-  const handleUndo = useCallback(async () => {
-    const snapshot = undoStackRef.current.pop();
-    if (!snapshot) return;
-
-    try {
-      const restoredImage = await loadSnapshotImage(snapshot.imageSrc);
-      withHistorySuspended(() => {
-        setImage(restoredImage);
-        // Shared preset is intentionally excluded from per-document undo
-        useAnnotationStore.getState().restoreSnapshot(snapshot.annotation);
-        setCropBounds(snapshot.cropBounds ? { ...snapshot.cropBounds } : null);
-      });
-    } catch (error) {
-      console.error("Undo restore failed", error);
-    }
-  }, [loadSnapshotImage, setCropBounds]);
+  }, [activeDocumentId, cropBounds, image, switchToDocument, undoStackRef]);
 
   const handleSwitchDocument = useCallback((nextId: string) => {
     const activeId = activeIdRef.current;
@@ -240,8 +172,15 @@ export function QuickAccess() {
     if (activeTool === 'crop') cancelCrop();
 
     // 2. Build current state snapshot
+    const annotationState = useAnnotationStore.getState();
     const snapshot: DocumentStateSnapshot = {
-      annotation: buildAnnotationSnapshot(),
+      annotation: {
+        activeTool: annotationState.activeTool,
+        objects: annotationState.objects.map((obj) => ({ ...obj })),
+        selectedId: annotationState.selectedId,
+        editingTextId: annotationState.editingTextId,
+        toolbarCollapsed: annotationState.toolbarCollapsed,
+      },
       cropBounds: cropBounds ?? null,
       undoStack: [...undoStackRef.current],
       image: image ?? undefined,
@@ -272,110 +211,30 @@ export function QuickAccess() {
     }
   }, [activeTool, cropBounds, startCrop]);
 
-  const bootstrapAsset = useCallback(async (nextAssetId: string) => {
-    // Check if we already have this asset using stable docsRef
-    if (docsRef.current.some(d => d.assetId === nextAssetId)) {
-      const existing = docsRef.current.find(d => d.assetId === nextAssetId)!;
-      handleSwitchDocument(existing.id);
-      return;
-    }
+  const { bootstrapAsset, isLoading } = useAssetBootstrap({
+    docsRef,
+    addDocument,
+    releaseDocument,
+    patchDocument,
+    handleSwitchDocument,
+    setActiveDocumentId,
+    setImage,
+    setCropBounds,
+    setSettings,
+    setPreset,
+    undoStackRef,
+  });
 
-    setIsLoading(true);
-    setToast(null);
-    setIsActionInFlight(false);
-
+  // Wrap bootstrap errors into a toast
+  const bootstrapWithToast = useCallback(async (assetId: string) => {
     try {
-      const bootstrapStart = performance.now();
-      
-      const resolveStart = performance.now();
-      // Acquire ref-count for this consumer. URI is unused here;
-      // image bytes are read via assetReadPng() on the IPC path (Step 4 will switch to xensnip-asset://).
-      await assetResolve(nextAssetId, "quick_access_ui");
-      void perfLog(`Asset resolve ref-count took ${Math.round(performance.now() - resolveStart)}ms`);
-
-      const readStart = performance.now();
-      const bytes = await assetReadPng(nextAssetId);
-      void perfLog(`Asset read over IPC took ${Math.round(performance.now() - readStart)}ms (size: ${bytes.length})`);
-
-      const decodeStart = performance.now();
-      const blob = new Blob([bytes], { type: "image/png" });
-      const url = URL.createObjectURL(blob);
-
-      const img = new Image();
-      img.src = url;
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = () => reject(new Error("Failed to load blob image"));
-      });
-      void perfLog(`Image decode took ${Math.round(performance.now() - decodeStart)}ms (${img.naturalWidth}x${img.naturalHeight})`);
-
-      const newDoc: ScreenshotDocument = {
-        id: crypto.randomUUID(),
-        image: img,
-        blobUrl: url,
-        assetId: nextAssetId,
-        thumbnailSrc: "", // Placeholder initially
-        annotation: {
-          activeTool: 'select',
-          objects: [],
-          selectedId: null,
-          editingTextId: null,
-          toolbarCollapsed: false,
-        },
-        cropBounds: null,
-        isExportChecked: true, // Default to checked for export
-        undoStack: [],
-        createdAt: Date.now(),
-      };
-
-      const evicted = addDocument(newDoc);
-      evicted.forEach(releaseDocument);
-
-      // Set as active
-      setImage(newDoc.image);
-      setActiveDocumentId(newDoc.id);
-      useAnnotationStore.getState().clearAll();
-      setCropBounds(null);
-      undoStackRef.current = [];
-
-      setIsLoading(false); // UI becomes usable here immediately after image is ready
-
-      requestAnimationFrame(() => {
-        const totalFE = Math.round(performance.now() - bootstrapStart);
-        void perfLog(`[FIRST-PAINT] Editor usable after ${totalFE}ms (frontend bootstrap)`);
-      });
-
-      // Settings and Presets can be loaded asynchronously without blocking first paint
-      const currentSettings = await settingsLoad();
-      setSettings(currentSettings);
-
-      // Shared preset logic (applies to all captures in session)
-      if (currentSettings?.last_preset) {
-        setPreset({ ...DEFAULT_PRESET, ...currentSettings.last_preset });
-      } else if (currentSettings?.default_preset_id) {
-        const def = currentSettings.saved_presets.find(p => p.id === currentSettings.default_preset_id);
-        if (def) setPreset({ ...DEFAULT_PRESET, ...def.preset });
-        else setPreset({ ...DEFAULT_PRESET, padding: autoBalance(img.width, img.height, DEFAULT_PRESET.ratio) });
-      } else {
-        setPreset({ ...DEFAULT_PRESET, padding: autoBalance(img.width, img.height, DEFAULT_PRESET.ratio) });
-      }
-
-      // Defer thumbnail generation
-      setTimeout(async () => {
-        const thumbStart = performance.now();
-        const thumb = await generateThumbnail(img);
-        void perfLog(`Deferred thumbnail generation took ${Math.round(performance.now() - thumbStart)}ms`);
-        patchDocument(newDoc.id, { thumbnailSrc: thumb });
-      }, 0);
-
-    } catch (e) {
-      console.error("Bootstrap failed", e);
+      setToast(null);
+      setIsActionInFlight(false);
+      await bootstrapAsset(assetId);
+    } catch {
       showToast("Capture is no longer available.", "error");
-    } finally {
-      setIsLoading(false);
     }
-  }, [addDocument, releaseDocument, handleSwitchDocument, setActiveDocumentId, setCropBounds, docsRef, patchDocument]);
-  bootstrapAssetRef.current = bootstrapAsset;
+  }, [bootstrapAsset]);
 
   const clearAllInSession = useCallback(() => {
     documents.forEach(doc => {
@@ -395,13 +254,11 @@ export function QuickAccess() {
     let unlisten: null | (() => void) = null;
     void listen<QuickAccessShowPayload>("quick-access-show", (event) => {
       refreshSettings();
-      void bootstrapAssetRef.current(event.payload.asset_id);
+      void bootstrapWithToast(event.payload.asset_id);
     }).then((fn) => {
       if (mounted) {
         unlisten = fn;
-        void quickAccessMarkReady().then(() => {
-          void perfLog("Quick Access window listener attached and ready");
-        }).catch(console.error);
+        void quickAccessMarkReady().catch(console.error);
       } else {
         fn();
       }
@@ -420,7 +277,7 @@ export function QuickAccess() {
     const initialId = searchParams.get("asset_id");
     if (initialId) {
       initialAssetHandledRef.current = true;
-      void bootstrapAssetRef.current(initialId);
+      void bootstrapWithToast(initialId);
     }
   }, []);
 
@@ -461,39 +318,6 @@ export function QuickAccess() {
     allDocs.forEach(releaseDocument);
     await getCurrentWindow().close();
   }, [clearAll, releaseDocument]);
-
-  const handleShadowDrag = useCallback((e: any) => {
-    if (!image || !canvasRef.current) return;
-    const rect = canvasRef.current.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-    const dx = mouseX - centerX;
-    const dy = mouseY - centerY;
-    const angleRad = Math.atan2(dy, dx);
-    const angleDeg = (angleRad * 180 / Math.PI) + 90;
-    const distance = Math.sqrt(dx * dx + dy * dy) / previewScale;
-
-    setPreset(prev => ({
-      ...prev,
-      shadow_angle: Math.round((angleDeg + 360) % 360),
-      shadow_offset: Math.round(Math.min(distance, 150))
-    }));
-  }, [image, centerX, centerY, previewScale]);
-
-  const onMouseDownShadow = (e: React.MouseEvent) => {
-    e.preventDefault();
-    const onMouseMove = (ee: MouseEvent) => handleShadowDrag(ee);
-    const onMouseUp = () => {
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp);
-    };
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", onMouseUp);
-  };
-
-  const angleRad = (preset.shadow_angle - 90) * (Math.PI / 180);
-  const dotX = centerX + Math.cos(angleRad) * (preset.shadow_offset * previewScale);
-  const dotY = centerY + Math.sin(angleRad) * (preset.shadow_offset * previewScale);
 
   return (
     <div className="xs-shell">
@@ -588,25 +412,14 @@ export function QuickAccess() {
               )}
               
               {activePop === "shadow" && preset.shadow_enabled && (
-                <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-                  <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
-                    <line x1={centerX} y1={centerY} x2={dotX} y2={dotY} stroke="#6366F1" strokeWidth="1.5" strokeDasharray="4 2" opacity="0.5" />
-                  </svg>
-                  <div 
-                    onMouseDown={onMouseDownShadow}
-                    style={{
-                      position: 'absolute', left: `${dotX}px`, top: `${dotY}px`,
-                      width: '16px', height: '16px', background: '#6366F1', border: '2px solid white',
-                      borderRadius: '50%', transform: 'translate(-50%, -50%)', cursor: 'move',
-                      pointerEvents: 'auto', boxShadow: '0 2px 10px rgba(0,0,0,0.3)', zIndex: 2000
-                    }}
-                  />
-                  <div style={{
-                    position: 'absolute', left: `${centerX}px`, top: `${centerY}px`,
-                    width: '6px', height: '6px', background: '#fff', border: '1.5px solid #6366F1',
-                    borderRadius: '50%', transform: 'translate(-50%, -50%)'
-                  }} />
-                </div>
+                <ShadowDotOverlay
+                  preset={preset}
+                  centerX={centerX}
+                  centerY={centerY}
+                  previewScale={previewScale}
+                  canvasRef={canvasRef}
+                  onPresetChange={setPreset}
+                />
               )}
             </div>
           </div>
