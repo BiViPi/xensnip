@@ -4,16 +4,23 @@ import { useAnnotationStore } from '../annotate/state/store';
 import { ToolId } from '../annotate/state/types';
 import { useMeasureStore, MeasureUtilityToolId } from '../measure/store';
 import { FEATURES } from './features.config';
-import { LucideIcon, } from 'lucide-react';
+import { LucideIcon } from 'lucide-react';
 
-interface FeatureToolItem {
-  id: string;
+interface BaseFeatureToolItem {
   label: string;
   icon: LucideIcon | React.ComponentType<{ className?: string; size?: number }>;
   hint?: string;
-  isUtility?: boolean;
   disabled?: boolean;
 }
+interface AnnotationFeatureToolItem extends BaseFeatureToolItem {
+  id: ToolId;
+  isUtility?: false;
+}
+interface UtilityFeatureToolItem extends BaseFeatureToolItem {
+  id: MeasureUtilityToolId;
+  isUtility: true;
+}
+type FeatureToolItem = AnnotationFeatureToolItem | UtilityFeatureToolItem;
 import {
   ChevronDown,
   ChevronUp,
@@ -130,7 +137,7 @@ function FocusTools({ onClose }: { onClose: () => void }) {
     { id: 'spotlight', label: 'Simplify UI', icon: Aperture, hint: 'Simplify UI - drag on canvas' },
     { id: 'simplify_ui', label: 'Spotlight', icon: Sparkles, hint: 'Spotlight - drag on canvas' },
     { id: 'magnify', label: 'Magnify', icon: ZoomIn, hint: 'Magnify — drag on canvas' },
-  ];
+  ] satisfies AnnotationFeatureToolItem[];
   return <ToolGrid tools={tools} onClose={onClose} />;
 }
 
@@ -140,7 +147,7 @@ function MeasureTools({ onClose }: { onClose: () => void }) {
     { id: 'color_picker', label: 'Color Picker', icon: Pipette, hint: 'Color Picker — sample pixels', isUtility: true },
     { id: 'pixel_ruler', label: 'Pixel Ruler', icon: Ruler, hint: 'Pixel Ruler — drag to measure' },
     { id: 'ocr_extract', label: 'OCR Extract Text', icon: ScanText, hint: 'OCR — drag to extract text', isUtility: true },
-  ];
+  ] satisfies FeatureToolItem[];
   return <ToolGrid tools={tools} onClose={onClose} />;
 }
 
@@ -176,13 +183,12 @@ function ToolGrid({ tools, onClose }: { tools: FeatureToolItem[]; onClose: () =>
         setGridVisible(!gridVisible);
         // Leave activeUtility as is for passive grid
       } else {
-        const utilityId = tool.id as MeasureUtilityToolId;
-        const nextUtility = activeUtility === utilityId ? null : utilityId;
+        const nextUtility = activeUtility === tool.id ? null : tool.id;
         setActiveUtility(nextUtility);
         setActiveTool('select');
       }
     } else {
-      setActiveTool(tool.id as ToolId);
+      setActiveTool(tool.id);
       setActiveUtility(null);
     }
     onClose(); // auto-close popover after tool selection
@@ -210,7 +216,7 @@ function AnnotateTools({ onClose }: { onClose: () => void }) {
     { id: 'arrow', label: 'Arrow', icon: ArrowRight, hint: 'Arrow — drag on canvas' },
     { id: 'rectangle', label: 'Rectangle', icon: SquareIcon, hint: 'Rectangle — drag on canvas' },
     { id: 'text', label: 'Text', icon: Type, hint: 'Text — click on canvas' },
-  ];
+  ] satisfies AnnotationFeatureToolItem[];
   return <ToolGrid tools={tools} onClose={onClose} />;
 }
 
@@ -220,7 +226,7 @@ function PrivacyTools({ onClose }: { onClose: () => void }) {
     { id: 'pixelate', label: 'Pixelate', icon: Grid3X3, hint: 'Pixelate — drag on canvas' },
     { id: 'opaque_redact', label: 'Opaque Redact', icon: SquareIcon, hint: 'Opaque Redact — drag on canvas' },
     { id: 'smart_redact_ai', label: 'Smart Redact AI', icon: Sparkles, hint: 'Smart Redact AI — auto-detect text', isUtility: true },
-  ];
+  ] satisfies FeatureToolItem[];
   return <ToolGrid tools={tools} onClose={onClose} />;
 }
 
@@ -230,7 +236,7 @@ function StepsTools({ onClose }: { onClose: () => void }) {
     { id: 'speech_bubble', label: 'Speech Bubble', icon: MessageSquare, hint: 'Speech Bubble — click on canvas' },
     { id: 'callout', label: 'Callout', icon: MousePointer2, hint: 'Callout — drag from target to label' },
     { id: 'freehand_arrow', label: 'Freehand Arrow', icon: PencilLine, hint: 'Freehand Arrow — drag to sketch' },
-  ];
+  ] satisfies AnnotationFeatureToolItem[];
   return <ToolGrid tools={tools} onClose={onClose} />;
 }
 
@@ -238,6 +244,6 @@ function CropTools({ onClose }: { onClose: () => void }) {
   const tools = [
     { id: 'crop', label: 'Crop', icon: CropIcon, hint: 'Crop — drag handles to crop' },
     { id: 'canvas', label: 'Canvas Size', icon: SquareIcon, hint: 'Canvas Size — coming soon', disabled: true },
-  ];
+  ] satisfies AnnotationFeatureToolItem[];
   return <ToolGrid tools={tools} onClose={onClose} />;
 }

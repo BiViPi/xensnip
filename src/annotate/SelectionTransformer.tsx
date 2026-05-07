@@ -2,12 +2,10 @@ import { useEffect, useRef } from 'react';
 import Konva from 'konva';
 import { Transformer } from 'react-konva';
 import { useAnnotationStore } from './state/store';
-import { ArrowObject, PixelRulerObject, FreehandArrowObject, SpeechBubbleObject, CalloutObject } from './state/types';
-
 export function SelectionTransformer() {
   const { selectedId, updateObject, objects, editingTextId } = useAnnotationStore();
   const transformerRef = useRef<Konva.Transformer | null>(null);
-  const selectedObject = objects.find((o: any) => o.id === selectedId);
+  const selectedObject = objects.find((o) => o.id === selectedId);
   const fullResizeAnchors = [
     'top-left',
     'top-center',
@@ -55,7 +53,7 @@ export function SelectionTransformer() {
 
   if (!selectedId) return null;
 
-  const handleTransformEnd = (e: any) => {
+  const handleTransformEnd = (e: Konva.KonvaEventObject<Event>) => {
     const node = e.target;
     const scaleX = node.scaleX();
     const scaleY = node.scaleY();
@@ -64,16 +62,15 @@ export function SelectionTransformer() {
     node.scaleX(1);
     node.scaleY(1);
 
-    const obj = objects.find((o: any) => o.id === selectedId);
+    const obj = objects.find((o) => o.id === selectedId);
     if (!obj) return;
 
     if (obj.type === 'arrow' || obj.type === 'pixel_ruler') {
-      const arrowObj = obj as ArrowObject | PixelRulerObject;
       const newPoints = [
-        arrowObj.points[0] * scaleX,
-        arrowObj.points[1] * scaleY,
-        arrowObj.points[2] * scaleX,
-        arrowObj.points[3] * scaleY,
+        obj.points[0] * scaleX,
+        obj.points[1] * scaleY,
+        obj.points[2] * scaleX,
+        obj.points[3] * scaleY,
       ];
       updateObject(selectedId, {
         x: node.x(),
@@ -82,8 +79,7 @@ export function SelectionTransformer() {
         points: newPoints as [number, number, number, number],
       });
     } else if (obj.type === 'freehand_arrow') {
-      const freehandObj = obj as FreehandArrowObject;
-      const newPoints = freehandObj.points.map((v: number, i: number) =>
+      const newPoints = obj.points.map((v: number, i: number) =>
         i % 2 === 0 ? v * scaleX : v * scaleY
       );
       updateObject(selectedId, {
@@ -93,26 +89,24 @@ export function SelectionTransformer() {
         points: newPoints,
       });
     } else if (obj.type === 'speech_bubble') {
-      const bubbleObj = obj as SpeechBubbleObject;
       updateObject(selectedId, {
         x: node.x(),
         y: node.y(),
         rotation,
-        width: bubbleObj.width * scaleX,
-        height: bubbleObj.height * scaleY,
-        tailX: bubbleObj.tailX * scaleX,
-        tailY: bubbleObj.tailY * scaleY,
+        width: obj.width * scaleX,
+        height: obj.height * scaleY,
+        tailX: obj.tailX * scaleX,
+        tailY: obj.tailY * scaleY,
       });
     } else if (obj.type === 'callout') {
-      const calloutObj = obj as CalloutObject;
-      const relTargetX = calloutObj.targetX - calloutObj.x;
-      const relTargetY = calloutObj.targetY - calloutObj.y;
+      const relTargetX = obj.targetX - obj.x;
+      const relTargetY = obj.targetY - obj.y;
       updateObject(selectedId, {
         x: node.x(),
         y: node.y(),
         rotation,
-        width: calloutObj.width * scaleX,
-        height: calloutObj.height * scaleY,
+        width: obj.width * scaleX,
+        height: obj.height * scaleY,
         targetX: node.x() + relTargetX * scaleX,
         targetY: node.y() + relTargetY * scaleY,
       });

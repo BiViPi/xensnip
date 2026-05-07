@@ -33,6 +33,10 @@ import { createFreehandArrowNode } from "../annotate/renderers/FreehandArrowRend
 import { renderPixelate } from "../annotate/renderers/PixelateRenderer";
 import { renderOpaqueRedact } from "../annotate/renderers/OpaqueRedactRenderer";
 
+type RendererMap = {
+  [K in AnnotateObject['type']]: (obj: Extract<AnnotateObject, { type: K }>) => void;
+};
+
 export async function composeWithAnnotations(
   image: HTMLImageElement,
   preset: EditorPreset,
@@ -70,7 +74,7 @@ export async function composeWithAnnotations(
     const layer = new Konva.Layer();
     stage.add(layer);
 
-    const RENDERERS: Record<AnnotateObject['type'], (obj: any) => void> = {
+    const RENDERERS: RendererMap = {
       blur: (obj: BlurObject) => renderBlur(ctx, obj, canvas),
       arrow: (obj: ArrowObject) => layer.add(createArrowNode(obj)),
       rectangle: (obj: RectangleObject) => layer.add(createRectangleNode(obj)),
@@ -92,9 +96,49 @@ export async function composeWithAnnotations(
     };
 
     for (const obj of objects) {
-      const renderer = RENDERERS[obj.type];
-      if (renderer) {
-        renderer(obj);
+      switch (obj.type) {
+        case 'blur':
+          RENDERERS.blur(obj);
+          break;
+        case 'arrow':
+          RENDERERS.arrow(obj);
+          break;
+        case 'rectangle':
+          RENDERERS.rectangle(obj);
+          break;
+        case 'text':
+          RENDERERS.text(obj);
+          break;
+        case 'numbered':
+          RENDERERS.numbered(obj);
+          break;
+        case 'spotlight':
+          RENDERERS.spotlight(obj);
+          break;
+        case 'magnify':
+          RENDERERS.magnify(obj);
+          break;
+        case 'simplify_ui':
+          RENDERERS.simplify_ui(obj);
+          break;
+        case 'pixel_ruler':
+          RENDERERS.pixel_ruler(obj);
+          break;
+        case 'speech_bubble':
+          RENDERERS.speech_bubble(obj);
+          break;
+        case 'callout':
+          RENDERERS.callout(obj);
+          break;
+        case 'freehand_arrow':
+          RENDERERS.freehand_arrow(obj);
+          break;
+        case 'pixelate':
+          RENDERERS.pixelate(obj);
+          break;
+        case 'opaque_redact':
+          RENDERERS.opaque_redact(obj);
+          break;
       }
     }
     
