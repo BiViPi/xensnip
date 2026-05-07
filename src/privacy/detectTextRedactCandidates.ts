@@ -1,14 +1,5 @@
-import { createWorker, Worker } from 'tesseract.js';
 import { SmartRedactCandidate } from './store';
-
-let workerInstance: Worker | null = null;
-
-async function getWorker(): Promise<Worker> {
-  if (!workerInstance) {
-    workerInstance = await createWorker('eng');
-  }
-  return workerInstance;
-}
+import { getTesseractWorker } from '../ocr/tesseractWorker';
 
 export async function detectTextRedactCandidates(
   canvas: HTMLCanvasElement,
@@ -33,7 +24,7 @@ export async function detectTextRedactCandidates(
     0, 0, cropW, cropH
   );
 
-  const worker = await getWorker();
+  const worker = await getTesseractWorker();
   const { data } = await worker.recognize(targetCanvas);
   const words = Array.isArray((data as any).words) ? (data as any).words : [];
 
