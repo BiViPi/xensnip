@@ -14,6 +14,7 @@ use windows::Win32::UI::WindowsAndMessaging::{
     PW_RENDERFULLCONTENT,
 };
 use xcap::Window;
+use std::sync::Arc;
 
 unsafe extern "system" {
     fn PrintWindow(hwnd: HWND, hdcblt: HDC, nflags: u32) -> windows::core::BOOL;
@@ -177,19 +178,26 @@ pub fn capture_active_window(app: &AppHandle) -> Result<(), CaptureError> {
     let width = image.width();
     let height = image.height();
 
-    let mut bytes = Vec::new();
-    let mut cursor = std::io::Cursor::new(&mut bytes);
-    image.write_to(&mut cursor, image::ImageFormat::Png)
+    let encode_start = std::time::Instant::now();
+    let mut cursor = std::io::Cursor::new(Vec::new());
+    let encoder = image::codecs::png::PngEncoder::new_with_quality(
+        &mut cursor,
+        image::codecs::png::CompressionType::Fast,
+        image::codecs::png::FilterType::NoFilter,
+    );
+    image.write_with_encoder(encoder)
         .map_err(|err| {
             let capture_err = CaptureError::WgcFailure();
             log::warn!(target: "capture", "PNG encode failed: {:?}", err);
             emit_failure(app, &capture_err, &start_time, final_method.clone());
             capture_err
         })?;
+    let png_bytes = Arc::new(cursor.into_inner());
+    log::info!(target: "perf", "Window PNG encoding (Fast) took {}ms", encode_start.elapsed().as_millis());
 
     let id = format!("win_{}", chrono::Utc::now().timestamp_millis());
     if let Some(registry) = app.try_state::<crate::asset::AssetRegistry>() {
-        registry.insert(crate::asset::Asset::new(id.clone(), bytes, width, height));
+        registry.insert(crate::asset::Asset::new(id.clone(), png_bytes, width, height));
     }
 
     app.emit("capture.result", serde_json::json!({ "asset_id": id }))

@@ -109,6 +109,7 @@ pub fn asset_read_png(app_handle: AppHandle, asset_id: String) -> Result<Vec<u8>
     let registry = app_handle.state::<AssetRegistry>();
     registry
         .get_data(&asset_id)
+        .map(|bytes| (*bytes).clone())
         .ok_or_else(|| "Asset not found or already dropped.".to_string())
 }
 
@@ -501,4 +502,9 @@ pub fn settings_update_last_preset(app_handle: AppHandle, preset: serde_json::Va
     settings.last_preset = Some(preset);
     crate::settings::save_settings(&app_handle, &settings).map_err(|e| e.to_string())?;
     Ok(())
+}
+
+#[tauri::command]
+pub fn perf_log(message: String) {
+    log::info!(target: "perf", "[FE] {}", message);
 }

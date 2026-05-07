@@ -68,7 +68,7 @@ pub fn run() {
                     .header("Content-Type", "image/png")
                     .header("Access-Control-Allow-Origin", "*")
                     .header("Cache-Control", "no-store")
-                    .body(data)
+                    .body((*data).clone())
                     .unwrap_or_else(|_| {
                         tauri::http::Response::builder()
                             .status(500)
@@ -110,6 +110,7 @@ pub fn run() {
             commands::preset_import,
             commands::settings_update_last_preset,
             commands::open_settings_window,
+            commands::perf_log,
         ])
         .setup(|app| {
             app.manage(capture::CaptureSession::new());

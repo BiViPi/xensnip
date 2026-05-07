@@ -136,6 +136,10 @@ export async function settingsUpdateLastPreset(preset: EditorPreset): Promise<vo
   return await invoke<void>("settings_update_last_preset", { preset });
 }
 
+export async function perfLog(message: string): Promise<void> {
+  return await invoke<void>("perf_log", { message });
+}
+
 // ─── Re-export event payload types ───────────────────────────────────────────
 
 export type { CaptureResult, CaptureFailure };

@@ -139,6 +139,12 @@ export function useScreenshotDocuments() {
     );
   }, []);
 
+  const patchDocument = useCallback((id: string, patch: Partial<ScreenshotDocument>) => {
+    setDocuments((prev) =>
+      prev.map((doc) => (doc.id === id ? { ...doc, ...patch } : doc))
+    );
+  }, []);
+
   const clearAll = useCallback(() => {
     const all = [...docsRef.current];
     setDocuments([]);
@@ -155,6 +161,7 @@ export function useScreenshotDocuments() {
     switchToDocument,
     updateCheckbox,
     patchActiveDocument,
+    patchDocument,
     clearAll,
     setActiveDocumentId,
     docsRef,

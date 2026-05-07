@@ -102,7 +102,7 @@ pub fn emit_show(app: &AppHandle, asset_id: &str, capture_meta: CapturePositionM
     };
 
     if let Some(existing) = app.get_webview_window(QA_LABEL) {
-        log::info!(target: "quick_access", "Reusing existing QA window for new capture.");
+        log::info!(target: "perf", "[WARM] Reusing existing QA window");
         
         // Update active asset tracking
         if let Some(active_asset) = app.try_state::<ActiveAsset>() {
@@ -115,6 +115,8 @@ pub fn emit_show(app: &AppHandle, asset_id: &str, capture_meta: CapturePositionM
 
         // Reposition and focus
         let (x, y) = compute_position(&capture_meta);
+        let _ = existing.show();
+        let _ = existing.unminimize();
         let _ = existing.set_position(tauri::LogicalPosition::new(x as f64, y as f64));
         let _ = existing.set_focus();
 
@@ -128,7 +130,7 @@ pub fn emit_show(app: &AppHandle, asset_id: &str, capture_meta: CapturePositionM
         }
         let _ = registry.release(asset_id, "capture_engine");
     } else {
-        log::info!(target: "quick_access", "Spawning new QA window.");
+        log::info!(target: "perf", "[COLD] Spawning new QA window");
         if let Some(active_asset) = app.try_state::<ActiveAsset>() {
             *active_asset.0.lock().unwrap() = Some(asset_id.to_string());
         }

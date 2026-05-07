@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex};
 #[derive(Debug, Clone)]
 pub struct Asset {
     pub id: String,
-    pub data: Vec<u8>,
+    pub data: Arc<Vec<u8>>,
     pub width: u32,
     pub height: u32,
     pub ref_count: u32,
@@ -14,7 +14,7 @@ pub struct Asset {
 }
 
 impl Asset {
-    pub fn new(id: String, data: Vec<u8>, width: u32, height: u32) -> Self {
+    pub fn new(id: String, data: Arc<Vec<u8>>, width: u32, height: u32) -> Self {
         Self {
             id,
             data,
@@ -141,7 +141,7 @@ impl AssetRegistry {
         }
     }
 
-    pub fn get_data(&self, asset_id: &str) -> Option<Vec<u8>> {
+    pub fn get_data(&self, asset_id: &str) -> Option<Arc<Vec<u8>>> {
         let map = self.inner.lock().unwrap();
         map.get(asset_id).map(|asset| asset.data.clone())
     }
@@ -184,7 +184,7 @@ mod tests {
     use super::*;
 
     fn make_asset(id: &str) -> Asset {
-        Asset::new(id.into(), vec![0u8; 4], 1, 1)
+        Asset::new(id.into(), std::sync::Arc::new(vec![0u8; 4]), 1, 1)
     }
 
     #[test]
