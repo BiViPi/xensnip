@@ -66,7 +66,12 @@ pub fn run() {
                 tauri::http::Response::builder()
                     .status(200)
                     .header("Content-Type", "image/png")
-                    .header("Access-Control-Allow-Origin", "*")
+                    .header("Access-Control-Allow-Origin", {
+                        #[cfg(debug_assertions)]
+                        { "http://localhost:1420" }
+                        #[cfg(not(debug_assertions))]
+                        { "tauri://localhost" }
+                    })
                     .header("Cache-Control", "no-store")
                     .body((*data).clone())
                     .unwrap_or_else(|_| {

@@ -1,12 +1,12 @@
 // Static imports for wallpapers ensure Vite bundles them correctly
-import wp1 from "../assets/wallpapers/wp-1.jpg";
-import wp2 from "../assets/wallpapers/wp-2.jpg";
-import wp3 from "../assets/wallpapers/wp-3.jpg";
-import wp4 from "../assets/wallpapers/wp-4.jpg";
-import wp5 from "../assets/wallpapers/wp-5.jpg";
-import wp6 from "../assets/wallpapers/wp-6.jpg";
-import wp7 from "../assets/wallpapers/wp-7.jpg";
-import wp8 from "../assets/wallpapers/wp-8.jpg";
+import wp1 from "../assets/wallpapers/wp-1.webp";
+import wp2 from "../assets/wallpapers/wp-2.webp";
+import wp3 from "../assets/wallpapers/wp-3.webp";
+import wp4 from "../assets/wallpapers/wp-4.webp";
+import wp5 from "../assets/wallpapers/wp-5.webp";
+import wp6 from "../assets/wallpapers/wp-6.webp";
+import wp7 from "../assets/wallpapers/wp-7.webp";
+import wp8 from "../assets/wallpapers/wp-8.webp";
 
 export type BackgroundMode = "Wallpaper" | "Gradient" | "Solid";
 export type GradientType = "Linear" | "Radial";

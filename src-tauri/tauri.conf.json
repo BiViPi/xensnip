@@ -12,7 +12,7 @@
   "app": {
     "windows": [],
     "security": {
-      "csp": null,
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: xensnip-asset:; font-src 'self' data:; connect-src 'self' ipc: tauri: https://cdn.jsdelivr.net; media-src 'self' blob:; worker-src blob:",
       "dangerousDisableAssetCspModification": ["xensnip-asset"]
     }
   },

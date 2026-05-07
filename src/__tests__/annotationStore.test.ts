@@ -1,0 +1,61 @@
+import { describe, it, expect, beforeEach } from 'vitest';
+import { useAnnotationStore } from '../annotate/state/store';
+import type { ArrowObject } from '../annotate/state/types';
+
+function makeArrow(id: string): ArrowObject {
+  return {
+    id,
+    type: 'arrow',
+    x: 0,
+    y: 0,
+    rotation: 0,
+    draggable: true,
+    points: [0, 0, 100, 100],
+    stroke: '#ff0000',
+    strokeWidth: 2,
+    pointerLength: 10,
+    pointerWidth: 10,
+    style: 'solid',
+  };
+}
+
+beforeEach(() => {
+  useAnnotationStore.setState({ objects: [], selectedId: null, activeTool: 'select' });
+});
+
+describe('annotationStore', () => {
+  it('addObject appends without mutating existing array', () => {
+    const before = useAnnotationStore.getState().objects;
+    useAnnotationStore.getState().addObject(makeArrow('a1'));
+    const after = useAnnotationStore.getState().objects;
+    expect(after).not.toBe(before);
+    expect(after).toHaveLength(1);
+    expect(after[0].id).toBe('a1');
+  });
+
+  it('removeObject removes by id', () => {
+    useAnnotationStore.getState().addObject(makeArrow('a1'));
+    useAnnotationStore.getState().addObject(makeArrow('a2'));
+    useAnnotationStore.getState().removeObject('a1');
+    const objects = useAnnotationStore.getState().objects;
+    expect(objects).toHaveLength(1);
+    expect(objects[0].id).toBe('a2');
+  });
+
+  it('removeObject sets selectedId to null when it matched the removed id', () => {
+    useAnnotationStore.getState().addObject(makeArrow('a1'));
+    useAnnotationStore.setState({ selectedId: 'a1' });
+    useAnnotationStore.getState().removeObject('a1');
+    expect(useAnnotationStore.getState().selectedId).toBeNull();
+  });
+
+  it('clearAll resets objects and selectedId but preserves activeTool', () => {
+    useAnnotationStore.getState().addObject(makeArrow('a1'));
+    useAnnotationStore.setState({ selectedId: 'a1', activeTool: 'rectangle' });
+    useAnnotationStore.getState().clearAll();
+    const state = useAnnotationStore.getState();
+    expect(state.objects).toHaveLength(0);
+    expect(state.selectedId).toBeNull();
+    expect(state.activeTool).toBe('rectangle');
+  });
+});
