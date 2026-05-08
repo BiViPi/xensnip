@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-#[allow(dead_code)] // Some edge-case classes are reserved for later Sprint 02/03 handling.
+#[allow(dead_code)] // Some capture failure classes are reserved for edge paths that are not yet emitted everywhere.
 #[derive(Debug, Serialize, Clone)]
 pub enum CaptureErrorClass {
     Busy,

@@ -11,7 +11,7 @@ import {
 } from "./types";
 import type { EditorPreset } from "../compose/preset";
 
-// ─── Smoke / settings ─────────────────────────────────────────────────────────
+// ─── App and settings commands ───────────────────────────────────────────────
 
 export async function appPing(): Promise<PingResponse> {
   return await invoke<PingResponse>("app_ping");
@@ -25,7 +25,7 @@ export async function settingsSave(settings: Settings): Promise<SettingsSaveResu
   return await invoke<SettingsSaveResult>("settings_save", { newSettings: settings });
 }
 
-// ─── Capture commands (Sprint 02 contract — do not change) ───────────────────
+// ─── Capture commands (keep IPC names stable) ────────────────────────────────
 
 export async function captureStartRegion(): Promise<void> {
   return await invoke<void>("capture_start_region");
@@ -39,7 +39,7 @@ export async function captureCancel(): Promise<void> {
   return await invoke<void>("capture_cancel");
 }
 
-// ─── Asset commands (Sprint 03) ───────────────────────────────────────────────
+// ─── Asset, clipboard, and export commands ───────────────────────────────────
 
 /**
  * Increment ref-count for this consumer and return the xensnip-asset:// URI.
@@ -84,9 +84,7 @@ export async function selectExportFolder(): Promise<string | null> {
   return await invoke<string | null>("select_export_folder");
 }
 
-// ─── Editor commands (Sprint 03) ─────────────────────────────────────────────
-
-// ─── Quick Access commands (Sprint 03) ───────────────────────────────────────
+// ─── Editor shell, Quick Access, and preset commands ─────────────────────────
 
 /** Dismiss the Quick Access window and release the QA ref-counts. */
 export async function quickAccessDismiss(assetId: string): Promise<void> {
@@ -145,7 +143,7 @@ export async function perfLog(message: string): Promise<void> {
   return await invoke<void>("perf_log", { message });
 }
 
-// ─── Re-export event payload types ───────────────────────────────────────────
+// ─── Event payload type re-exports ───────────────────────────────────────────
 
 export type { CaptureResult, CaptureFailure };
 export * from "./types";

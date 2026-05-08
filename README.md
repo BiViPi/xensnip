@@ -1,5 +1,7 @@
 # XenSnip
 
+[![CI](https://github.com/BiViPi/xensnip/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/BiViPi/xensnip/actions/workflows/ci.yml)
+
 Screenshot capture and beautification tool for Windows. Capture any region or window, annotate with shapes and text, apply preset backgrounds and shadows, redact sensitive content, and export or copy to clipboard — all from a system tray interface.
 
 ## Features
@@ -46,6 +48,27 @@ npm run tauri dev
 ```
 npm run tauri build
 ```
+
+## Development Checks
+
+Run these before merging editor, capture, or session-management changes:
+
+```bash
+npm test
+npm run build
+cargo fmt --check --manifest-path src-tauri/Cargo.toml
+cargo test --manifest-path src-tauri/Cargo.toml
+npm audit --omit=dev --audit-level=high
+```
+
+## Smoke Test Checklist
+
+Use this short manual pass after refactors that touch capture or annotation flows:
+
+- Native region selector: open overlay, cancel with `Esc`, reject a tiny region, confirm a normal region
+- Annotation tools: verify at least one regular drag tool and one text/immediate tool still create objects correctly
+- Utility modes: verify OCR selection and Smart Redact selection complete their selection flow without errors
+- Quick Access: confirm a fresh capture still opens the tray/editor surface and can be dismissed cleanly
 
 ## Project Structure
 
