@@ -2,7 +2,6 @@ import { useCallback } from 'react';
 import Konva from 'konva';
 import { useAnnotationStore } from './state/store';
 import { getCompositionCoordinates } from '../measure/coordinates';
-import { extractTextFromCanvas } from '../measure/ocr';
 import { DrawingObject } from './state/drawingTypes';
 import { TOOL_TO_DRAW_TYPE } from './drawingTypeMap';
 import {
@@ -12,13 +11,20 @@ import {
 } from './immediateObjectFactory';
 import { usePointerHandlersState } from './usePointerHandlersState';
 import { getPointerCoords } from './pointer/pointerCoordinates';
-import { normalizeRect } from './pointer/selectionRect';
 import {
   computeFreehandPathLength,
   shouldAddFreehandPoint,
   FREEHAND_MIN_PATH_LENGTH,
 } from './pointer/freehandArrowPointer';
 import { createDragAnnotationObject } from './pointer/dragObjectFactory';
+import {
+  beginOcrSelection,
+  completeOcrSelection,
+} from './pointer/ocrSelectionHandlers';
+import {
+  beginSmartRedactSelection,
+  completeSmartRedactSelection,
+} from './pointer/smartRedactSelectionHandlers';
 import { FreehandArrowObject } from './state/types';
 
 interface UseAnnotationPointerHandlersDeps {
@@ -84,26 +90,24 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
       }
 
       if (activeUtility === 'ocr_extract') {
-        setOcrRegion(null);
-        setOcrText('');
-        setOcrError(null);
-        setDrawingObject({
-          type: 'ocr_selection',
-          start: { x: stageX, y: stageY },
-          end: { x: stageX, y: stageY },
-        });
-        setOcrStatus('selecting');
+        setDrawingObject(
+          beginOcrSelection(stageX, stageY, {
+            setOcrRegion,
+            setOcrStatus,
+            setOcrText,
+            setOcrError,
+          })
+        );
         return;
       }
 
       if (activeUtility === 'smart_redact_ai') {
-        resetPrivacy();
-        setDrawingObject({
-          type: 'smart_redact_selection',
-          start: { x: stageX, y: stageY },
-          end: { x: stageX, y: stageY },
-        });
-        setPrivacyStatus('idle');
+        setDrawingObject(
+          beginSmartRedactSelection(stageX, stageY, {
+            resetPrivacy,
+            setPrivacyStatus,
+          })
+        );
         return;
       }
 
@@ -241,52 +245,25 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
 
     // OCR selection
     if (drawingObject.type === 'ocr_selection') {
-      const selection = normalizeRect(drawingObject.start, drawingObject.end);
-      if (selection.width > 5 && selection.height > 5) {
-        const canvas = compositionCanvasRef.current;
-        if (canvas) {
-          setOcrRegion(selection);
-          setOcrStatus('running');
-          setOcrText('');
-          setOcrError(null);
-          const reqId = ++ocrRequestIdRef.current;
-          const region = getCompositionCoordinates(selection.x, selection.y, canvas.width, canvas.height);
-          const regionWidth = Math.max(1, Math.min(canvas.width - region.x, Math.ceil(selection.width)));
-          const regionHeight = Math.max(1, Math.min(canvas.height - region.y, Math.ceil(selection.height)));
-
-          extractTextFromCanvas(canvas, { x: region.x, y: region.y, width: regionWidth, height: regionHeight })
-            .then((text) => {
-              if (ocrRequestIdRef.current === reqId) {
-                setOcrText(text);
-                setOcrStatus('ready');
-              }
-            })
-            .catch((err: unknown) => {
-              if (ocrRequestIdRef.current === reqId) {
-                setOcrError(err instanceof Error ? err.message : 'OCR failed');
-                setOcrStatus('error');
-              }
-            });
-        }
-      } else {
-        setOcrRegion(null);
-        setOcrStatus('idle');
-      }
+      completeOcrSelection(drawingObject, {
+        compositionCanvas: compositionCanvasRef.current,
+        setOcrRegion,
+        setOcrStatus,
+        setOcrText,
+        setOcrError,
+        ocrRequestIdRef,
+      });
       setDrawingObject(null);
       return;
     }
 
     // Smart Redact selection
     if (drawingObject.type === 'smart_redact_selection') {
-      const selection = normalizeRect(drawingObject.start, drawingObject.end);
-      if (selection.width > 5 && selection.height > 5) {
-        setScope('selection');
-        setSelectionRect(selection);
-        setPrivacyStatus('idle');
-      } else {
-        setSelectionRect(null);
-        setScope('full_canvas');
-      }
+      completeSmartRedactSelection(drawingObject, {
+        setPrivacyStatus,
+        setSelectionRect,
+        setScope,
+      });
       setDrawingObject(null);
       return;
     }
