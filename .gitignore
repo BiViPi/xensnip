@@ -10,8 +10,17 @@ lerna-debug.log*
 node_modules
 dist
 src-tauri/target/
+src-tauri/gen/
 dist-ssr
 *.local
+.env
+.env.*
+*.pfx
+*.p12
+*.pem
+*.key
+*.crt
+*.cer
 
 # Editor directories and files
 .vscode/*
@@ -24,7 +33,7 @@ dist-ssr
 *.sln
 *.sw?
 .gitnexus/
-AGENTS.md 
+AGENTS.md
 CLAUDE.md
 .claude/
 .codex/

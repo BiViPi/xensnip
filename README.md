@@ -2,147 +2,153 @@
 
 [![CI](https://github.com/BiViPi/xensnip/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/BiViPi/xensnip/actions/workflows/ci.yml)
 
-Screenshot capture and beautification tool for Windows. Capture any region or window, annotate with shapes and text, apply preset backgrounds and shadows, redact sensitive content, and export or copy to clipboard — all from a system tray interface.
+XenSnip is a Windows screenshot tool built for fast capture, clean annotation, and polished export.
 
-## Features
+It lives in the system tray, captures regions or the active window with global hotkeys, opens a quick-access editor, and lets you turn raw screenshots into presentation-ready visuals without leaving your desktop workflow.
 
-- Region and window capture via configurable hotkeys
-- Annotation tools: shapes, text, arrows, highlight, blur, redact
-- Background presets: gradients, solid colors, wallpapers
-- Shadow and border controls
-- Privacy redaction (SmartRedact)
-- OCR text extraction from screen regions
-- Quick-access tray interface with session history
+## Version
 
-## Requirements
+Current release: `0.1.0`
 
-- Windows 10 (build 19041+) or Windows 11
-- WebView2 runtime — ships pre-installed on Windows 11; auto-installed by the Tauri bundle on Windows 10
+## What XenSnip Does
+
+- Capture a screen region or the active window
+- Open a quick-access editor immediately after capture
+- Annotate screenshots with arrows, rectangles, text, callouts, steps, and freehand arrows
+- Hide sensitive information with blur, pixelate, or opaque redact tools
+- Style screenshots with gradients, wallpaper backgrounds, padding, borders, and shadows
+- Copy the final result to the clipboard or export it to disk
+- Reuse and manage visual presets across captures
+- Extract text from a selected area with OCR
+
+## Download
+
+For normal use, download the latest Windows installer from GitHub Releases:
+
+- Release page: `https://github.com/BiViPi/xensnip/releases`
+
+The `0.1.0` release is intended to be distributed as an installer build rather than as a source-only package.
+
+## Platform
+
+- Windows 10 (build `19041+`) or Windows 11
+- WebView2 runtime
+
+Windows 11 normally includes WebView2 already. On Windows 10, the Tauri installer can install it as part of setup if it is missing.
 
 ## Default Hotkeys
 
 | Action | Shortcut |
 |--------|----------|
 | Region capture | `Ctrl+Shift+S` |
-| Window capture | `Ctrl+Alt+W` |
+| Active window capture | `Ctrl+Alt+W` |
 
-Both hotkeys are configurable in the Settings dialog.
+Both shortcuts can be changed in the Settings window.
 
-## Build
+## Typical Workflow
 
-**Prerequisites:**
+1. Launch XenSnip and leave it running in the system tray.
+2. Trigger a capture with a hotkey or from the tray menu.
+3. Review the capture in the quick-access editor.
+4. Annotate, redact, and style the screenshot as needed.
+5. Copy or export the final image.
 
-- Rust stable 1.77+
-- Node.js 20+
-- Tauri CLI: `npm install -g @tauri-apps/cli`
+## OCR
 
-**Development:**
+XenSnip includes OCR text extraction for selected regions.
 
-```
+Important notes:
+
+- OCR runs locally through `Tesseract.js`
+- On first use in a session, the OCR model is downloaded from `cdn.jsdelivr.net`
+- Screenshot content is not uploaded to a remote OCR service
+- OCR accuracy depends on font size, contrast, scaling, and language
+
+## Privacy
+
+- Captures stay in memory unless you explicitly export or save them
+- Settings are stored locally at `%APPDATA%\XenSnip\settings.json`
+- Logs are stored at `%APPDATA%\XenSnip\logs\`
+- XenSnip does not include analytics or telemetry
+
+## Install From Source
+
+### Prerequisites
+
+- Node.js `20+`
+- Rust stable
+- Visual Studio C++ Build Tools for Tauri on Windows
+
+### Development
+
+```bash
 npm install
 npm run tauri dev
 ```
 
-**Release build:**
+### Production Build
 
-```
+```bash
+npm install
 npm run tauri build
 ```
 
-## Development Checks
+Windows bundle artifacts are generated under:
 
-Run these before merging editor, capture, or session-management changes:
+```text
+src-tauri/target/release/bundle/
+```
+
+## Verification
+
+Before cutting a release, run:
 
 ```bash
 npm test
+npm run lint
 npm run build
-cargo fmt --check --manifest-path src-tauri/Cargo.toml
 cargo test --manifest-path src-tauri/Cargo.toml
-npm audit --omit=dev --audit-level=high
+cargo fmt --check --manifest-path src-tauri/Cargo.toml
 ```
-
-## Smoke Test Checklist
-
-Use this short manual pass after refactors that touch capture or annotation flows:
-
-- Native region selector: open overlay, cancel with `Esc`, reject a tiny region, confirm a normal region
-- Annotation tools: verify at least one regular drag tool and one text/immediate tool still create objects correctly
-- Utility modes: verify OCR selection and Smart Redact selection complete their selection flow without errors
-- Quick Access: confirm a fresh capture still opens the tray/editor surface and can be dismissed cleanly
 
 ## Project Structure
 
+```text
+src/                        React + TypeScript frontend
+src/annotate/               Annotation tools and canvas objects
+src/compose/                Composition engine and preset styling
+src/editor/                 Editor shell and controls
+src/measure/                OCR and measurement utilities
+src/privacy/                Privacy-related tooling and redaction helpers
+src/quick-access/           Quick-access editor and session flow
+src/settings/               Settings UI
+src/sidebar/                Feature rails and tool pickers
+
+src-tauri/src/              Rust + Tauri backend
+src-tauri/src/capture/      Native capture and selector logic
+src-tauri/src/commands/     Tauri command handlers
+src-tauri/src/hotkeys/      Global shortcut registration
+src-tauri/src/quick_access/ Quick-access window lifecycle
+src-tauri/src/settings.rs   Settings persistence and migration
 ```
-src/                        Frontend (React + TypeScript)
-  annotate/                 Annotation tools and state
-  compose/                  Background presets and canvas composition
-  editor/                   Main editor stage and layout
-  measure/                  OCR and coordinate utilities
-  privacy/                  SmartRedact redaction tools
-  quick-access/             Tray window and session management
-  settings/                 Settings dialog and IPC
-  sidebar/                  Left and right panel UI
-
-src-tauri/src/              Backend (Rust + Tauri)
-  asset.rs                  In-memory PNG asset registry
-  capture.rs                Screen capture implementation
-  commands/                 Tauri command handlers by domain
-  hotkeys.rs                Global shortcut registration
-  quick_access.rs           Quick-access window management
-  settings.rs               Settings persistence
-```
-
-## Settings Location
-
-- Settings file: `%APPDATA%\XenSnip\settings.json`
-- Log files: `%APPDATA%\XenSnip\logs\`
-
-## OCR Note
-
-OCR text extraction requires an internet connection on first use per session. The recognition model is downloaded from jsDelivr (`cdn.jsdelivr.net`) on the first OCR call. Subsequent calls within the same session reuse the cached worker and are fast.
-
-## Privacy
-
-- **OCR**: When you use "Extract Text" or "Smart Redact", XenSnip sends a portion of your screenshot to a local in-process OCR engine (Tesseract.js). On first use each session, the OCR engine model is downloaded from `cdn.jsdelivr.net`. The image data is not sent to any remote server — processing happens entirely in the browser process.
-- **SmartRedact**: Candidate detection runs locally using the same OCR engine. No screenshot content is transmitted externally.
-- **Capture**: Screenshots are held in memory only. They are written to disk only when you explicitly export or save them.
-- **Settings**: Stored locally at `%APPDATA%\XenSnip\settings.json`. No telemetry or analytics are collected.
-
-## Troubleshooting
-
-**OCR / Smart Redact shows an error**
-
-The OCR engine requires an internet connection on first use to download model files from `cdn.jsdelivr.net`. If you are behind a corporate proxy or firewall that blocks this CDN, OCR will fail. The error message will indicate a network failure. Once the model is cached for the session, no further network access is needed.
-
-**Hotkeys not triggering capture**
-
-1. Open Settings and verify the hotkey assignments.
-2. Some applications (games, certain admin-elevated windows) block global hotkeys. Try capturing from the tray menu instead.
-3. If hotkeys conflict with another application, change them in Settings.
-
-**Region selector does not appear**
-
-- Ensure XenSnip is running (check the system tray).
-- On multi-monitor setups, the overlay covers all monitors by default. If "Capture all monitors" is disabled in Settings, the overlay only appears on the primary monitor.
-
-**Quick-access window does not open after capture**
-
-- The window appears near the capture area. On high-DPI displays it may appear at a different position. Try clicking the tray icon to bring it to focus.
 
 ## Known Limitations
 
-- **Protected windows**: Capture of DRM-protected video players (e.g., Netflix in a browser), certain game overlays, and admin-elevated windows may produce a black or empty capture. This is a Windows security restriction.
-- **OCR accuracy**: OCR quality depends on font size, contrast, and language. Non-Latin scripts are not supported in the default model.
-- **Region selector on Wayland**: XenSnip is Windows-only and does not support Wayland.
-- **WebView2**: The app requires the WebView2 runtime. On Windows 10, it will be bundled in the installer. If it fails to install, download it from [Microsoft](https://developer.microsoft.com/microsoft-edge/webview2/).
+- Some protected or hardware-accelerated windows may capture as black or empty due to Windows restrictions
+- OCR is best-effort and should not be treated as a guaranteed extraction layer
+- XenSnip is currently Windows-only
 
-## Reset / Uninstall
+## Reset Or Uninstall
 
-**Reset settings to defaults:**
+Reset settings:
 
-Delete or rename `%APPDATA%\XenSnip\settings.json`. XenSnip will recreate it with default values on next launch.
+- Delete or rename `%APPDATA%\XenSnip\settings.json`
 
-**Full uninstall:**
+Full uninstall:
 
-1. Uninstall XenSnip via Windows Settings → Apps.
-2. Delete `%APPDATA%\XenSnip\` to remove settings and log files.
+1. Uninstall XenSnip from Windows Settings
+2. Delete `%APPDATA%\XenSnip\` if you also want to remove settings and logs
+
+## License
+
+This repository currently does not publish a separate license file. Add one before wider public distribution if the GitHub release is meant for open reuse.
