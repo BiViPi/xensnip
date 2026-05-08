@@ -201,3 +201,56 @@ pub fn save_settings(app_handle: &AppHandle, settings: &Settings) -> Result<(), 
     fs::write(path, content)?;
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn settings_at_version(version: u32) -> Settings {
+        let mut s = Settings::default();
+        s.version = version;
+        s
+    }
+
+    #[test]
+    fn already_current_version_reports_no_change() {
+        let mut s = settings_at_version(7);
+        let changed = migrate_settings_if_needed(&mut s);
+        assert!(!changed);
+        assert_eq!(s.version, 7);
+    }
+
+    #[test]
+    fn migrates_v1_hotkey_conflict_and_bumps_version() {
+        let mut s = settings_at_version(1);
+        s.hotkeys.active_window = "Ctrl+Shift+W".to_string();
+        let changed = migrate_settings_if_needed(&mut s);
+        assert!(changed);
+        assert_eq!(s.hotkeys.active_window, "Ctrl+Alt+W");
+        assert_eq!(s.version, 7);
+    }
+
+    #[test]
+    fn migrates_v1_without_hotkey_conflict_still_bumps_version() {
+        let mut s = settings_at_version(1);
+        s.hotkeys.active_window = "Ctrl+Alt+W".to_string();
+        let changed = migrate_settings_if_needed(&mut s);
+        assert!(changed);
+        assert_eq!(s.hotkeys.active_window, "Ctrl+Alt+W");
+        assert_eq!(s.version, 7);
+    }
+
+    #[test]
+    fn migrates_v6_to_v7() {
+        let mut s = settings_at_version(6);
+        let changed = migrate_settings_if_needed(&mut s);
+        assert!(changed);
+        assert_eq!(s.version, 7);
+    }
+
+    #[test]
+    fn default_settings_are_at_current_version() {
+        let s = Settings::default();
+        assert_eq!(s.version, 7);
+    }
+}

@@ -1,11 +1,15 @@
 use crate::capture::errors::CaptureError;
-use std::sync::{Mutex, Once, OnceLock};
+use crate::capture::native_region_active::active_window_slot;
+use crate::capture::native_region_geometry::{
+    get_x_lparam, get_y_lparam, invalidate_selection_bounds, selection_bounds,
+};
+use std::sync::{Mutex, Once};
 use tauri::{AppHandle, Manager};
 use windows::core::w;
 use windows::Win32::Foundation::{COLORREF, HINSTANCE, HWND, LPARAM, LRESULT, RECT, WPARAM};
 use windows::Win32::Graphics::Gdi::{
     BeginPaint, BitBlt, CreateCompatibleBitmap, CreateCompatibleDC, CreatePen, DeleteDC,
-    DeleteObject, EndPaint, FillRect, GetStockObject, InvalidateRect, SelectObject, SetBkMode,
+    DeleteObject, EndPaint, FillRect, GetStockObject, SelectObject, SetBkMode,
     SetTextColor, TextOutW, UpdateWindow, BLACK_BRUSH, HBRUSH, HGDIOBJ, NULL_BRUSH, PAINTSTRUCT,
     PS_SOLID, Rectangle, SRCCOPY, TRANSPARENT,
 };
@@ -15,10 +19,10 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
 };
 use windows::Win32::UI::WindowsAndMessaging::{
     CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW, GetMessageW, GetSystemMetrics,
-    LoadCursorW, PostMessageW, PostQuitMessage, RegisterClassW, SetForegroundWindow,
+    LoadCursorW, PostQuitMessage, RegisterClassW, SetForegroundWindow,
     SetLayeredWindowAttributes, ShowWindow, TranslateMessage, CREATESTRUCTW, GWLP_USERDATA,
     IDC_CROSS, LWA_ALPHA, MSG, SM_CXVIRTUALSCREEN, SM_CYVIRTUALSCREEN, SM_XVIRTUALSCREEN,
-    SM_YVIRTUALSCREEN, SW_SHOW, WM_CLOSE, WM_DESTROY, WM_ERASEBKGND, WM_KEYDOWN,
+    SM_YVIRTUALSCREEN, SW_SHOW, WM_DESTROY, WM_ERASEBKGND, WM_KEYDOWN,
     WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MOUSEMOVE, WM_NCCREATE, WNDCLASSW, WS_EX_LAYERED,
     WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_POPUP,
 };
@@ -52,11 +56,6 @@ struct SelectorSurfaceBounds {
 }
 
 static CLASS_REGISTERED: Once = Once::new();
-static ACTIVE_WINDOW: OnceLock<Mutex<Option<isize>>> = OnceLock::new();
-
-fn active_window_slot() -> &'static Mutex<Option<isize>> {
-    ACTIVE_WINDOW.get_or_init(|| Mutex::new(None))
-}
 
 fn finish_session(app: &AppHandle) {
     if let Some(session) = app.try_state::<crate::capture::CaptureSession>() {
@@ -64,42 +63,10 @@ fn finish_session(app: &AppHandle) {
     }
 }
 
-fn get_x_lparam(lparam: LPARAM) -> i32 {
-    (lparam.0 as i16) as i32
-}
-
-fn get_y_lparam(lparam: LPARAM) -> i32 {
-    ((lparam.0 >> 16) as i16) as i32
-}
-
 unsafe fn state_mut(hwnd: HWND) -> Option<&'static mut SelectorWindowState> {
     let ptr = windows::Win32::UI::WindowsAndMessaging::GetWindowLongPtrW(hwnd, GWLP_USERDATA)
         as *mut SelectorWindowState;
     ptr.as_mut()
-}
-
-fn selection_bounds(start_x: i32, start_y: i32, current_x: i32, current_y: i32) -> Option<RECT> {
-    let left = start_x.min(current_x);
-    let top = start_y.min(current_y);
-    let right = start_x.max(current_x);
-    let bottom = start_y.max(current_y);
-
-    if right <= left || bottom <= top {
-        return None;
-    }
-
-    Some(RECT {
-        left: left.saturating_sub(4),
-        top: (top - 24).max(0),
-        right: right.saturating_add(4),
-        bottom: bottom.saturating_add(4),
-    })
-}
-
-fn invalidate_selection_bounds(hwnd: HWND, bounds: Option<RECT>) {
-    if let Some(rect) = bounds {
-        let _ = unsafe { InvalidateRect(Some(hwnd), Some(&rect), false) };
-    }
 }
 
 fn register_class() -> Result<(), String> {
@@ -170,17 +137,6 @@ fn resolve_selector_surface_bounds(app: &AppHandle) -> SelectorSurfaceBounds {
     }
 }
 
-pub fn close_active() {
-    let hwnd = {
-        let guard = active_window_slot().lock().unwrap();
-        guard.map(|raw| HWND(raw as *mut core::ffi::c_void))
-    };
-
-    if let Some(hwnd) = hwnd {
-        let _ = unsafe { PostMessageW(Some(hwnd), WM_CLOSE, WPARAM(0), LPARAM(0)) };
-    }
-}
-
 pub fn show_selector(app: &AppHandle) -> Result<SelectionOutcome, CaptureError> {
     register_class().map_err(|err| {
         log::error!(target: "capture::native_selector", "{}", err);
@@ -219,10 +175,7 @@ fn run_native_selector(app: AppHandle) -> Result<SelectionOutcome, String> {
     log::info!(
         target: "capture::native_selector",
         "opening native selector overlay: x={} y={} w={} h={}",
-        virtual_x,
-        virtual_y,
-        virtual_w,
-        virtual_h
+        virtual_x, virtual_y, virtual_w, virtual_h
     );
 
     let state = Box::new(SelectorWindowState {
@@ -361,9 +314,7 @@ unsafe extern "system" fn window_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lpar
             }
             LRESULT(0)
         }
-        WM_LBUTTONUP => {
-            LRESULT(0)
-        }
+        WM_LBUTTONUP => LRESULT(0),
         WM_KEYDOWN => {
             if wparam.0 as u16 == VK_ESCAPE.0 {
                 if let Some(state) = state_mut(hwnd) {
@@ -393,12 +344,7 @@ unsafe extern "system" fn window_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lpar
                         let bitmap_obj = HGDIOBJ(bitmap.0);
                         let old_bitmap = SelectObject(mem_dc, bitmap_obj);
 
-                        let local_paint = RECT {
-                            left: 0,
-                            top: 0,
-                            right: paint_w,
-                            bottom: paint_h,
-                        };
+                        let local_paint = RECT { left: 0, top: 0, right: paint_w, bottom: paint_h };
                         let _ = FillRect(mem_dc, &local_paint, HBRUSH(GetStockObject(BLACK_BRUSH).0));
 
                         if let Some(state) = state_mut(hwnd) {
@@ -422,12 +368,7 @@ unsafe extern "system" fn window_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lpar
                                 let label_u16: Vec<u16> = label.encode_utf16().collect();
                                 let _ = SetBkMode(mem_dc, TRANSPARENT);
                                 let _ = SetTextColor(mem_dc, COLORREF(0x00FFFFFF));
-                                let _ = TextOutW(
-                                    mem_dc,
-                                    offset_left + 5,
-                                    (offset_top - 20).max(5),
-                                    &label_u16,
-                                );
+                                let _ = TextOutW(mem_dc, offset_left + 5, (offset_top - 20).max(5), &label_u16);
 
                                 let _ = SelectObject(mem_dc, old_pen);
                                 let _ = SelectObject(mem_dc, old_brush);
@@ -436,15 +377,8 @@ unsafe extern "system" fn window_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lpar
                         }
 
                         let _ = BitBlt(
-                            hdc,
-                            ps.rcPaint.left,
-                            ps.rcPaint.top,
-                            paint_w,
-                            paint_h,
-                            Some(mem_dc),
-                            0,
-                            0,
-                            SRCCOPY,
+                            hdc, ps.rcPaint.left, ps.rcPaint.top, paint_w, paint_h,
+                            Some(mem_dc), 0, 0, SRCCOPY,
                         );
 
                         let _ = SelectObject(mem_dc, old_bitmap);
@@ -470,7 +404,7 @@ unsafe extern "system" fn window_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lpar
                 if state.selecting {
                     let _ = ReleaseCapture();
                 }
-                
+
                 LAST_OUTCOME.with(|cell| {
                     let mut guard = cell.lock().unwrap();
                     *guard = Some(state.outcome.clone());

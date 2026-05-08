@@ -77,3 +77,49 @@ src-tauri/src/              Backend (Rust + Tauri)
 ## OCR Note
 
 OCR text extraction requires an internet connection on first use per session. The recognition model is downloaded from jsDelivr (`cdn.jsdelivr.net`) on the first OCR call. Subsequent calls within the same session reuse the cached worker and are fast.
+
+## Privacy
+
+- **OCR**: When you use "Extract Text" or "Smart Redact", XenSnip sends a portion of your screenshot to a local in-process OCR engine (Tesseract.js). On first use each session, the OCR engine model is downloaded from `cdn.jsdelivr.net`. The image data is not sent to any remote server — processing happens entirely in the browser process.
+- **SmartRedact**: Candidate detection runs locally using the same OCR engine. No screenshot content is transmitted externally.
+- **Capture**: Screenshots are held in memory only. They are written to disk only when you explicitly export or save them.
+- **Settings**: Stored locally at `%APPDATA%\XenSnip\settings.json`. No telemetry or analytics are collected.
+
+## Troubleshooting
+
+**OCR / Smart Redact shows an error**
+
+The OCR engine requires an internet connection on first use to download model files from `cdn.jsdelivr.net`. If you are behind a corporate proxy or firewall that blocks this CDN, OCR will fail. The error message will indicate a network failure. Once the model is cached for the session, no further network access is needed.
+
+**Hotkeys not triggering capture**
+
+1. Open Settings and verify the hotkey assignments.
+2. Some applications (games, certain admin-elevated windows) block global hotkeys. Try capturing from the tray menu instead.
+3. If hotkeys conflict with another application, change them in Settings.
+
+**Region selector does not appear**
+
+- Ensure XenSnip is running (check the system tray).
+- On multi-monitor setups, the overlay covers all monitors by default. If "Capture all monitors" is disabled in Settings, the overlay only appears on the primary monitor.
+
+**Quick-access window does not open after capture**
+
+- The window appears near the capture area. On high-DPI displays it may appear at a different position. Try clicking the tray icon to bring it to focus.
+
+## Known Limitations
+
+- **Protected windows**: Capture of DRM-protected video players (e.g., Netflix in a browser), certain game overlays, and admin-elevated windows may produce a black or empty capture. This is a Windows security restriction.
+- **OCR accuracy**: OCR quality depends on font size, contrast, and language. Non-Latin scripts are not supported in the default model.
+- **Region selector on Wayland**: XenSnip is Windows-only and does not support Wayland.
+- **WebView2**: The app requires the WebView2 runtime. On Windows 10, it will be bundled in the installer. If it fails to install, download it from [Microsoft](https://developer.microsoft.com/microsoft-edge/webview2/).
+
+## Reset / Uninstall
+
+**Reset settings to defaults:**
+
+Delete or rename `%APPDATA%\XenSnip\settings.json`. XenSnip will recreate it with default values on next launch.
+
+**Full uninstall:**
+
+1. Uninstall XenSnip via Windows Settings → Apps.
+2. Delete `%APPDATA%\XenSnip\` to remove settings and log files.

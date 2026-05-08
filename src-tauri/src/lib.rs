@@ -9,6 +9,7 @@ mod settings;
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use tauri::http::{Response, StatusCode};
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Manager, WebviewWindow, WebviewWindowBuilder};
@@ -33,13 +34,19 @@ fn parse_asset_id_from_uri(uri: &tauri::http::Uri) -> String {
     uri.path().trim_matches('/').to_string()
 }
 
+fn empty_response(status: StatusCode) -> Response<Vec<u8>> {
+    let mut response = Response::new(Vec::new());
+    *response.status_mut() = status;
+    response
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let quit_requested = Arc::new(AtomicBool::new(false));
     let quit_requested_tray = quit_requested.clone();
     let quit_requested_run = quit_requested.clone();
 
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
@@ -74,28 +81,18 @@ pub fn run() {
                     })
                     .header("Cache-Control", "no-store")
                     .body((*data).clone())
-                    .unwrap_or_else(|_| {
-                        tauri::http::Response::builder()
-                            .status(500)
-                            .body(vec![])
-                            .unwrap()
-                    })
+                    .unwrap_or_else(|_| empty_response(StatusCode::INTERNAL_SERVER_ERROR))
             } else {
                 log::warn!(target: "asset", "xensnip-asset:// request for missing asset: {}", asset_id);
-                tauri::http::Response::builder()
-                    .status(404)
-                    .body(vec![])
-                    .unwrap()
+                empty_response(StatusCode::NOT_FOUND)
             }
         })
         .invoke_handler(tauri::generate_handler![
-            // Sprint 00 / 02
             commands::app_ping,
             commands::settings_load,
             commands::capture_start_window,
             commands::capture_start_region,
             commands::capture_cancel,
-            // Sprint 03
             commands::asset_resolve,
             commands::asset_release,
             commands::asset_read_png,
@@ -154,8 +151,13 @@ pub fn run() {
                 &quit_i,
             ])?;
 
+            let icon = app
+                .default_window_icon()
+                .ok_or("XenSnip: no default window icon bundled")?
+                .clone();
+
             let _tray = TrayIconBuilder::new()
-                .icon(app.default_window_icon().unwrap().clone())
+                .icon(icon)
                 .menu(&menu)
                 .show_menu_on_left_click(false)
                 .on_menu_event(move |app: &AppHandle, event| match event.id.as_ref() {
@@ -195,20 +197,24 @@ pub fn run() {
                 log::info!(target: "app", "Log directory: {}", log_dir.display());
             }
 
-            log::info!(target: "app", "XenSnip initialized (Sprint 06)");
+            log::info!(target: "app", "XenSnip initialized");
             Ok(())
         })
         .build(tauri::generate_context!())
-        .expect("error while running tauri application")
-        .run(move |_app_handle, event| {
-            // Prevent exit when all windows close so the tray stays alive.
-            // Allow exit only when the user explicitly clicks Quit from the tray.
-            if let tauri::RunEvent::ExitRequested { api, .. } = event {
-                if !quit_requested_run.load(Ordering::Relaxed) {
-                    api.prevent_exit();
-                }
-            }
+        .unwrap_or_else(|e| {
+            eprintln!("XenSnip failed to start: {e}");
+            std::process::exit(1);
         });
+
+    app.run(move |_app_handle, event| {
+        // Prevent exit when all windows close so the tray stays alive.
+        // Allow exit only when the user explicitly clicks Quit from the tray.
+        if let tauri::RunEvent::ExitRequested { api, .. } = event {
+            if !quit_requested_run.load(Ordering::Relaxed) {
+                api.prevent_exit();
+            }
+        }
+    });
 }
 
 pub fn open_settings_window(app: &AppHandle) -> tauri::Result<()> {
@@ -226,7 +232,7 @@ pub fn open_settings_window(app: &AppHandle) -> tauri::Result<()> {
         tauri::WebviewUrl::App("settings.html".into()),
     )
     .title("XenSnip Settings")
-    .inner_size(400.0, 680.0) 
+    .inner_size(400.0, 680.0)
     .resizable(false)
     .decorations(false)
     .transparent(true)

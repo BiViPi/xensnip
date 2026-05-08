@@ -268,12 +268,96 @@ pub async fn preset_import(app_handle: AppHandle) -> Result<PresetImportResult, 
         if imported_count > 0 {
             crate::settings::save_settings(&app_handle, &settings).map_err(|e| e.to_string())?;
         }
-        
+
         Ok(PresetImportResult {
             imported: imported_count,
             skipped: skipped_count,
         })
     } else {
         Ok(PresetImportResult { imported: 0, skipped: 0 })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_preset(id: &str, name: &str) -> SavedPreset {
+        SavedPreset {
+            id: id.to_string(),
+            name: name.to_string(),
+            preset: serde_json::Value::Null,
+            updated_at: "2026-01-01T00:00:00Z".to_string(),
+        }
+    }
+
+    #[test]
+    fn preset_name_exists_detects_matching_name() {
+        let presets = vec![make_preset("a", "Alpha"), make_preset("b", "Beta")];
+        assert!(preset_name_exists(&presets, "Alpha", None));
+        assert!(preset_name_exists(&presets, "Beta", None));
+        assert!(!preset_name_exists(&presets, "Gamma", None));
+    }
+
+    #[test]
+    fn preset_name_exists_excludes_the_given_id() {
+        let presets = vec![make_preset("a", "Alpha")];
+        // Excluding "a" means a rename to the same name should be allowed.
+        assert!(!preset_name_exists(&presets, "Alpha", Some("a")));
+        // But excluding a different id still finds the conflict.
+        assert!(preset_name_exists(&presets, "Alpha", Some("b")));
+    }
+
+    #[test]
+    fn next_copy_name_appends_copy_when_name_is_free() {
+        let presets = vec![make_preset("a", "Alpha")];
+        assert_eq!(next_copy_name(&presets, "Alpha"), "Alpha (Copy)");
+    }
+
+    #[test]
+    fn next_copy_name_uses_numbered_suffix_when_copy_is_taken() {
+        let presets = vec![
+            make_preset("a", "Alpha"),
+            make_preset("b", "Alpha (Copy)"),
+        ];
+        assert_eq!(next_copy_name(&presets, "Alpha"), "Alpha (Copy 2)");
+    }
+
+    #[test]
+    fn next_copy_name_increments_until_free() {
+        let presets = vec![
+            make_preset("a", "Alpha"),
+            make_preset("b", "Alpha (Copy)"),
+            make_preset("c", "Alpha (Copy 2)"),
+            make_preset("d", "Alpha (Copy 3)"),
+        ];
+        assert_eq!(next_copy_name(&presets, "Alpha"), "Alpha (Copy 4)");
+    }
+
+    #[test]
+    fn next_import_name_uses_original_when_free() {
+        let presets = vec![make_preset("a", "Other")];
+        assert_eq!(next_import_name(&presets, "Alpha"), "Alpha");
+    }
+
+    #[test]
+    fn next_import_name_uses_numbered_suffix_when_taken() {
+        let presets = vec![make_preset("a", "Alpha")];
+        assert_eq!(next_import_name(&presets, "Alpha"), "Alpha (2)");
+    }
+
+    #[test]
+    fn next_import_name_increments_until_free() {
+        let presets = vec![
+            make_preset("a", "Alpha"),
+            make_preset("b", "Alpha (2)"),
+        ];
+        assert_eq!(next_import_name(&presets, "Alpha"), "Alpha (3)");
+    }
+
+    #[test]
+    fn next_import_name_trims_whitespace() {
+        let presets: Vec<SavedPreset> = vec![];
+        assert_eq!(next_import_name(&presets, "  Alpha  "), "Alpha");
     }
 }

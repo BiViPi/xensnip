@@ -7,9 +7,12 @@ let workerPromise: Promise<TesseractWorker> | null = null;
 export function getTesseractWorker(): Promise<TesseractWorker> {
   if (!workerPromise) {
     // Reset the singleton on init failure so later OCR attempts can retry.
-    workerPromise = createWorker('eng', 1).catch((error) => {
+    workerPromise = createWorker('eng', 1).catch((error: unknown) => {
       workerPromise = null;
-      throw error;
+      const detail = error instanceof Error ? error.message : String(error);
+      throw new Error(
+        `OCR engine failed to load. On first use, OCR requires an internet connection to download model files from cdn.jsdelivr.net. Details: ${detail}`
+      );
     });
   }
 

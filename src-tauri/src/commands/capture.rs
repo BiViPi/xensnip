@@ -28,7 +28,7 @@ pub fn capture_start_window(app_handle: AppHandle) -> Result<(), String> {
 
 #[tauri::command]
 pub fn capture_cancel(app_handle: AppHandle) -> Result<(), String> {
-    crate::capture::native_region_selector::close_active();
+    crate::capture::native_region_active::close_active();
     if let Some(session) = app_handle.try_state::<CaptureSession>() {
         session.finish();
     }

@@ -1,5 +1,3 @@
-// ─── Sprint 00 / settings types ───────────────────────────────────────────────
-
 import type { EditorPreset } from "../compose/preset";
 
 export interface Hotkeys {
@@ -41,7 +39,7 @@ export interface PingResponse {
   name: string;
 }
 
-// ─── Sprint 02: Capture IPC contract ─────────────────────────────────────────
+// Capture IPC contract
 
 /** Emitted by Rust on successful capture (event: "capture.result") */
 export interface CaptureResult {
@@ -55,7 +53,7 @@ export interface CaptureFailure {
   message: string;
 }
 
-// ─── Sprint 03: Asset registry ────────────────────────────────────────────────
+// Asset registry
 
 /** Returned by asset_resolve — the URI frontend uses to load the asset. */
 export interface AssetResolveResult {
@@ -67,7 +65,7 @@ export interface AssetError {
   message: string;
 }
 
-// ─── Sprint 03: Quick Access positioning ─────────────────────────────────────
+// Quick Access positioning
 
 export interface MonitorWorkAreaLogical {
   x: number;
@@ -97,7 +95,6 @@ export interface QuickAccessShowPayload {
 }
 
 /** Payload of the "editor.count_changed" event */
-// ─── Sprint 04: Editor types ──────────────────────────────────────────────────
 
 export type SettingsSaveError =
   | { code: "InvalidHotkey"; data: { field: string; value: string } }

@@ -1,29 +1,25 @@
 import { useCallback } from 'react';
 import Konva from 'konva';
 import { useAnnotationStore } from './state/store';
-import {
-  ArrowObject,
-  RectangleObject,
-  BlurObject,
-  SpotlightObject,
-  MagnifyObject,
-  SimplifyUiObject,
-  PixelRulerObject,
-  CalloutObject,
-  FreehandArrowObject,
-  PixelateObject,
-  OpaqueRedactObject,
-} from './state/types';
 import { getCompositionCoordinates } from '../measure/coordinates';
 import { extractTextFromCanvas } from '../measure/ocr';
 import { DrawingObject } from './state/drawingTypes';
 import { TOOL_TO_DRAW_TYPE } from './drawingTypeMap';
-import { 
-  createImmediateText, 
-  createImmediateNumbered, 
-  createImmediateSpeechBubble 
+import {
+  createImmediateText,
+  createImmediateNumbered,
+  createImmediateSpeechBubble,
 } from './immediateObjectFactory';
 import { usePointerHandlersState } from './usePointerHandlersState';
+import { getPointerCoords } from './pointer/pointerCoordinates';
+import { normalizeRect } from './pointer/selectionRect';
+import {
+  computeFreehandPathLength,
+  shouldAddFreehandPoint,
+  FREEHAND_MIN_PATH_LENGTH,
+} from './pointer/freehandArrowPointer';
+import { createDragAnnotationObject } from './pointer/dragObjectFactory';
+import { FreehandArrowObject } from './state/types';
 
 interface UseAnnotationPointerHandlersDeps {
   scale: number;
@@ -36,7 +32,7 @@ interface UseAnnotationPointerHandlersDeps {
   setOcrStatus: (status: 'idle' | 'selecting' | 'running' | 'ready' | 'error') => void;
   setOcrText: (text: string) => void;
   setOcrError: (error: string | null) => void;
-  ocrRequestIdRef: React.MutableRefObject<number>;
+  ocrRequestIdRef: React.RefObject<number>;
   // privacy store setters
   setPrivacyStatus: (status: 'idle' | 'ready' | 'error' | 'detecting') => void;
   setSelectionRect: (rect: { x: number; y: number; width: number; height: number } | null) => void;
@@ -77,13 +73,11 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
 
   const handleMouseDown = useCallback(
     (e: Konva.KonvaEventObject<MouseEvent>) => {
-      const stage = e.target.getStage();
-      const pos = stage?.getPointerPosition();
-      if (!stage || !pos) return;
-      const stageX = pos.x / scale;
-      const stageY = pos.y / scale;
+      const coords = getPointerCoords(e, scale);
+      if (!coords) return;
+      const { stageX, stageY } = coords;
 
-      // 1. Utility logic (Color Picker, OCR, Privacy)
+      // 1. Utility logic
       if (activeUtility === 'color_picker') {
         setColorPickerFrozen(!colorPickerFrozen);
         return;
@@ -113,7 +107,7 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
         return;
       }
 
-      // 2. Immediate object creation (Text, Numbered, SpeechBubble)
+      // 2. Immediate object creation
       if (activeTool === 'text') {
         const text = createImmediateText(stageX, stageY);
         addObject(text);
@@ -160,8 +154,8 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
         return;
       }
 
-      // 4. Fallback: Deselect
-      const clickedOnEmpty = e.target === stage;
+      // 4. Fallback: deselect on empty stage click
+      const clickedOnEmpty = e.target === e.target.getStage();
       if (clickedOnEmpty && activeTool === 'select') {
         select(null);
         setEditingTextId(null);
@@ -170,17 +164,15 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
     [
       scale, activeUtility, activeTool, objects, colorPickerFrozen, setColorPickerFrozen,
       setOcrRegion, setOcrText, setOcrError, setOcrStatus, resetPrivacy, setPrivacyStatus,
-      addObject, select, setEditingTextId, setActiveTool, setDrawingObject
+      addObject, select, setEditingTextId, setActiveTool, setDrawingObject,
     ]
   );
 
   const handleMouseMove = useCallback(
     (e: Konva.KonvaEventObject<MouseEvent>) => {
-      const stage = e.target.getStage();
-      const pos = stage?.getPointerPosition();
-      if (!stage || !pos) return;
-      const stageX = pos.x / scale;
-      const stageY = pos.y / scale;
+      const coords = getPointerCoords(e, scale);
+      if (!coords) return;
+      const { stageX, stageY } = coords;
 
       if (activeUtility === 'color_picker' && !colorPickerFrozen) {
         const canvas = compositionCanvasRef.current;
@@ -197,6 +189,15 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
 
       if (!drawingObject) return;
 
+      if (drawingObject.type === 'freehand_arrow') {
+        const dx = stageX - drawingObject.start.x;
+        const dy = stageY - drawingObject.start.y;
+        if (shouldAddFreehandPoint(drawingObject.points, dx, dy)) {
+          setDrawingObject({ ...drawingObject, points: [...drawingObject.points, dx, dy] });
+        }
+        return;
+      }
+
       let endX = stageX;
       let endY = stageY;
 
@@ -207,19 +208,6 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
         else endX = drawingObject.start.x;
       }
 
-      if (drawingObject.type === 'freehand_arrow') {
-        const dx = stageX - drawingObject.start.x;
-        const dy = stageY - drawingObject.start.y;
-        const lastX = drawingObject.points[drawingObject.points.length - 2];
-        const lastY = drawingObject.points[drawingObject.points.length - 1];
-        const distSq = (dx - lastX) ** 2 + (dy - lastY) ** 2;
-
-        if (distSq > 16) {
-          setDrawingObject({ ...drawingObject, points: [...drawingObject.points, dx, dy] });
-        }
-        return;
-      }
-
       setDrawingObject({ ...drawingObject, end: { x: endX, y: endY } });
     },
     [scale, activeUtility, colorPickerFrozen, compositionCanvasRef, setCurrentSample, drawingObject, setDrawingObject]
@@ -228,16 +216,9 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
   const handleMouseUp = useCallback(() => {
     if (!drawingObject) return;
 
-    // Handle Freehand Arrow (Special points array)
+    // Freehand arrow — uses accumulated points array
     if (drawingObject.type === 'freehand_arrow') {
-      let totalPathLength = 0;
-      for (let i = 2; i < drawingObject.points.length; i += 2) {
-        const segDx = drawingObject.points[i] - drawingObject.points[i - 2];
-        const segDy = drawingObject.points[i + 1] - drawingObject.points[i - 1];
-        totalPathLength += Math.sqrt(segDx * segDx + segDy * segDy);
-      }
-
-      if (totalPathLength > 20) {
+      if (computeFreehandPathLength(drawingObject.points) > FREEHAND_MIN_PATH_LENGTH) {
         const newId = `obj-${Date.now()}`;
         const arrow: FreehandArrowObject = {
           id: newId,
@@ -258,17 +239,16 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
     const dy = drawingObject.end.y - drawingObject.start.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
 
-    // Handle OCR Selection
+    // OCR selection
     if (drawingObject.type === 'ocr_selection') {
-      const selection = {
-        x: Math.min(drawingObject.start.x, drawingObject.end.x),
-        y: Math.min(drawingObject.start.y, drawingObject.end.y),
-        width: Math.abs(dx), height: Math.abs(dy),
-      };
+      const selection = normalizeRect(drawingObject.start, drawingObject.end);
       if (selection.width > 5 && selection.height > 5) {
         const canvas = compositionCanvasRef.current;
         if (canvas) {
-          setOcrRegion(selection); setOcrStatus('running'); setOcrText(''); setOcrError(null);
+          setOcrRegion(selection);
+          setOcrStatus('running');
+          setOcrText('');
+          setOcrError(null);
           const reqId = ++ocrRequestIdRef.current;
           const region = getCompositionCoordinates(selection.x, selection.y, canvas.width, canvas.height);
           const regionWidth = Math.max(1, Math.min(canvas.width - region.x, Math.ceil(selection.width)));
@@ -277,111 +257,52 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
           extractTextFromCanvas(canvas, { x: region.x, y: region.y, width: regionWidth, height: regionHeight })
             .then((text) => {
               if (ocrRequestIdRef.current === reqId) {
-                setOcrText(text); setOcrStatus('ready');
+                setOcrText(text);
+                setOcrStatus('ready');
               }
             })
-            .catch((err) => {
+            .catch((err: unknown) => {
               if (ocrRequestIdRef.current === reqId) {
-                setOcrError(err.message); setOcrStatus('error');
+                setOcrError(err instanceof Error ? err.message : 'OCR failed');
+                setOcrStatus('error');
               }
             });
         }
       } else {
-        setOcrRegion(null); setOcrStatus('idle');
+        setOcrRegion(null);
+        setOcrStatus('idle');
       }
       setDrawingObject(null);
       return;
     }
 
-    // Handle Privacy Selection
+    // Smart Redact selection
     if (drawingObject.type === 'smart_redact_selection') {
-      const selection = {
-        x: Math.min(drawingObject.start.x, drawingObject.end.x),
-        y: Math.min(drawingObject.start.y, drawingObject.end.y),
-        width: Math.abs(dx), height: Math.abs(dy),
-      };
+      const selection = normalizeRect(drawingObject.start, drawingObject.end);
       if (selection.width > 5 && selection.height > 5) {
-        setScope('selection'); setSelectionRect(selection); setPrivacyStatus('idle');
+        setScope('selection');
+        setSelectionRect(selection);
+        setPrivacyStatus('idle');
       } else {
-        setSelectionRect(null); setScope('full_canvas');
+        setSelectionRect(null);
+        setScope('full_canvas');
       }
       setDrawingObject(null);
       return;
     }
 
-    // Handle regular shapes
+    // Regular drag shapes — minimum size check
     if (dist > 4) {
       const newId = `obj-${Date.now()}`;
-      if (drawingObject.type === 'arrow') {
-        const arrow: ArrowObject = {
-          id: newId, type: 'arrow', x: drawingObject.start.x, y: drawingObject.start.y, rotation: 0,
-          points: [0, 0, dx, dy], stroke: '#ef4444', strokeWidth: 4, pointerLength: 12, pointerWidth: 12,
-          style: 'solid', draggable: true,
-        };
-        addObject(arrow);
-      } else if (drawingObject.type === 'rectangle') {
-        const rect: RectangleObject = {
-          id: newId, type: 'rectangle', x: Math.min(drawingObject.start.x, drawingObject.end.x), y: Math.min(drawingObject.start.y, drawingObject.end.y),
-          rotation: 0, width: Math.abs(dx), height: Math.abs(dy), stroke: '#ef4444', strokeWidth: 4, lineStyle: 'solid', cornerRadius: 0, draggable: true,
-        };
-        addObject(rect);
-      } else if (drawingObject.type === 'blur') {
-        const blur: BlurObject = {
-          id: newId, type: 'blur', x: Math.min(drawingObject.start.x, drawingObject.end.x), y: Math.min(drawingObject.start.y, drawingObject.end.y),
-          rotation: 0, width: Math.abs(dx), height: Math.abs(dy), blurRadius: 10, draggable: true,
-        };
-        addObject(blur);
-      } else if (drawingObject.type === 'pixelate') {
-        const pixelate: PixelateObject = {
-          id: newId, type: 'pixelate', x: Math.min(drawingObject.start.x, drawingObject.end.x), y: Math.min(drawingObject.start.y, drawingObject.end.y),
-          rotation: 0, width: Math.abs(dx), height: Math.abs(dy), pixelSize: 12, borderColor: '#000000', borderWidth: 0, draggable: true,
-        };
-        addObject(pixelate);
-      } else if (drawingObject.type === 'opaque_redact') {
-        const redact: OpaqueRedactObject = {
-          id: newId, type: 'opaque_redact', x: Math.min(drawingObject.start.x, drawingObject.end.x), y: Math.min(drawingObject.start.y, drawingObject.end.y),
-          rotation: 0, width: Math.abs(dx), height: Math.abs(dy), fill: '#000000', borderColor: '#000000', borderWidth: 0, draggable: true,
-        };
-        addObject(redact);
-      } else if (drawingObject.type === 'spotlight') {
-        const spotlight: SpotlightObject = {
-          id: newId, type: 'spotlight', x: Math.min(drawingObject.start.x, drawingObject.end.x), y: Math.min(drawingObject.start.y, drawingObject.end.y),
-          rotation: 0, width: Math.abs(dx), height: Math.abs(dy), opacity: 0.58, cornerRadius: 24, draggable: true,
-        };
-        addObject(spotlight);
-      } else if (drawingObject.type === 'magnify') {
-        const rw = Math.abs(dx), rh = Math.abs(dy);
-        const magnify: MagnifyObject = {
-          id: newId, type: 'magnify', x: Math.min(drawingObject.start.x, drawingObject.end.x), y: Math.min(drawingObject.start.y, drawingObject.end.y),
-          sourceX: Math.min(drawingObject.start.x, drawingObject.end.x), sourceY: Math.min(drawingObject.start.y, drawingObject.end.y),
-          sourceWidth: rw, sourceHeight: rh, rotation: 0, width: rw * 1.8, height: rh * 1.8, zoom: 1.8, cornerRadius: 20, borderOpacity: 0.8, draggable: true,
-        };
-        addObject(magnify);
-      } else if (drawingObject.type === 'simplify_ui') {
-        const simplifyUi: SimplifyUiObject = {
-          id: newId, type: 'simplify_ui', x: Math.min(drawingObject.start.x, drawingObject.end.x), y: Math.min(drawingObject.start.y, drawingObject.end.y),
-          rotation: 0, width: Math.abs(dx), height: Math.abs(dy), dimOpacity: 0.52, blurRadius: 4, saturation: 0.35, cornerRadius: 24, draggable: true,
-        };
-        addObject(simplifyUi);
-      } else if (drawingObject.type === 'pixel_ruler') {
-        const ruler: PixelRulerObject = {
-          id: newId, type: 'pixel_ruler', x: drawingObject.start.x, y: drawingObject.start.y, rotation: 0,
-          points: [0, 0, dx, dy], stroke: '#ef4444', strokeWidth: 2, labelFill: '#ffffff', showBackground: true, draggable: true,
-        };
-        addObject(ruler);
-      } else if (drawingObject.type === 'callout') {
-        const callout: CalloutObject = {
-          id: newId, type: 'callout', x: drawingObject.end.x, y: drawingObject.end.y, rotation: 0,
-          width: 120, height: 48, text: 'Callout', fontSize: 14, fontFamily: 'Inter, sans-serif', fill: '#ffffff',
-          textColor: '#1e1e2e', stroke: '#1e1e2e', padding: 8, cornerRadius: 4, targetX: drawingObject.start.x, targetY: drawingObject.start.y,
-          lineColor: '#1e1e2e', lineWidth: 2, draggable: true,
-        };
-        addObject(callout);
+      const obj = createDragAnnotationObject(drawingObject.type, drawingObject.start, drawingObject.end, newId);
+      if (obj) {
+        addObject(obj);
+        if (obj.type === 'callout') {
+          setEditingTextId(newId);
+        }
         select(newId);
-        setEditingTextId(newId);
+        setActiveTool('select');
       }
-      select(newId);
-      setActiveTool('select');
     }
     setDrawingObject(null);
   }, [

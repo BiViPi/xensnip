@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { EditorPreset } from '../compose/preset';
 import { getCompositionDimensions } from '../compose/core';
 import { useAnnotationStore } from '../annotate/state/store';
+import { ToolId } from '../annotate/state/types';
 import { recordHistorySnapshot, withHistorySuspended } from './historyBridge';
 
 export interface CropBounds {
@@ -23,7 +24,7 @@ export function useCropTool(
   image: HTMLImageElement | null,
   preset: EditorPreset,
   setImage: (img: HTMLImageElement) => void,
-  setActiveTool: (tool: any) => void,
+  setActiveTool: (tool: ToolId) => void,
   onCommit?: (img: HTMLImageElement) => void
 ) {
   const { objects, clearAll } = useAnnotationStore();

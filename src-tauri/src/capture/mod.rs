@@ -5,6 +5,8 @@ pub mod errors;
 pub mod native_region_selector;
 pub mod region;
 pub mod window;
+pub(crate) mod native_region_active;
+mod native_region_geometry;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CaptureIntent {

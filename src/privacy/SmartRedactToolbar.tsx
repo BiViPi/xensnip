@@ -45,9 +45,10 @@ export function SmartRedactToolbar({ compositionCanvasRef }: Props) {
       const results = await detectTextRedactCandidates(canvas, region);
       setCandidates(results);
       setStatus('ready');
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Detection failed';
       console.error('Detection failed:', err);
-      setError(err.message || 'Detection failed');
+      setError(message);
       setStatus('error');
     }
   };
