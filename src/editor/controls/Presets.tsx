@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import "./Presets.css";
 import { EditorPreset } from "../../compose/preset";
 import { SavedPreset, Settings } from "../../ipc/types";
 import { 

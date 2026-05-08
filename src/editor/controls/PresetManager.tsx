@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import "./PresetManager.css";
+import "./PresetManagerModal.css";
 import { Settings } from "../../ipc/types";
 import {
   presetDelete,
