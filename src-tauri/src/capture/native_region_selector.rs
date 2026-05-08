@@ -3,49 +3,38 @@ use crate::capture::native_region_active::active_window_slot;
 use crate::capture::native_region_geometry::{
     get_x_lparam, get_y_lparam, invalidate_selection_bounds, selection_bounds,
 };
+use crate::capture::native_region_state::{LocalSelectionRect, SelectorState};
 use std::sync::{Mutex, Once};
 use tauri::{AppHandle, Manager};
 use windows::core::w;
 use windows::Win32::Foundation::{COLORREF, HINSTANCE, HWND, LPARAM, LRESULT, RECT, WPARAM};
 use windows::Win32::Graphics::Gdi::{
     BeginPaint, BitBlt, CreateCompatibleBitmap, CreateCompatibleDC, CreatePen, DeleteDC,
-    DeleteObject, EndPaint, FillRect, GetStockObject, SelectObject, SetBkMode,
+    DeleteObject, EndPaint, FillRect, GetStockObject, Rectangle, SelectObject, SetBkMode,
     SetTextColor, TextOutW, UpdateWindow, BLACK_BRUSH, HBRUSH, HGDIOBJ, NULL_BRUSH, PAINTSTRUCT,
-    PS_SOLID, Rectangle, SRCCOPY, TRANSPARENT,
+    PS_SOLID, SRCCOPY, TRANSPARENT,
 };
 use windows::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     ReleaseCapture, SetCapture, SetFocus, VK_ESCAPE,
 };
 use windows::Win32::UI::WindowsAndMessaging::{
-    CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW, GetMessageW, GetSystemMetrics,
-    LoadCursorW, PostQuitMessage, RegisterClassW, SetForegroundWindow,
+    CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW, GetMessageW,
+    GetSystemMetrics, LoadCursorW, PostQuitMessage, RegisterClassW, SetForegroundWindow,
     SetLayeredWindowAttributes, ShowWindow, TranslateMessage, CREATESTRUCTW, GWLP_USERDATA,
     IDC_CROSS, LWA_ALPHA, MSG, SM_CXVIRTUALSCREEN, SM_CYVIRTUALSCREEN, SM_XVIRTUALSCREEN,
-    SM_YVIRTUALSCREEN, SW_SHOW, WM_DESTROY, WM_ERASEBKGND, WM_KEYDOWN,
-    WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MOUSEMOVE, WM_NCCREATE, WNDCLASSW, WS_EX_LAYERED,
-    WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_POPUP,
+    SM_YVIRTUALSCREEN, SW_SHOW, WM_DESTROY, WM_ERASEBKGND, WM_KEYDOWN, WM_LBUTTONDOWN,
+    WM_LBUTTONUP, WM_MOUSEMOVE, WM_NCCREATE, WNDCLASSW, WS_EX_LAYERED, WS_EX_TOOLWINDOW,
+    WS_EX_TOPMOST, WS_POPUP,
 };
 use xcap::Monitor;
 
 const WINDOW_CLASS: windows::core::PCWSTR = w!("XenSnipNativeRegionSelector");
-
-#[derive(Debug, Clone)]
-pub enum SelectionOutcome {
-    Confirmed { gx: i32, gy: i32, gw: u32, gh: u32 },
-    Cancelled,
-}
+pub use crate::capture::native_region_state::SelectionOutcome;
 
 struct SelectorWindowState {
     app: AppHandle,
-    virtual_x: i32,
-    virtual_y: i32,
-    selecting: bool,
-    start_x: i32,
-    start_y: i32,
-    current_x: i32,
-    current_y: i32,
-    outcome: SelectionOutcome,
+    selection: SelectorState,
 }
 
 struct SelectorSurfaceBounds {
@@ -67,6 +56,13 @@ unsafe fn state_mut(hwnd: HWND) -> Option<&'static mut SelectorWindowState> {
     let ptr = windows::Win32::UI::WindowsAndMessaging::GetWindowLongPtrW(hwnd, GWLP_USERDATA)
         as *mut SelectorWindowState;
     ptr.as_mut()
+}
+
+fn invalidate_local_rect(hwnd: HWND, rect: Option<LocalSelectionRect>) {
+    invalidate_selection_bounds(
+        hwnd,
+        rect.and_then(|rect| selection_bounds(rect.left, rect.top, rect.right, rect.bottom)),
+    );
 }
 
 fn register_class() -> Result<(), String> {
@@ -180,14 +176,7 @@ fn run_native_selector(app: AppHandle) -> Result<SelectionOutcome, String> {
 
     let state = Box::new(SelectorWindowState {
         app,
-        virtual_x,
-        virtual_y,
-        selecting: false,
-        start_x: 0,
-        start_y: 0,
-        current_x: 0,
-        current_y: 0,
-        outcome: SelectionOutcome::Cancelled,
+        selection: SelectorState::new(virtual_x, virtual_y),
     });
 
     let module = unsafe { GetModuleHandleW(None).map_err(|err| err.to_string())? };
@@ -240,7 +229,12 @@ thread_local! {
     static LAST_OUTCOME: Mutex<Option<SelectionOutcome>> = Mutex::new(None);
 }
 
-unsafe extern "system" fn window_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
+unsafe extern "system" fn window_proc(
+    hwnd: HWND,
+    msg: u32,
+    wparam: WPARAM,
+    lparam: LPARAM,
+) -> LRESULT {
     match msg {
         WM_NCCREATE => {
             let create = &*(lparam.0 as *const CREATESTRUCTW);
@@ -255,43 +249,32 @@ unsafe extern "system" fn window_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lpar
         WM_ERASEBKGND => LRESULT(1),
         WM_LBUTTONDOWN => {
             if let Some(state) = state_mut(hwnd) {
-                if !state.selecting {
-                    state.selecting = true;
-                    state.start_x = get_x_lparam(lparam);
-                    state.start_y = get_y_lparam(lparam);
-                    state.current_x = state.start_x;
-                    state.current_y = state.start_y;
+                if !state.selection.is_selecting() {
+                    let anchor = state
+                        .selection
+                        .begin_selection(get_x_lparam(lparam), get_y_lparam(lparam));
                     let _ = SetCapture(hwnd);
                     log::info!(
                         target: "capture::native_selector",
                         "native selector anchor set at {},{}",
-                        state.virtual_x + state.start_x,
-                        state.virtual_y + state.start_y
+                        anchor.gx,
+                        anchor.gy
                     );
                 } else {
-                    let old_bounds =
-                        selection_bounds(state.start_x, state.start_y, state.current_x, state.current_y);
-                    state.current_x = get_x_lparam(lparam);
-                    state.current_y = get_y_lparam(lparam);
-                    invalidate_selection_bounds(hwnd, old_bounds);
-                    invalidate_selection_bounds(
-                        hwnd,
-                        selection_bounds(state.start_x, state.start_y, state.current_x, state.current_y),
-                    );
-                    state.selecting = false;
+                    let result = state
+                        .selection
+                        .finish_selection(get_x_lparam(lparam), get_y_lparam(lparam));
+                    invalidate_local_rect(hwnd, result.old_rect);
+                    invalidate_local_rect(hwnd, result.new_rect);
                     let _ = ReleaseCapture();
 
-                    let gx = state.virtual_x + state.start_x.min(state.current_x);
-                    let gy = state.virtual_y + state.start_y.min(state.current_y);
-                    let gw = (state.current_x - state.start_x).unsigned_abs();
-                    let gh = (state.current_y - state.start_y).unsigned_abs();
-
-                    if gw >= 10 && gh >= 10 {
-                        state.outcome = SelectionOutcome::Confirmed { gx, gy, gw, gh };
-                        log::info!(target: "capture::native_selector", "native selector confirmed: {}x{} at {},{}", gw, gh, gx, gy);
-                    } else {
-                        state.outcome = SelectionOutcome::Cancelled;
-                        log::info!(target: "capture::native_selector", "native selector cancelled: rect too small");
+                    match result.outcome {
+                        SelectionOutcome::Confirmed { gx, gy, gw, gh } => {
+                            log::info!(target: "capture::native_selector", "native selector confirmed: {}x{} at {},{}", gw, gh, gx, gy);
+                        }
+                        SelectionOutcome::Cancelled => {
+                            log::info!(target: "capture::native_selector", "native selector cancelled: rect too small");
+                        }
                     }
 
                     let _ = DestroyWindow(hwnd);
@@ -301,15 +284,12 @@ unsafe extern "system" fn window_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lpar
         }
         WM_MOUSEMOVE => {
             if let Some(state) = state_mut(hwnd) {
-                if state.selecting {
-                    let old_bounds =
-                        selection_bounds(state.start_x, state.start_y, state.current_x, state.current_y);
-                    state.current_x = get_x_lparam(lparam);
-                    state.current_y = get_y_lparam(lparam);
-                    let new_bounds =
-                        selection_bounds(state.start_x, state.start_y, state.current_x, state.current_y);
-                    invalidate_selection_bounds(hwnd, old_bounds);
-                    invalidate_selection_bounds(hwnd, new_bounds);
+                if state.selection.is_selecting() {
+                    let preview = state
+                        .selection
+                        .update_selection(get_x_lparam(lparam), get_y_lparam(lparam));
+                    invalidate_local_rect(hwnd, preview.old_rect);
+                    invalidate_local_rect(hwnd, preview.new_rect);
                 }
             }
             LRESULT(0)
@@ -318,11 +298,10 @@ unsafe extern "system" fn window_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lpar
         WM_KEYDOWN => {
             if wparam.0 as u16 == VK_ESCAPE.0 {
                 if let Some(state) = state_mut(hwnd) {
-                    if state.selecting {
-                        state.selecting = false;
+                    if state.selection.is_selecting() {
                         let _ = ReleaseCapture();
                     }
-                    state.outcome = SelectionOutcome::Cancelled;
+                    state.selection.cancel();
                 }
                 log::info!(target: "capture::native_selector", "native selector cancelled with Escape");
                 let _ = DestroyWindow(hwnd);
@@ -344,31 +323,47 @@ unsafe extern "system" fn window_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lpar
                         let bitmap_obj = HGDIOBJ(bitmap.0);
                         let old_bitmap = SelectObject(mem_dc, bitmap_obj);
 
-                        let local_paint = RECT { left: 0, top: 0, right: paint_w, bottom: paint_h };
-                        let _ = FillRect(mem_dc, &local_paint, HBRUSH(GetStockObject(BLACK_BRUSH).0));
+                        let local_paint = RECT {
+                            left: 0,
+                            top: 0,
+                            right: paint_w,
+                            bottom: paint_h,
+                        };
+                        let _ =
+                            FillRect(mem_dc, &local_paint, HBRUSH(GetStockObject(BLACK_BRUSH).0));
 
                         if let Some(state) = state_mut(hwnd) {
-                            let left = state.start_x.min(state.current_x);
-                            let top = state.start_y.min(state.current_y);
-                            let right = state.start_x.max(state.current_x);
-                            let bottom = state.start_y.max(state.current_y);
-
-                            if right > left && bottom > top {
-                                let offset_left = left - ps.rcPaint.left;
-                                let offset_top = top - ps.rcPaint.top;
-                                let offset_right = right - ps.rcPaint.left;
-                                let offset_bottom = bottom - ps.rcPaint.top;
+                            if let Some(rect) = state.selection.current_rect() {
+                                let offset_left = rect.left - ps.rcPaint.left;
+                                let offset_top = rect.top - ps.rcPaint.top;
+                                let offset_right = rect.right - ps.rcPaint.left;
+                                let offset_bottom = rect.bottom - ps.rcPaint.top;
 
                                 let pen = CreatePen(PS_SOLID, 2, COLORREF(0x00FFFFFF));
                                 let old_pen = SelectObject(mem_dc, HGDIOBJ(pen.0));
                                 let old_brush = SelectObject(mem_dc, GetStockObject(NULL_BRUSH));
-                                let _ = Rectangle(mem_dc, offset_left, offset_top, offset_right, offset_bottom);
+                                let _ = Rectangle(
+                                    mem_dc,
+                                    offset_left,
+                                    offset_top,
+                                    offset_right,
+                                    offset_bottom,
+                                );
 
-                                let label = format!("{} x {}", (right - left) as u32, (bottom - top) as u32);
+                                let label = format!(
+                                    "{} x {}",
+                                    (rect.right - rect.left) as u32,
+                                    (rect.bottom - rect.top) as u32
+                                );
                                 let label_u16: Vec<u16> = label.encode_utf16().collect();
                                 let _ = SetBkMode(mem_dc, TRANSPARENT);
                                 let _ = SetTextColor(mem_dc, COLORREF(0x00FFFFFF));
-                                let _ = TextOutW(mem_dc, offset_left + 5, (offset_top - 20).max(5), &label_u16);
+                                let _ = TextOutW(
+                                    mem_dc,
+                                    offset_left + 5,
+                                    (offset_top - 20).max(5),
+                                    &label_u16,
+                                );
 
                                 let _ = SelectObject(mem_dc, old_pen);
                                 let _ = SelectObject(mem_dc, old_brush);
@@ -377,8 +372,15 @@ unsafe extern "system" fn window_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lpar
                         }
 
                         let _ = BitBlt(
-                            hdc, ps.rcPaint.left, ps.rcPaint.top, paint_w, paint_h,
-                            Some(mem_dc), 0, 0, SRCCOPY,
+                            hdc,
+                            ps.rcPaint.left,
+                            ps.rcPaint.top,
+                            paint_w,
+                            paint_h,
+                            Some(mem_dc),
+                            0,
+                            0,
+                            SRCCOPY,
                         );
 
                         let _ = SelectObject(mem_dc, old_bitmap);
@@ -397,20 +399,21 @@ unsafe extern "system" fn window_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lpar
                 *guard = None;
             }
 
-            let ptr = windows::Win32::UI::WindowsAndMessaging::GetWindowLongPtrW(hwnd, GWLP_USERDATA)
-                as *mut SelectorWindowState;
+            let ptr =
+                windows::Win32::UI::WindowsAndMessaging::GetWindowLongPtrW(hwnd, GWLP_USERDATA)
+                    as *mut SelectorWindowState;
             if !ptr.is_null() {
                 let state = Box::from_raw(ptr);
-                if state.selecting {
+                if state.selection.is_selecting() {
                     let _ = ReleaseCapture();
                 }
 
                 LAST_OUTCOME.with(|cell| {
                     let mut guard = cell.lock().unwrap();
-                    *guard = Some(state.outcome.clone());
+                    *guard = Some(state.selection.outcome().clone());
                 });
 
-                if let SelectionOutcome::Cancelled = state.outcome {
+                if let SelectionOutcome::Cancelled = state.selection.outcome() {
                     finish_session(&state.app);
                 }
             }

@@ -77,7 +77,7 @@ mod tests {
     fn selection_bounds_normalizes_reversed_coordinates() {
         // end before start — should still produce a valid rect
         let rect = selection_bounds(100, 200, 10, 50).unwrap();
-        assert_eq!(rect.left, 6);   // min(100,10) - 4
+        assert_eq!(rect.left, 6); // min(100,10) - 4
         assert_eq!(rect.right, 104); // max(100,10) + 4
     }
 }

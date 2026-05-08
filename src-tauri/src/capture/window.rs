@@ -1,4 +1,5 @@
 use crate::capture::errors::CaptureError;
+use std::sync::Arc;
 use tauri::{AppHandle, Emitter, Manager};
 use windows::Win32::Foundation::{HWND, RECT};
 use windows::Win32::Graphics::Dwm::{DwmGetWindowAttribute, DWMWA_EXTENDED_FRAME_BOUNDS};
@@ -14,7 +15,6 @@ use windows::Win32::UI::WindowsAndMessaging::{
     PW_RENDERFULLCONTENT,
 };
 use xcap::Window;
-use std::sync::Arc;
 
 unsafe extern "system" {
     fn PrintWindow(hwnd: HWND, hdcblt: HDC, nflags: u32) -> windows::core::BOOL;
@@ -30,7 +30,9 @@ pub enum BackendOverride {
 fn preferred_failure_method(policy: &BackendOverride) -> crate::diagnostics::CaptureMethod {
     match policy {
         BackendOverride::Wgc => crate::diagnostics::CaptureMethod::WgcWindow,
-        BackendOverride::Auto | BackendOverride::Gdi => crate::diagnostics::CaptureMethod::GdiWindow,
+        BackendOverride::Auto | BackendOverride::Gdi => {
+            crate::diagnostics::CaptureMethod::GdiWindow
+        }
     }
 }
 
@@ -78,12 +80,13 @@ pub fn capture_active_window(app: &AppHandle) -> Result<(), CaptureError> {
         backend_policy
     );
 
-    let (win_x, win_y, win_w, win_h) = resolve_window_bounds_physical(foreground_hwnd).map_err(|err_msg| {
-        log::error!(target: "capture", "Failed to resolve window bounds: {}", err_msg);
-        let err = CaptureError::InvalidTarget();
-        emit_failure(app, &err, &start_time, requested_method.clone());
-        err
-    })?;
+    let (win_x, win_y, win_w, win_h) =
+        resolve_window_bounds_physical(foreground_hwnd).map_err(|err_msg| {
+            log::error!(target: "capture", "Failed to resolve window bounds: {}", err_msg);
+            let err = CaptureError::InvalidTarget();
+            emit_failure(app, &err, &start_time, requested_method.clone());
+            err
+        })?;
 
     let (actual_dpi, actual_monitor_id, monitor_work_area_logical) = unsafe {
         let dpi = GetDpiForWindow(foreground_hwnd);
@@ -132,13 +135,20 @@ pub fn capture_active_window(app: &AppHandle) -> Result<(), CaptureError> {
     }
 
     // Fallback to WGC if GDI failed or policy forces it
-    if final_image.is_none() && (backend_policy == BackendOverride::Auto || backend_policy == BackendOverride::Wgc) {
+    if final_image.is_none()
+        && (backend_policy == BackendOverride::Auto || backend_policy == BackendOverride::Wgc)
+    {
         final_method = crate::diagnostics::CaptureMethod::WgcWindow;
         log::info!(target: "capture", "Attempting WGC capture fallback via xcap");
         let windows = Window::all().map_err(|err| {
             let capture_err = CaptureError::WgcFailure();
             log::warn!(target: "capture", "Window::all() failed: {:?}", err);
-            emit_failure(app, &capture_err, &start_time, crate::diagnostics::CaptureMethod::WgcWindow);
+            emit_failure(
+                app,
+                &capture_err,
+                &start_time,
+                crate::diagnostics::CaptureMethod::WgcWindow,
+            );
             capture_err
         })?;
 
@@ -185,19 +195,23 @@ pub fn capture_active_window(app: &AppHandle) -> Result<(), CaptureError> {
         image::codecs::png::CompressionType::Fast,
         image::codecs::png::FilterType::NoFilter,
     );
-    image.write_with_encoder(encoder)
-        .map_err(|err| {
-            let capture_err = CaptureError::WgcFailure();
-            log::warn!(target: "capture", "PNG encode failed: {:?}", err);
-            emit_failure(app, &capture_err, &start_time, final_method.clone());
-            capture_err
-        })?;
+    image.write_with_encoder(encoder).map_err(|err| {
+        let capture_err = CaptureError::WgcFailure();
+        log::warn!(target: "capture", "PNG encode failed: {:?}", err);
+        emit_failure(app, &capture_err, &start_time, final_method.clone());
+        capture_err
+    })?;
     let png_bytes = Arc::new(cursor.into_inner());
     log::info!(target: "perf", "Window PNG encoding (Fast) took {}ms", encode_start.elapsed().as_millis());
 
     let id = format!("win_{}", chrono::Utc::now().timestamp_millis());
     if let Some(registry) = app.try_state::<crate::asset::AssetRegistry>() {
-        registry.insert(crate::asset::Asset::new(id.clone(), png_bytes, width, height));
+        registry.insert(crate::asset::Asset::new(
+            id.clone(),
+            png_bytes,
+            width,
+            height,
+        ));
     }
 
     app.emit("capture.result", serde_json::json!({ "asset_id": id }))

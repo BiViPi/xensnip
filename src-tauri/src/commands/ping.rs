@@ -31,11 +31,9 @@ pub async fn open_settings_window(app_handle: AppHandle) -> Result<(), String> {
         })
         .map_err(|e| e.to_string())?;
 
-    tauri::async_runtime::spawn_blocking(move || {
-        rx.recv().map_err(|e| e.to_string())?
-    })
-    .await
-    .map_err(|e| e.to_string())?
+    tauri::async_runtime::spawn_blocking(move || rx.recv().map_err(|e| e.to_string())?)
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]

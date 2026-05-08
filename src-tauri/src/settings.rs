@@ -24,10 +24,15 @@ fn chrono_now_iso() -> String {
     chrono::Utc::now().to_rfc3339()
 }
 
-
-fn default_true() -> bool { true }
-fn default_format() -> String { "PNG".to_string() }
-fn default_theme() -> String { "dark".to_string() }
+fn default_true() -> bool {
+    true
+}
+fn default_format() -> String {
+    "PNG".to_string()
+}
+fn default_theme() -> String {
+    "dark".to_string()
+}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Settings {

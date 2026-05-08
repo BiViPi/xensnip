@@ -1,6 +1,6 @@
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
-use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 
 pub struct BusyRegistry(Arc<Mutex<HashSet<String>>>);
@@ -129,7 +129,9 @@ pub fn pre_warm(app: &AppHandle) {
 
     match spawn_empty_window(app, false, false) {
         Ok(_) => log::info!(target: "perf", "[PREWARM] Hidden QA window created"),
-        Err(err) => log::warn!(target: "perf", "[PREWARM] Failed to create hidden QA window: {:?}", err),
+        Err(err) => {
+            log::warn!(target: "perf", "[PREWARM] Failed to create hidden QA window: {:?}", err)
+        }
     }
 }
 
@@ -164,7 +166,7 @@ pub fn emit_show(app: &AppHandle, asset_id: &str, capture_meta: CapturePositionM
 
     if let Some(existing) = app.get_webview_window(QA_LABEL) {
         log::info!(target: "perf", "[WARM] Reusing existing QA window");
-        
+
         // Update active asset tracking
         if let Some(active_asset) = app.try_state::<ActiveAsset>() {
             let mut current = active_asset.0.lock().unwrap();
@@ -250,7 +252,10 @@ pub fn mark_ready(app: &AppHandle) {
     }
 
     if let Some(window) = app.get_webview_window(QA_LABEL) {
-        if let Some(payload) = app.try_state::<PendingShow>().and_then(|pending| pending.take()) {
+        if let Some(payload) = app
+            .try_state::<PendingShow>()
+            .and_then(|pending| pending.take())
+        {
             log::info!(target: "perf", "[PREWARM] QA window became ready; flushing pending payload");
             show_existing_window(&window, &payload);
             if let Err(err) = window.emit("quick-access-show", &payload) {
@@ -269,22 +274,18 @@ fn spawn_window(
 
     let url = format!("quick-access.html?asset_id={}", url_encode(asset_id));
 
-    let window = WebviewWindowBuilder::new(
-        app,
-        QA_LABEL,
-        WebviewUrl::App(url.into()),
-    )
-    .title("XenSnip Editor")
-    .decorations(false)
-    .resizable(true)
-    .always_on_top(false)
-    .skip_taskbar(false)
-    .transparent(true)
-    .focused(true)
-    .inner_size(EDITOR_WIDTH as f64, EDITOR_HEIGHT as f64)
-    .min_inner_size(EDITOR_MIN_WIDTH as f64, EDITOR_MIN_HEIGHT as f64)
-    .position(x as f64, y as f64)
-    .build()?;
+    let window = WebviewWindowBuilder::new(app, QA_LABEL, WebviewUrl::App(url.into()))
+        .title("XenSnip Editor")
+        .decorations(false)
+        .resizable(true)
+        .always_on_top(false)
+        .skip_taskbar(false)
+        .transparent(true)
+        .focused(true)
+        .inner_size(EDITOR_WIDTH as f64, EDITOR_HEIGHT as f64)
+        .min_inner_size(EDITOR_MIN_WIDTH as f64, EDITOR_MIN_HEIGHT as f64)
+        .position(x as f64, y as f64)
+        .build()?;
 
     let _ = crate::apply_window_native_style(&window);
 
@@ -317,23 +318,24 @@ fn spawn_window(
     Ok(())
 }
 
-fn spawn_empty_window(app: &AppHandle, focused: bool, visible: bool) -> Result<(), Box<dyn std::error::Error>> {
-    let window = WebviewWindowBuilder::new(
-        app,
-        QA_LABEL,
-        WebviewUrl::App("quick-access.html".into()),
-    )
-    .title("XenSnip Editor")
-    .decorations(false)
-    .resizable(true)
-    .always_on_top(false)
-    .skip_taskbar(false)
-    .transparent(true)
-    .focused(focused)
-    .visible(visible)
-    .inner_size(EDITOR_WIDTH as f64, EDITOR_HEIGHT as f64)
-    .min_inner_size(EDITOR_MIN_WIDTH as f64, EDITOR_MIN_HEIGHT as f64)
-    .build()?;
+fn spawn_empty_window(
+    app: &AppHandle,
+    focused: bool,
+    visible: bool,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let window =
+        WebviewWindowBuilder::new(app, QA_LABEL, WebviewUrl::App("quick-access.html".into()))
+            .title("XenSnip Editor")
+            .decorations(false)
+            .resizable(true)
+            .always_on_top(false)
+            .skip_taskbar(false)
+            .transparent(true)
+            .focused(focused)
+            .visible(visible)
+            .inner_size(EDITOR_WIDTH as f64, EDITOR_HEIGHT as f64)
+            .min_inner_size(EDITOR_MIN_WIDTH as f64, EDITOR_MIN_HEIGHT as f64)
+            .build()?;
 
     let _ = crate::apply_window_native_style(&window);
 

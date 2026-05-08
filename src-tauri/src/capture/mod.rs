@@ -2,11 +2,12 @@ use crate::capture::errors::CaptureError;
 use std::sync::Mutex;
 
 pub mod errors;
-pub mod native_region_selector;
-pub mod region;
-pub mod window;
 pub(crate) mod native_region_active;
 mod native_region_geometry;
+pub mod native_region_selector;
+mod native_region_state;
+pub mod region;
+pub mod window;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CaptureIntent {

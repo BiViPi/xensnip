@@ -1,11 +1,11 @@
 use crate::capture::errors::CaptureError;
+use std::sync::Arc;
 use tauri::{AppHandle, Emitter, Manager};
-use windows::Win32::UI::HiDpi::{GetDpiForMonitor, MDT_EFFECTIVE_DPI};
+use windows::Win32::Foundation::POINT;
 use windows::Win32::Graphics::Gdi::{
     GetMonitorInfoW, MonitorFromPoint, MONITORINFO, MONITOR_DEFAULTTONEAREST,
 };
-use windows::Win32::Foundation::POINT;
-use std::sync::Arc;
+use windows::Win32::UI::HiDpi::{GetDpiForMonitor, MDT_EFFECTIVE_DPI};
 
 // GDI imports for the current region-capture backend.
 use windows::Win32::Graphics::Gdi::{
@@ -83,20 +83,26 @@ pub fn finish_region_capture(
     // 3. Resolve monitor context and DPI via Win32 for maximum speed (no xcap Monitor::all() overhead)
     let center_gx = gx + (gw as i32 / 2);
     let center_gy = gy + (gh as i32 / 2);
-    
+
     // SAFETY: Win32 monitor APIs are called with valid coordinates derived from the selection.
     // MonitorFromPoint guarantees a non-null HMONITOR with MONITOR_DEFAULTTONEAREST.
     let (hmonitor, dpi_pct, monitor_name) = unsafe {
-        let center = POINT { x: center_gx, y: center_gy };
+        let center = POINT {
+            x: center_gx,
+            y: center_gy,
+        };
         let hmon = MonitorFromPoint(center, MONITOR_DEFAULTTONEAREST);
-        
+
         let mut dpi_x = 0;
         let mut dpi_y = 0;
         let _ = GetDpiForMonitor(hmon, MDT_EFFECTIVE_DPI, &mut dpi_x, &mut dpi_y);
         let raw_dpi = if dpi_x == 0 { 96 } else { dpi_x };
         let dpi_pct = ((raw_dpi as f64 / 96.0) * 100.0).round() as u32;
 
-        let mut mi = MONITORINFO { cbSize: std::mem::size_of::<MONITORINFO>() as u32, ..Default::default() };
+        let mut mi = MONITORINFO {
+            cbSize: std::mem::size_of::<MONITORINFO>() as u32,
+            ..Default::default()
+        };
         let name = if GetMonitorInfoW(hmon, &mut mi).as_bool() {
             format!("monitor_{}x{}", mi.rcMonitor.left, mi.rcMonitor.top)
         } else {
@@ -121,10 +127,10 @@ pub fn finish_region_capture(
 
     let final_w = final_image.width();
     let final_h = final_image.height();
-    
+
     let encode_start = std::time::Instant::now();
     let mut cursor = std::io::Cursor::new(Vec::new());
-    
+
     // Fast compression for lower latency
     let encoder = image::codecs::png::PngEncoder::new_with_quality(
         &mut cursor,
@@ -135,24 +141,33 @@ pub fn finish_region_capture(
         log::error!(target: "capture", "PNG encode failed: {:?}", e);
         CaptureError::WgcFailure()
     })?;
-    
+
     let png_bytes = Arc::new(cursor.into_inner());
     log::info!(target: "perf", "PNG encoding (Fast) took {}ms", encode_start.elapsed().as_millis());
 
     let id = format!("reg_{}", chrono::Utc::now().timestamp_millis());
     let insert_start = std::time::Instant::now();
     if let Some(registry) = app.try_state::<crate::asset::AssetRegistry>() {
-        registry.insert(crate::asset::Asset::new(id.clone(), png_bytes, final_w, final_h));
+        registry.insert(crate::asset::Asset::new(
+            id.clone(),
+            png_bytes,
+            final_w,
+            final_h,
+        ));
     }
     log::info!(target: "perf", "Asset registry insert took {}ms", insert_start.elapsed().as_millis());
 
     finish_session(app);
-    app.emit("capture.result", serde_json::json!({ "asset_id": id })).ok();
+    app.emit("capture.result", serde_json::json!({ "asset_id": id }))
+        .ok();
 
     // Quick Access Metadata
     // SAFETY: hmonitor is guaranteed valid at this point from the previous resolve step.
     let monitor_work_area_logical = unsafe {
-        let mut mi = MONITORINFO { cbSize: std::mem::size_of::<MONITORINFO>() as u32, ..Default::default() };
+        let mut mi = MONITORINFO {
+            cbSize: std::mem::size_of::<MONITORINFO>() as u32,
+            ..Default::default()
+        };
         if GetMonitorInfoW(hmonitor, &mut mi).as_bool() {
             let work = mi.rcWork;
             crate::quick_access::MonitorWorkAreaLogical {
@@ -196,12 +211,20 @@ pub fn finish_region_capture(
     let meta = crate::diagnostics::CaptureMetadata {
         capture_mode: crate::diagnostics::CaptureMode::Region,
         capture_method,
-        output_size: crate::diagnostics::PhysicalSize { w_px: final_w, h_px: final_h },
+        output_size: crate::diagnostics::PhysicalSize {
+            w_px: final_w,
+            h_px: final_h,
+        },
         monitor_id: monitor_name,
         dpi: dpi_pct,
         process_name: None,
         window_title: None,
-        bounds_physical: crate::diagnostics::PhysicalBounds { x: gx, y: gy, w: final_w, h: final_h },
+        bounds_physical: crate::diagnostics::PhysicalBounds {
+            x: gx,
+            y: gy,
+            w: final_w,
+            h: final_h,
+        },
         asset_id: Some(id.clone()),
         error_class: None,
         error_code: None,
@@ -313,7 +336,12 @@ fn emit_failure(
         dpi: 0,
         process_name: None,
         window_title: None,
-        bounds_physical: crate::diagnostics::PhysicalBounds { x: 0, y: 0, w: 0, h: 0 },
+        bounds_physical: crate::diagnostics::PhysicalBounds {
+            x: 0,
+            y: 0,
+            w: 0,
+            h: 0,
+        },
         asset_id: None,
         error_class: Some(format!("{:?}", err.class)),
         error_code: Some(err.code.clone()),

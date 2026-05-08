@@ -19,7 +19,7 @@ pub fn sync(_app: &AppHandle, enabled: bool) {
 
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     let path = "Software\\Microsoft\\Windows\\CurrentVersion\\Run";
-    
+
     let Ok(key) = hkcu.open_subkey_with_flags(path, KEY_SET_VALUE | KEY_QUERY_VALUE) else {
         log::warn!(target: "settings", "autostart.sync_failed: failed to open registry key");
         return;
@@ -30,7 +30,7 @@ pub fn sync(_app: &AppHandle, enabled: bool) {
         return;
     };
     let app_exe_str = app_exe.to_string_lossy().to_string();
-    
+
     if enabled {
         if let Err(e) = key.set_value("XenSnip", &app_exe_str) {
             log::warn!(target: "settings", "autostart.sync_failed {{ enabled: true, error: \"{:?}\" }}", e);

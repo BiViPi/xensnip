@@ -7,7 +7,11 @@ pub fn quick_access_dismiss(app_handle: AppHandle, asset_id: String) -> Result<(
 }
 
 #[tauri::command]
-pub fn quick_access_set_busy(app_handle: AppHandle, asset_id: String, busy: bool) -> Result<(), String> {
+pub fn quick_access_set_busy(
+    app_handle: AppHandle,
+    asset_id: String,
+    busy: bool,
+) -> Result<(), String> {
     if let Some(registry) = app_handle.try_state::<crate::quick_access::BusyRegistry>() {
         registry.set_busy(asset_id, busy);
     }

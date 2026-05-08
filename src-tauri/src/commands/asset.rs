@@ -1,6 +1,6 @@
 use crate::asset::{AssetRegistry, AssetResolveResult};
-use tauri::{AppHandle, Manager};
 use tauri::image::Image;
+use tauri::{AppHandle, Manager};
 use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_dialog::DialogExt;
 
@@ -79,13 +79,15 @@ pub async fn export_save_media(
 #[tauri::command]
 pub async fn select_export_folder(app_handle: AppHandle) -> Result<Option<String>, String> {
     tauri::async_runtime::spawn_blocking(move || {
-        let maybe_path = app_handle
-            .dialog()
-            .file()
-            .blocking_pick_folder();
+        let maybe_path = app_handle.dialog().file().blocking_pick_folder();
 
         match maybe_path {
-            Some(path) => Ok(Some(path.into_path().map_err(|_| "Invalid path".to_string())?.to_string_lossy().into_owned())),
+            Some(path) => Ok(Some(
+                path.into_path()
+                    .map_err(|_| "Invalid path".to_string())?
+                    .to_string_lossy()
+                    .into_owned(),
+            )),
             None => Ok(None),
         }
     })

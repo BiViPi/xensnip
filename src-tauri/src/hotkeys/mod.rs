@@ -41,7 +41,10 @@ pub fn run_window_intent(app: &AppHandle) {
     }
 }
 
-pub fn register_hotkeys(app: &AppHandle, settings: &Settings) -> Vec<crate::settings::HotkeyWarning> {
+pub fn register_hotkeys(
+    app: &AppHandle,
+    settings: &Settings,
+) -> Vec<crate::settings::HotkeyWarning> {
     let mut warnings = Vec::new();
 
     let region_shortcut: Result<Shortcut, _> = settings.hotkeys.region.parse();

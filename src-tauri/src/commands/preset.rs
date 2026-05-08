@@ -1,8 +1,8 @@
 use crate::settings::{load_or_create_default, SavedPreset};
+use serde::Serialize;
 use std::collections::HashMap;
 use tauri::AppHandle;
 use tauri_plugin_dialog::DialogExt;
-use serde::Serialize;
 
 #[derive(Serialize)]
 pub struct PresetImportResult {
@@ -12,7 +12,11 @@ pub struct PresetImportResult {
 
 // ── Private helpers ──────────────────────────────────────────────────────────
 
-fn preset_name_exists(saved_presets: &[SavedPreset], candidate: &str, exclude_id: Option<&str>) -> bool {
+fn preset_name_exists(
+    saved_presets: &[SavedPreset],
+    candidate: &str,
+    exclude_id: Option<&str>,
+) -> bool {
     saved_presets
         .iter()
         .any(|preset| preset.name == candidate && exclude_id != Some(preset.id.as_str()))
@@ -66,7 +70,11 @@ pub fn preset_save(app_handle: AppHandle, mut saved_preset: SavedPreset) -> Resu
     saved_preset.updated_at = chrono::Utc::now().to_rfc3339();
 
     // Upsert by name as per V1 overwrite rule
-    if let Some(existing) = settings.saved_presets.iter_mut().find(|p| p.name == preset_name) {
+    if let Some(existing) = settings
+        .saved_presets
+        .iter_mut()
+        .find(|p| p.name == preset_name)
+    {
         existing.name = saved_preset.name.clone();
         existing.preset = saved_preset.preset;
         existing.updated_at = saved_preset.updated_at;
@@ -79,7 +87,11 @@ pub fn preset_save(app_handle: AppHandle, mut saved_preset: SavedPreset) -> Resu
 }
 
 #[tauri::command]
-pub fn preset_rename(app_handle: AppHandle, preset_id: String, new_name: String) -> Result<(), String> {
+pub fn preset_rename(
+    app_handle: AppHandle,
+    preset_id: String,
+    new_name: String,
+) -> Result<(), String> {
     let mut settings = load_or_create_default(&app_handle);
     let new_name = new_name.trim();
     if new_name.is_empty() {
@@ -90,7 +102,11 @@ pub fn preset_rename(app_handle: AppHandle, preset_id: String, new_name: String)
         return Err("A preset with this name already exists".to_string());
     }
 
-    if let Some(p) = settings.saved_presets.iter_mut().find(|p| p.id == preset_id) {
+    if let Some(p) = settings
+        .saved_presets
+        .iter_mut()
+        .find(|p| p.id == preset_id)
+    {
         p.name = new_name.to_string();
         p.updated_at = chrono::Utc::now().to_rfc3339();
         crate::settings::save_settings(&app_handle, &settings).map_err(|e| e.to_string())?;
@@ -103,7 +119,11 @@ pub fn preset_rename(app_handle: AppHandle, preset_id: String, new_name: String)
 #[tauri::command]
 pub fn preset_duplicate(app_handle: AppHandle, preset_id: String) -> Result<(), String> {
     let mut settings = load_or_create_default(&app_handle);
-    let maybe_preset = settings.saved_presets.iter().find(|p| p.id == preset_id).cloned();
+    let maybe_preset = settings
+        .saved_presets
+        .iter()
+        .find(|p| p.id == preset_id)
+        .cloned();
 
     if let Some(mut p) = maybe_preset {
         p.id = uuid::Uuid::new_v4().to_string();
@@ -175,9 +195,14 @@ pub fn preset_delete(app_handle: AppHandle, preset_id: String) -> Result<(), Str
 }
 
 #[tauri::command]
-pub async fn preset_export_pack(app_handle: AppHandle, preset_ids: Vec<String>) -> Result<bool, String> {
+pub async fn preset_export_pack(
+    app_handle: AppHandle,
+    preset_ids: Vec<String>,
+) -> Result<bool, String> {
     let settings = load_or_create_default(&app_handle);
-    let to_export: Vec<SavedPreset> = settings.saved_presets.iter()
+    let to_export: Vec<SavedPreset> = settings
+        .saved_presets
+        .iter()
         .filter(|p| preset_ids.contains(&p.id))
         .cloned()
         .collect();
@@ -197,7 +222,14 @@ pub async fn preset_export_pack(app_handle: AppHandle, preset_ids: Vec<String>) 
         .dialog()
         .file()
         .set_file_name(&default_name)
-        .add_filter("XenSnip Presets", if is_single { &["xensnip-preset.json"] } else { &["xensnip-presets.json"] })
+        .add_filter(
+            "XenSnip Presets",
+            if is_single {
+                &["xensnip-preset.json"]
+            } else {
+                &["xensnip-presets.json"]
+            },
+        )
         .blocking_save_file();
 
     if let Some(path) = maybe_path {
@@ -210,7 +242,11 @@ pub async fn preset_export_pack(app_handle: AppHandle, preset_ids: Vec<String>) 
         });
 
         let content = serde_json::to_string_pretty(&export_data).map_err(|e| e.to_string())?;
-        std::fs::write(path.into_path().map_err(|_| "Invalid path".to_string())?, content).map_err(|e| e.to_string())?;
+        std::fs::write(
+            path.into_path().map_err(|_| "Invalid path".to_string())?,
+            content,
+        )
+        .map_err(|e| e.to_string())?;
         Ok(true)
     } else {
         Ok(false)
@@ -222,24 +258,33 @@ pub async fn preset_import(app_handle: AppHandle) -> Result<PresetImportResult, 
     let maybe_path = app_handle
         .dialog()
         .file()
-        .add_filter("XenSnip Presets", &["xensnip-preset.json", "xensnip-presets.json"])
+        .add_filter(
+            "XenSnip Presets",
+            &["xensnip-preset.json", "xensnip-presets.json"],
+        )
         .blocking_pick_file();
 
     if let Some(path) = maybe_path {
-        let content = std::fs::read_to_string(path.into_path().map_err(|_| "Invalid path".to_string())?).map_err(|e| e.to_string())?;
-        let data: serde_json::Value = serde_json::from_str(&content).map_err(|e| format!("Invalid JSON: {}", e))?;
+        let content =
+            std::fs::read_to_string(path.into_path().map_err(|_| "Invalid path".to_string())?)
+                .map_err(|e| e.to_string())?;
+        let data: serde_json::Value =
+            serde_json::from_str(&content).map_err(|e| format!("Invalid JSON: {}", e))?;
 
         if data["app"] != "xensnip" {
             return Err("Not a XenSnip preset file".to_string());
         }
 
-        let presets_val = data["presets"].as_array().ok_or("Invalid file format: missing presets array")?;
-        
+        let presets_val = data["presets"]
+            .as_array()
+            .ok_or("Invalid file format: missing presets array")?;
+
         const MAX_IMPORT_COUNT: usize = 100;
         if presets_val.len() > MAX_IMPORT_COUNT {
             return Err(format!(
                 "Preset pack too large: contains {} presets, maximum is {}",
-                presets_val.len(), MAX_IMPORT_COUNT
+                presets_val.len(),
+                MAX_IMPORT_COUNT
             ));
         }
 
@@ -251,7 +296,8 @@ pub async fn preset_import(app_handle: AppHandle) -> Result<PresetImportResult, 
             if let Ok(mut imported_preset) = serde_json::from_value::<SavedPreset>(p_val.clone()) {
                 // Conflict rule: generate new ID, append suffix if name exists
                 imported_preset.id = uuid::Uuid::new_v4().to_string();
-                imported_preset.name = next_import_name(&settings.saved_presets, &imported_preset.name);
+                imported_preset.name =
+                    next_import_name(&settings.saved_presets, &imported_preset.name);
                 imported_preset.updated_at = chrono::Utc::now().to_rfc3339();
 
                 settings.saved_presets.push(imported_preset);
@@ -274,7 +320,10 @@ pub async fn preset_import(app_handle: AppHandle) -> Result<PresetImportResult, 
             skipped: skipped_count,
         })
     } else {
-        Ok(PresetImportResult { imported: 0, skipped: 0 })
+        Ok(PresetImportResult {
+            imported: 0,
+            skipped: 0,
+        })
     }
 }
 
@@ -316,10 +365,7 @@ mod tests {
 
     #[test]
     fn next_copy_name_uses_numbered_suffix_when_copy_is_taken() {
-        let presets = vec![
-            make_preset("a", "Alpha"),
-            make_preset("b", "Alpha (Copy)"),
-        ];
+        let presets = vec![make_preset("a", "Alpha"), make_preset("b", "Alpha (Copy)")];
         assert_eq!(next_copy_name(&presets, "Alpha"), "Alpha (Copy 2)");
     }
 
@@ -348,10 +394,7 @@ mod tests {
 
     #[test]
     fn next_import_name_increments_until_free() {
-        let presets = vec![
-            make_preset("a", "Alpha"),
-            make_preset("b", "Alpha (2)"),
-        ];
+        let presets = vec![make_preset("a", "Alpha"), make_preset("b", "Alpha (2)")];
         assert_eq!(next_import_name(&presets, "Alpha"), "Alpha (3)");
     }
 

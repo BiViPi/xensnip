@@ -1,5 +1,5 @@
-use tauri::{AppHandle, Manager};
 use crate::capture::CaptureSession;
+use tauri::{AppHandle, Manager};
 
 #[tauri::command]
 pub fn capture_start_region(app_handle: AppHandle) -> Result<(), String> {
