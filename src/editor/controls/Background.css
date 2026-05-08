@@ -1,124 +1,307 @@
-/* Background Popover — Premium Design */
-.xs-bg-pop.v2 {
-  min-width: 520px;
+.background-pop {
+  min-width: 344px;
+  padding: 14px;
+}
+
+.xs-bg-pop {
+  width: 316px;
   display: flex;
   flex-direction: column;
+  gap: 14px;
+  color: var(--text-primary);
+}
+
+.xs-bg-pop-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.xs-bg-pop-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.xs-bg-mode-tabs,
+.xs-bg-type-stack {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.xs-bg-type-stack {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.xs-bg-mode-tab,
+.xs-bg-type-tab {
+  appearance: none;
+  border: 1px solid var(--border-subtle);
+  background: var(--control-bg);
+  color: var(--text-secondary);
+  border-radius: 10px;
+  padding: 7px 10px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+  box-shadow: inset 0 1px 0 var(--control-inner-rim);
+}
+
+.xs-bg-mode-tab:hover,
+.xs-bg-type-tab:hover {
+  background: var(--surface-raised);
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+}
+
+.xs-bg-mode-tab.active,
+.xs-bg-type-tab.active {
+  background: var(--accent-gradient);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    var(--shadow-button-primary);
+}
+
+.xs-bg-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.xs-bg-grid-compact {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.xs-bg-grid-compact.is-wallpaper {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.xs-bg-choice {
+  position: relative;
+  appearance: none;
+  width: 100%;
+  aspect-ratio: 1;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background-clip: padding-box;
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.14),
+    0 8px 20px rgba(15, 23, 42, 0.18);
+}
+
+.xs-bg-choice::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0));
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+
+.xs-bg-choice:hover {
+  transform: translateY(-1px);
+}
+
+.xs-bg-choice:hover::after {
+  opacity: 1;
+}
+
+.xs-bg-choice.active {
+  border-color: rgba(99, 102, 241, 0.55);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+    0 0 0 3px rgba(99, 102, 241, 0.18),
+    0 10px 24px rgba(79, 70, 229, 0.22);
+}
+
+.xs-bg-choice.solid {
+  border-radius: 999px;
+}
+
+.xs-bg-choice-check {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.78);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.28);
+  z-index: 1;
+}
+
+.xs-bg-choice-check svg {
+  width: 12px;
+  height: 12px;
+}
+
+.xs-bg-controls-compact {
+  padding-top: 14px;
+  border-top: 1px solid var(--glass-divider);
+}
+
+.xs-bg-gradient-layout {
+  display: flex;
+  align-items: stretch;
   gap: 12px;
 }
 
-.xs-tabs {
-  display: flex;
-  background: rgba(255, 255, 255, 0.04);
-  padding: 2px;
-  border-radius: 10px;
-  gap: 2px;
-}
-
-.xs-tab-item {
+.xs-bg-dial-panel {
   flex: 1;
-  border: none;
-  background: transparent;
-  padding: 5px 0;
-  font-size: 11px;
-  font-weight: 600;
-  color: #64748b;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.xs-tab-item:hover {
-  color: #f8fafc;
-}
-
-.xs-tab-item.active {
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-}
-
-.xs-bg-grid {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 8px;
-}
-
-.xs-bg-tile {
-  aspect-ratio: 1;
-  border-radius: 35%;
-  border: 2px solid transparent;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
-}
-
-.xs-bg-tile:hover {
-  transform: scale(1.1);
-}
-
-.xs-bg-tile.active {
-  border-color: #fff;
-  box-shadow: 0 0 0 2px var(--xs-accent), 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-.xs-bg-tile.solid {
-  border-radius: 35%;
-}
-
-.xs-bg-controls {
-  padding-top: 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 8px;
-}
-
-.xs-sub-toggle {
-  display: flex;
-  gap: 4px;
-}
-
-.xs-sub-item {
-  flex: 1;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: transparent;
-  padding: 3px 0;
-  font-size: 11px;
-  font-weight: 600;
-  border-radius: 7px;
-  cursor: pointer;
-  color: #64748b;
-  transition: all 0.2s;
-}
-
-.xs-sub-item.active {
-  background: var(--accent-gradient);
-  border-color: rgba(255, 255, 255, 0.12);
-  color: #fff;
+  padding: 10px 12px 12px;
+  border-radius: 16px;
+  border: 1px solid var(--border-subtle);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface-panel) 88%, transparent), color-mix(in srgb, var(--surface-base) 92%, transparent));
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.22),
-    0 8px 16px rgba(65, 62, 178, 0.28);
+    inset 0 1px 0 var(--control-inner-rim),
+    0 8px 22px rgba(15, 23, 42, 0.1);
 }
 
-.xs-slider-mini .xs-slider-header {
-  margin-bottom: 4px;
-}
-
-.xs-slider-mini .xs-slider-label {
-  font-size: 11px;
-  color: #94a3b8;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.xs-slider-mini .xs-slider-val {
-  font-size: 12px;
-  font-weight: 700;
-  color: #94a3b8;
-}
-
-.xs-bg-sidebar {
-  width: 64px;
-  background: rgba(0, 0, 0, 0.25);
+.xs-bg-dial {
+  width: 96px;
+  height: 96px;
+  border-radius: 999px;
   display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  touch-action: none;
+  outline: none;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0) 64%),
+    color-mix(in srgb, var(--bg-app) 62%, var(--surface-base));
+  border: 1px solid var(--border-subtle);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -12px 18px rgba(0, 0, 0, 0.14);
+}
+
+.xs-bg-dial:active {
+  cursor: grabbing;
+}
+
+.xs-bg-dial:focus-visible {
+  border-color: var(--border-focus);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 0 0 3px rgba(99, 102, 241, 0.16);
+}
+
+.xs-bg-dial-svg {
+  width: 96px;
+  height: 96px;
+}
+
+.xs-bg-dial-track {
+  fill: none;
+  stroke: rgba(148, 163, 184, 0.2);
+  stroke-width: 10;
+}
+
+.xs-bg-dial-progress {
+  fill: none;
+  stroke: url(#xs-bg-dial-gradient);
+  stroke-width: 10;
+  stroke-linecap: round;
+}
+
+.xs-bg-dial-center {
+  fill: rgba(148, 163, 184, 0.36);
+}
+
+.xs-bg-dial-knob {
+  fill: #fff;
+  stroke: rgba(99, 102, 241, 0.95);
+  stroke-width: 2.5;
+  filter: drop-shadow(0 6px 10px rgba(15, 23, 42, 0.28));
+}
+
+.xs-bg-dial-svg defs {
+  display: block;
+}
+
+.xs-bg-dial-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.xs-bg-dial-caption {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+}
+
+.xs-bg-dial-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.xs-bg-dial-helper {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+[data-theme='light'] .xs-bg-choice {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+    0 6px 16px rgba(15, 23, 42, 0.08);
+}
+
+[data-theme='light'] .xs-bg-choice-check {
+  background: rgba(255, 255, 255, 0.96);
+  color: var(--accent-primary);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+[data-theme='light'] .xs-bg-dial-panel {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 249, 252, 0.94));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 8px 18px rgba(15, 23, 42, 0.08);
+}
+
+[data-theme='light'] .xs-bg-dial {
+  background:
+    radial-gradient(circle at 50% 40%, rgba(255, 255, 255, 0.98), rgba(243, 246, 255, 0.92) 62%, rgba(226, 232, 240, 0.88) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    inset 0 -10px 18px rgba(148, 163, 184, 0.16);
+}
+
+[data-theme='light'] .xs-bg-dial-track {
+  stroke: rgba(148, 163, 184, 0.28);
+}
+
+[data-theme='light'] .xs-bg-mode-tab.active,
+[data-theme='light'] .xs-bg-type-tab.active {
+  border-color: rgba(255, 255, 255, 0.24);
 }

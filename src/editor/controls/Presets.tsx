@@ -162,9 +162,9 @@ export function PresetsControl({ preset, settings, onApply, onRefresh, showToast
 
   return (
     <div className="xs-preset-popover" ref={popoverRef}>
-      <div className="xs-pop-header">
-        <div className="xs-pop-title">Presets</div>
-        <div className="xs-pop-subtitle">Save and reuse your custom styles</div>
+      <div className="xs-preset-header">
+        <div className="xs-preset-title">Presets</div>
+        <div className="xs-preset-subtitle">Save and reuse your custom styles</div>
       </div>
       
       {/* Save Area */}
@@ -178,7 +178,7 @@ export function PresetsControl({ preset, settings, onApply, onRefresh, showToast
           onKeyDown={e => e.key === 'Enter' && handleSave()}
         />
         <button 
-          className="xs-btn xs-btn-primary xs-preset-save-btn"
+          className="xs-preset-save-btn"
           onClick={handleSave}
           disabled={isSaving}
         >
@@ -253,10 +253,10 @@ export function PresetsControl({ preset, settings, onApply, onRefresh, showToast
 
       {/* Footer */}
       <div className="xs-preset-footer">
-        <button className="xs-btn-link" onClick={onOpenManager}>Manage presets</button>
+        <button className="xs-preset-link" onClick={onOpenManager}>Manage presets</button>
         <div className="xs-footer-group">
-          <button className="xs-btn-link" onClick={handleImport}>Import</button>
-          <button className="xs-btn-link" onClick={handleExportAll} disabled={savedPresets.length === 0}>Export All</button>
+          <button className="xs-preset-link" onClick={handleImport}>Import</button>
+          <button className="xs-preset-link" onClick={handleExportAll} disabled={savedPresets.length === 0}>Export All</button>
         </div>
       </div>
     </div>

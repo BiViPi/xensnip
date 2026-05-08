@@ -64,7 +64,7 @@ function CompactCircularControl({
   const knobAngle = type === "Linear" ? angle - 90 : normalizedRadius * 360 - 90;
   const knob = polarToCartesian(48, 48, 31, knobAngle);
   const arcProgress = type === "Linear" ? angle / 360 : normalizedRadius;
-  const valueLabel = type === "Linear" ? `${angle}°` : `${radius}%`;
+  const valueLabel = type === "Linear" ? `${angle}\u00B0` : `${radius}%`;
   const metaLabel = type === "Linear" ? "Angle" : "Radius";
   const helperLabel = type === "Linear" ? "Drag to rotate" : "Drag to resize";
 
@@ -121,6 +121,13 @@ function CompactCircularControl({
         }}
       >
         <svg viewBox="0 0 96 96" className="xs-bg-dial-svg" aria-hidden="true">
+          <defs>
+            <linearGradient id="xs-bg-dial-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="rgba(34, 211, 238, 0.92)" />
+              <stop offset="48%" stopColor="rgba(99, 102, 241, 1)" />
+              <stop offset="100%" stopColor="rgba(129, 140, 248, 0.98)" />
+            </linearGradient>
+          </defs>
           <circle cx="48" cy="48" r="31" className="xs-bg-dial-track" />
           <path d={describeArc(48, 48, 31, arcProgress)} className="xs-bg-dial-progress" />
           <circle cx="48" cy="48" r="3" className="xs-bg-dial-center" />
