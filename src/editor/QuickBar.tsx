@@ -47,6 +47,8 @@ export function QuickBar({
 
   const objects = useAnnotationStore(s => s.objects);
 
+  const buildExportBaseName = (extension: string) => `capture.${extension}`;
+
   const handleCopy = async () => {
     if (isActionInFlight) return;
     setIsActionInFlight(true);
@@ -85,7 +87,7 @@ export function QuickBar({
           ? await composeWithAnnotations(image, preset, objects, format, 1.0)
           : await composeToBlob(image, preset, format, 1.0);
         
-        await exportSaveMedia(bytes, settings.export_folder, `xensnip-${Date.now()}.${ext}`);
+        await exportSaveMedia(bytes, settings.export_folder, buildExportBaseName(ext));
         showToast("Saved", "success");
       } else {
         // Batch export
@@ -102,7 +104,7 @@ export function QuickBar({
             } else {
               bytes = await composeDocumentToBytes(doc, preset, format, 1.0);
             }
-            await exportSaveMedia(bytes, settings.export_folder, `xensnip-${doc.id}.${ext}`);
+            await exportSaveMedia(bytes, settings.export_folder, buildExportBaseName(ext));
             successCount++;
           } catch (e) {
             console.error(`Failed to export ${doc.id}`, e);

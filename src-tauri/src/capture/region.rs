@@ -1,4 +1,5 @@
 use crate::capture::errors::CaptureError;
+use crate::capture::gdi_pixels::normalize_bgra_to_rgba_opaque;
 use std::sync::Arc;
 use tauri::{AppHandle, Emitter, Manager};
 use windows::Win32::Foundation::POINT;
@@ -309,13 +310,7 @@ fn capture_region_gdi(gx: i32, gy: i32, gw: u32, gh: u32) -> Result<image::RgbaI
             return Err("GetDIBits failed".into());
         }
 
-        // Swap BGR to RGB
-        for i in (0..buf.len()).step_by(4) {
-            let b = buf[i];
-            let r = buf[i + 2];
-            buf[i] = r;
-            buf[i + 2] = b;
-        }
+        normalize_bgra_to_rgba_opaque(&mut buf);
 
         image::RgbaImage::from_raw(gw, gh, buf)
             .ok_or_else(|| "Failed to create image from GDI buffer".into())
