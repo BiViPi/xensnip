@@ -2,16 +2,19 @@ import React from 'react';
 import { usePrivacyStore, SmartRedactCandidate } from './store';
 import { useAnnotationStore } from '../annotate/state/store';
 import { detectTextRedactCandidates } from './detectTextRedactCandidates';
-import { getCompositionCoordinates } from '../measure/coordinates';
 import { useMeasureStore } from '../measure/store';
 import { Check, X, Sparkles, Loader2 } from 'lucide-react';
 import { OpaqueRedactObject } from '../annotate/state/types';
+import type { EditorPreset } from '../compose/preset';
+import { resolveSmartRedactRegion } from './smartRedactRegion';
 
 interface Props {
   compositionCanvasRef: React.RefObject<HTMLCanvasElement | null>;
+  image: HTMLImageElement | null;
+  preset: EditorPreset;
 }
 
-export function SmartRedactToolbar({ compositionCanvasRef }: Props) {
+export function SmartRedactToolbar({ compositionCanvasRef, image, preset }: Props) {
   const { status, setStatus, scope, selectionRect, candidates, setCandidates, reset, setError, error } = usePrivacyStore();
   const { addObject } = useAnnotationStore();
   const { setActiveUtility } = useMeasureStore();
@@ -29,18 +32,14 @@ export function SmartRedactToolbar({ compositionCanvasRef }: Props) {
     setError(null);
 
     try {
-      let region = undefined;
-      if (scope === 'selection' && selectionRect) {
-        const comp = getCompositionCoordinates(selectionRect.x, selectionRect.y, canvas.width, canvas.height);
-        const regionWidth = Math.max(1, Math.min(canvas.width - comp.x, Math.ceil(selectionRect.width)));
-        const regionHeight = Math.max(1, Math.min(canvas.height - comp.y, Math.ceil(selectionRect.height)));
-        region = {
-          x: comp.x,
-          y: comp.y,
-          width: regionWidth,
-          height: regionHeight,
-        };
-      }
+      const region = resolveSmartRedactRegion({
+        canvasWidth: canvas.width,
+        canvasHeight: canvas.height,
+        scope,
+        selectionRect,
+        image,
+        preset,
+      });
 
       const results = await detectTextRedactCandidates(canvas, region);
       setCandidates(results);

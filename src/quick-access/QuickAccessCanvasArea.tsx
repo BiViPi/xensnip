@@ -109,6 +109,8 @@ export function QuickAccessCanvasArea({
           scale={previewScale}
           compositionCanvasRef={canvasRef}
           stageRef={stageRef}
+          image={image}
+          preset={preset}
         />
         <div
           id="annotation-ui-overlay"

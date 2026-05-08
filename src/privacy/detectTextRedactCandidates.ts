@@ -25,7 +25,7 @@ export async function detectTextRedactCandidates(
   );
 
   const worker = await getTesseractWorker();
-  const { data } = await worker.recognize(targetCanvas);
+  const { data } = await worker.recognize(targetCanvas, {}, { text: true, blocks: true });
   
   interface TesseractWord {
     text?: unknown;

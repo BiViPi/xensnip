@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import Konva from 'konva';
 import { Stage, Layer, Arrow, Rect } from 'react-konva';
+import type { EditorPreset } from '../compose/preset';
 import { useAnnotationStore } from './state/store';
 import { ObjectsLayer } from './ObjectsLayer';
 import { SelectionTransformer } from './SelectionTransformer';
@@ -20,6 +21,8 @@ interface AnnotationStageProps {
   scale: number;
   compositionCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   stageRef: React.RefObject<Konva.Stage | null>;
+  image: HTMLImageElement | null;
+  preset: EditorPreset;
 }
 
 const TOOL_CURSOR: Record<string, string> = {
@@ -42,7 +45,7 @@ const TOOL_CURSOR: Record<string, string> = {
   canvas: 'default',
 };
 
-export function AnnotationStage({ width, height, scale, compositionCanvasRef, stageRef }: AnnotationStageProps) {
+export function AnnotationStage({ width, height, scale, compositionCanvasRef, stageRef, image, preset }: AnnotationStageProps) {
   const { activeTool, objects, editingTextId, setEditingTextId, updateObject } = useAnnotationStore();
   const {
     activeUtility,
@@ -287,7 +290,7 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
       <OCRResultToolbar onDismiss={dismissOcrResult} scale={scale} />
       {activeUtility === 'smart_redact_ai' && (
         <>
-          <SmartRedactToolbar compositionCanvasRef={compositionCanvasRef} />
+          <SmartRedactToolbar compositionCanvasRef={compositionCanvasRef} image={image} preset={preset} />
           <SmartRedactOverlay scale={scale} />
         </>
       )}

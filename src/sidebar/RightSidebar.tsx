@@ -45,6 +45,8 @@ import {
 } from 'lucide-react';
 import './Sidebar.css';
 
+const SHOW_SMART_REDACT_TOOL = false;
+
 export function RightSidebar() {
   const { activeFeatureId, collapsed, toggle, openFeature, closeFeature } = useSidebarStore();
   const railRef = useRef<HTMLDivElement | null>(null);
@@ -225,7 +227,9 @@ function PrivacyTools({ onClose }: { onClose: () => void }) {
     { id: 'blur', label: 'Blur', icon: Ghost, hint: 'Blur — drag on canvas' },
     { id: 'pixelate', label: 'Pixelate', icon: Grid3X3, hint: 'Pixelate — drag on canvas' },
     { id: 'opaque_redact', label: 'Opaque Redact', icon: SquareIcon, hint: 'Opaque Redact — drag on canvas' },
-    { id: 'smart_redact_ai', label: 'Smart Redact AI', icon: Sparkles, hint: 'Smart Redact AI — auto-detect text', isUtility: true },
+    ...(SHOW_SMART_REDACT_TOOL
+      ? [{ id: 'smart_redact_ai', label: 'Smart Redact AI', icon: Sparkles, hint: 'Smart Redact AI — auto-detect text', isUtility: true } satisfies FeatureToolItem]
+      : []),
   ] satisfies FeatureToolItem[];
   return <ToolGrid tools={tools} onClose={onClose} />;
 }
