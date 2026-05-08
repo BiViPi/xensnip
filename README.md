@@ -151,4 +151,4 @@ Full uninstall:
 
 ## License
 
-This repository currently does not publish a separate license file. Add one before wider public distribution if the GitHub release is meant for open reuse.
+MIT. See [LICENSE](LICENSE).

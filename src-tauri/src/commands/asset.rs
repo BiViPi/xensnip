@@ -132,7 +132,10 @@ mod tests {
     fn starts_at_capture_01() {
         let dir = make_temp_dir("starts_at_capture_01");
         let path = build_sequential_export_path(dir.to_str().unwrap(), "capture.png");
-        assert_eq!(path.file_name().unwrap().to_string_lossy(), "capture_01.png");
+        assert_eq!(
+            path.file_name().unwrap().to_string_lossy(),
+            "capture_01.png"
+        );
         let _ = fs::remove_dir_all(dir);
     }
 
@@ -143,7 +146,10 @@ mod tests {
         fs::write(dir.join("capture_02.png"), b"b").unwrap();
 
         let path = build_sequential_export_path(dir.to_str().unwrap(), "capture.png");
-        assert_eq!(path.file_name().unwrap().to_string_lossy(), "capture_03.png");
+        assert_eq!(
+            path.file_name().unwrap().to_string_lossy(),
+            "capture_03.png"
+        );
         let _ = fs::remove_dir_all(dir);
     }
 
@@ -154,7 +160,10 @@ mod tests {
         fs::write(dir.join("capture_03.png"), b"b").unwrap();
 
         let path = build_sequential_export_path(dir.to_str().unwrap(), "capture.png");
-        assert_eq!(path.file_name().unwrap().to_string_lossy(), "capture_02.png");
+        assert_eq!(
+            path.file_name().unwrap().to_string_lossy(),
+            "capture_02.png"
+        );
         let _ = fs::remove_dir_all(dir);
     }
 }

@@ -22,12 +22,6 @@ mod tests {
 
         normalize_bgra_to_rgba_opaque(&mut buf);
 
-        assert_eq!(
-            buf,
-            vec![
-                0x30, 0x20, 0x10, 0xFF,
-                0xCC, 0xBB, 0xAA, 0xFF,
-            ]
-        );
+        assert_eq!(buf, vec![0x30, 0x20, 0x10, 0xFF, 0xCC, 0xBB, 0xAA, 0xFF,]);
     }
 }
