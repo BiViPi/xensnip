@@ -174,3 +174,6 @@ export type AnnotateObject =
   | FreehandArrowObject
   | PixelateObject
   | OpaqueRedactObject;
+
+export type AnnotationObjectPatch = Partial<AnnotateObject>;
+

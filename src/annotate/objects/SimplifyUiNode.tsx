@@ -1,5 +1,5 @@
 import { Image, Rect } from 'react-konva';
-import { SimplifyUiObject } from '../state/types';
+import { AnnotationObjectPatch, SimplifyUiObject } from '../state/types';
 import { useEffect, useState } from 'react';
 import { createSimplifyUiOverlay } from '../renderers/SimplifyUiRenderer';
 
@@ -9,7 +9,7 @@ interface Props {
   stageWidth: number;
   stageHeight: number;
   onSelect: (id: string) => void;
-  onUpdate: (id: string, patch: any) => void;
+  onUpdate: (id: string, patch: AnnotationObjectPatch) => void;
   compositionCanvasRef: React.RefObject<HTMLCanvasElement | null>;
 }
 

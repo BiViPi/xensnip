@@ -5,6 +5,10 @@ import "../styles/visual-depth.css";
 import "../styles/visual-states.css";
 import { QuickAccess } from "./QuickAccess";
 import "./QuickAccess.css";
+import "./QuickAccessDock.css";
+import "./EditorControls.css";
+import "./Slider.css";
+import "./Toast.css";
 
 const root = document.getElementById("root");
 

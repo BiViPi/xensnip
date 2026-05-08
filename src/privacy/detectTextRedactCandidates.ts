@@ -26,10 +26,18 @@ export async function detectTextRedactCandidates(
 
   const worker = await getTesseractWorker();
   const { data } = await worker.recognize(targetCanvas);
-  const words = Array.isArray((data as any).words) ? (data as any).words : [];
+  
+  interface TesseractWord {
+    text?: unknown;
+    confidence?: unknown;
+    bbox?: { x0: number; y0: number; x1: number; y1: number };
+  }
+  
+  const maybeWords = (data as { words?: unknown }).words;
+  const words: TesseractWord[] = Array.isArray(maybeWords) ? maybeWords : [];
 
-  const candidates: SmartRedactCandidate[] = words
-    .map((word: any, index: number) => {
+  const candidates = words
+    .map((word: TesseractWord, index: number): SmartRedactCandidate | null => {
       const bbox = word?.bbox;
       const text = typeof word?.text === 'string' ? word.text.trim() : '';
       if (!bbox || !text) return null;
@@ -45,7 +53,7 @@ export async function detectTextRedactCandidates(
         width,
         height,
         text,
-        confidence: word.confidence,
+        confidence: typeof word.confidence === 'number' ? word.confidence : 0,
         status: 'pending' as const,
       };
     })

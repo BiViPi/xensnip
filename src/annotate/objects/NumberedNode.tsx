@@ -1,15 +1,16 @@
+import Konva from 'konva';
 import { Group, Circle, Text } from 'react-konva';
-import { NumberedObject } from '../state/types';
+import { NumberedObject, AnnotationObjectPatch } from '../state/types';
 
 interface NumberedNodeProps {
   obj: NumberedObject;
   isSelected: boolean;
   onSelect: (id: string) => void;
-  onUpdate: (id: string, patch: any) => void;
+  onUpdate: (id: string, patch: AnnotationObjectPatch) => void;
 }
 
 export function NumberedNode({ obj, isSelected, onSelect, onUpdate }: NumberedNodeProps) {
-  const handleWheel = (e: any) => {
+  const handleWheel = (e: Konva.KonvaEventObject<WheelEvent>) => {
     if (!isSelected) return;
 
     e.evt.preventDefault();

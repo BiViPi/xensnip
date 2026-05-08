@@ -1,12 +1,12 @@
 import { Image } from 'react-konva';
-import { BlurObject } from '../state/types';
+import { BlurObject, AnnotationObjectPatch } from '../state/types';
 import { useEffect, useRef, useState } from 'react';
 import Konva from 'konva';
 
 interface BlurNodeProps {
   obj: BlurObject;
   onSelect: (id: string) => void;
-  onUpdate: (id: string, patch: any) => void;
+  onUpdate: (id: string, patch: AnnotationObjectPatch) => void;
   compositionCanvasRef: React.RefObject<HTMLCanvasElement | null>;
 }
 
@@ -21,7 +21,7 @@ interface BlurNodeProps {
  * This avoids fragile live-canvas pass-through and produces reliable on-screen blur.
  */
 export function BlurNode({ obj, onSelect, onUpdate, compositionCanvasRef }: BlurNodeProps) {
-  const imageRef = useRef<any>(null);
+  const imageRef = useRef<Konva.Image>(null);
   const [snapshot, setSnapshot] = useState<HTMLCanvasElement | null>(null);
 
   // Rebuild snapshot whenever position/size/blurRadius changes

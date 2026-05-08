@@ -1,5 +1,6 @@
+import Konva from 'konva';
 import { Rect } from 'react-konva';
-import { SpotlightObject } from '../state/types';
+import { SpotlightObject, AnnotationObjectPatch } from '../state/types';
 import { getSpotlightCornerRadius } from '../renderers/spotlightLayout';
 
 interface SpotlightNodeProps {
@@ -8,7 +9,7 @@ interface SpotlightNodeProps {
   stageWidth: number;
   stageHeight: number;
   onSelect: (id: string) => void;
-  onUpdate: (id: string, patch: any) => void;
+  onUpdate: (id: string, patch: AnnotationObjectPatch) => void;
 }
 
 export function SpotlightNode({
@@ -21,7 +22,7 @@ export function SpotlightNode({
 }: SpotlightNodeProps) {
   const cornerRadius = getSpotlightCornerRadius(obj);
 
-  const handleWheel = (e: any) => {
+  const handleWheel = (e: Konva.KonvaEventObject<WheelEvent>) => {
     if (!isSelected) return;
 
     e.evt.preventDefault();

@@ -1,0 +1,235 @@
+/* ─── The Dock (xs-dock) ───────────────────────────────────────────────── */
+.xs-dock-container {
+  position: absolute;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+}
+
+.xs-dock {
+  background: var(--surface-base);
+  backdrop-filter: var(--xs-blur);
+  -webkit-backdrop-filter: var(--xs-blur);
+  padding: 8px 12px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    inset 0 1px 0 var(--glass-rim),
+    inset 1px 0 0 rgba(255, 255, 255, 0.04),
+    inset -1px 0 0 rgba(255, 255, 255, 0.04),
+    var(--shadow-panel);
+}
+
+.xs-divider {
+  width: 1px;
+  height: 22px;
+  background: var(--glass-divider);
+  margin: 0 2px;
+}
+
+/* Buttons */
+.xs-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: all 0.2s ease;
+}
+
+.xs-pill-btn {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  padding: 0 12px;
+  height: 34px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--xs-text);
+  gap: 6px;
+}
+
+.xs-pill-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.xs-pill-btn.active {
+  background: var(--accent-gradient);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  box-shadow: var(--shadow-button-primary);
+
+  /* Icon contrast fix */
+  --icon-accent-blue: #FFFFFF;
+  --icon-accent-blue-light: #FFFFFF;
+  --icon-accent-purple-start: #FFFFFF;
+  --icon-accent-purple-end: #FFFFFF;
+  --icon-bg-primary: #FFFFFF;
+  --icon-accent-indigo: #FFFFFF;
+  --icon-stroke-dark: #FFFFFF;
+}
+
+.xs-pill-btn.active:hover {
+  background: var(--accent-gradient);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  box-shadow: var(--shadow-button-primary);
+}
+
+[data-theme='dark'] .xs-pill-btn-ratio.active .xs-ratio-button-icon {
+  --icon-bg-primary: var(--text-primary);
+  --icon-stroke-medium: #d8d0c5;
+  --icon-accent-indigo: var(--accent-primary);
+  --icon-accent-indigo-light: var(--accent-hover);
+}
+
+[data-theme='light'] .xs-pill-btn-ratio.active .xs-ratio-button-icon {
+  --icon-bg-primary: #F8FAFC;
+  --icon-stroke-medium: #7C8AA0;
+  --icon-accent-indigo: #64748B;
+  --icon-accent-indigo-light: #94A3B8;
+}
+
+[data-theme='light'] .xs-dock {
+  background: var(--surface-gradient-elevated);
+  backdrop-filter: blur(26px) saturate(145%);
+  -webkit-backdrop-filter: blur(26px) saturate(145%);
+  border-color: var(--glass-stroke);
+  box-shadow:
+    inset 0 1px 0 var(--glass-rim-top),
+    0 0 0 1px var(--glass-stroke),
+    0 2px 6px rgba(15,23,42,0.05),
+    0 14px 32px rgba(15,23,42,0.09);
+}
+
+[data-theme='light'] .xs-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.74);
+  border-color: rgba(15, 23, 42, 0.06);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+[data-theme='light'] .xs-pill-btn:hover {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
+[data-theme='light'] .xs-pill-btn.active:hover {
+  background: var(--accent-gradient);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  box-shadow: var(--shadow-button-primary);
+}
+
+.xs-icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  color: var(--xs-text-dim);
+}
+
+[data-theme='light'] .xs-icon-btn {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.xs-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: var(--xs-text);
+}
+
+[data-theme='light'] .xs-icon-btn.active:hover {
+  background: var(--accent-gradient);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  box-shadow: var(--shadow-button-primary);
+}
+
+.xs-icon-btn.active {
+  background: var(--accent-gradient);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  box-shadow: var(--shadow-button-primary);
+
+  /* Icon contrast fix */
+  --icon-accent-blue: #FFFFFF;
+  --icon-accent-blue-light: #FFFFFF;
+  --icon-accent-purple-start: #FFFFFF;
+  --icon-accent-purple-end: #FFFFFF;
+  --icon-bg-primary: #FFFFFF;
+  --icon-accent-indigo: #FFFFFF;
+  --icon-stroke-dark: #FFFFFF;
+}
+
+.xs-icon-btn.active:hover {
+  background: var(--accent-gradient);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  box-shadow: var(--shadow-button-primary);
+}
+
+/* Swatches */
+.xs-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2.5px solid transparent;
+  cursor: pointer;
+  transition: transform 0.2s;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.xs-swatch.active {
+  border-color: #fff;
+  box-shadow: 0 0 0 1.5px var(--xs-accent);
+}
+
+.xs-swatch:hover {
+  transform: scale(1.15);
+}
+
+/* Actions */
+.xs-action-primary {
+  background: var(--xs-accent);
+  color: #fff;
+  padding: 8px 18px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 13px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    0 8px 18px rgba(89, 93, 220, 0.34);
+  gap: 6px;
+}
+
+.xs-action-primary:hover {
+  background: #4F46E5;
+  transform: translateY(-1px);
+}
+
+.xs-action-secondary {
+  background: var(--control-bg);
+  color: var(--text-primary);
+  padding: 8px 18px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 13px;
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-sm);
+  gap: 6px;
+}
+
+.xs-action-secondary:hover {
+  background: var(--surface-raised);
+  border-color: var(--border-focus);
+}

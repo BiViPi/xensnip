@@ -1,4 +1,11 @@
-export function drawCloudRect(context: any, width: number, height: number) {
+interface CloudRectContext {
+  beginPath: () => void;
+  moveTo: (x: number, y: number) => void;
+  quadraticCurveTo: (cpx: number, cpy: number, x: number, y: number) => void;
+  closePath: () => void;
+}
+
+export function drawCloudRect(context: CloudRectContext, width: number, height: number) {
   const insetX = Math.max(8, Math.min(width * 0.12, 20));
   const bulgeX = Math.max(6, Math.min(width * 0.12, 18));
   const bulgeY = Math.max(6, Math.min(height * 0.18, 18));

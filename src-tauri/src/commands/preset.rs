@@ -2,6 +2,13 @@ use crate::settings::{load_or_create_default, SavedPreset};
 use std::collections::HashMap;
 use tauri::AppHandle;
 use tauri_plugin_dialog::DialogExt;
+use serde::Serialize;
+
+#[derive(Serialize)]
+pub struct PresetImportResult {
+    pub imported: usize,
+    pub skipped: usize,
+}
 
 // ── Private helpers ──────────────────────────────────────────────────────────
 
@@ -211,7 +218,7 @@ pub async fn preset_export_pack(app_handle: AppHandle, preset_ids: Vec<String>) 
 }
 
 #[tauri::command]
-pub async fn preset_import(app_handle: AppHandle) -> Result<usize, String> {
+pub async fn preset_import(app_handle: AppHandle) -> Result<PresetImportResult, String> {
     let maybe_path = app_handle
         .dialog()
         .file()
@@ -227,8 +234,18 @@ pub async fn preset_import(app_handle: AppHandle) -> Result<usize, String> {
         }
 
         let presets_val = data["presets"].as_array().ok_or("Invalid file format: missing presets array")?;
+        
+        const MAX_IMPORT_COUNT: usize = 100;
+        if presets_val.len() > MAX_IMPORT_COUNT {
+            return Err(format!(
+                "Preset pack too large: contains {} presets, maximum is {}",
+                presets_val.len(), MAX_IMPORT_COUNT
+            ));
+        }
+
         let mut settings = load_or_create_default(&app_handle);
         let mut imported_count = 0;
+        let mut skipped_count = 0;
 
         for p_val in presets_val {
             if let Ok(mut imported_preset) = serde_json::from_value::<SavedPreset>(p_val.clone()) {
@@ -239,6 +256,8 @@ pub async fn preset_import(app_handle: AppHandle) -> Result<usize, String> {
 
                 settings.saved_presets.push(imported_preset);
                 imported_count += 1;
+            } else {
+                skipped_count += 1;
             }
         }
 
@@ -249,8 +268,12 @@ pub async fn preset_import(app_handle: AppHandle) -> Result<usize, String> {
         if imported_count > 0 {
             crate::settings::save_settings(&app_handle, &settings).map_err(|e| e.to_string())?;
         }
-        Ok(imported_count)
+        
+        Ok(PresetImportResult {
+            imported: imported_count,
+            skipped: skipped_count,
+        })
     } else {
-        Ok(0)
+        Ok(PresetImportResult { imported: 0, skipped: 0 })
     }
 }

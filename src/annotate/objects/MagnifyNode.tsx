@@ -1,12 +1,12 @@
 import { Group, Image, Rect } from 'react-konva';
-import { MagnifyObject } from '../state/types';
+import { MagnifyObject, AnnotationObjectPatch } from '../state/types';
 import { useEffect, useState } from 'react';
 
 interface MagnifyNodeProps {
   obj: MagnifyObject;
   isSelected: boolean;
   onSelect: (id: string) => void;
-  onUpdate: (id: string, patch: any) => void;
+  onUpdate: (id: string, patch: AnnotationObjectPatch) => void;
   compositionCanvasRef: React.RefObject<HTMLCanvasElement | null>;
 }
 
@@ -50,14 +50,18 @@ export function MagnifyNode({ obj, onSelect, onUpdate, compositionCanvasRef }: M
       }}
       name="selectable-object"
       clipFunc={(ctx) => {
-        if ((ctx as any).roundRect) {
-            ctx.beginPath();
-            (ctx as any).roundRect(0, 0, obj.width, obj.height, obj.cornerRadius);
-            ctx.closePath();
+        type CanvasWithRoundRect = CanvasRenderingContext2D & {
+          roundRect?: (x: number, y: number, w: number, h: number, r: number) => void;
+        };
+        const ctx2 = ctx as unknown as CanvasWithRoundRect;
+        if (ctx2.roundRect) {
+            ctx2.beginPath();
+            ctx2.roundRect(0, 0, obj.width, obj.height, obj.cornerRadius);
+            ctx2.closePath();
         } else {
-            ctx.beginPath();
-            ctx.rect(0, 0, obj.width, obj.height);
-            ctx.closePath();
+            ctx2.beginPath();
+            ctx2.rect(0, 0, obj.width, obj.height);
+            ctx2.closePath();
         }
       }}
     >

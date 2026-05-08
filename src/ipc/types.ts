@@ -31,6 +31,11 @@ export interface SavedPreset {
   updated_at: string;
 }
 
+export interface PresetImportResult {
+  imported: number;
+  skipped: number;
+}
+
 export interface PingResponse {
   version: string;
   name: string;

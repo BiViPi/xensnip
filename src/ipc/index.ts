@@ -7,6 +7,7 @@ import {
   AssetResolveResult,
   SettingsSaveResult,
   SavedPreset,
+  PresetImportResult,
 } from "./types";
 import type { EditorPreset } from "../compose/preset";
 
@@ -128,8 +129,8 @@ export async function presetExportPack(presetIds: string[]): Promise<boolean> {
   return await invoke<boolean>("preset_export_pack", { presetIds });
 }
 
-export async function presetImport(): Promise<number> {
-  return await invoke<number>("preset_import");
+export async function presetImport(): Promise<PresetImportResult> {
+  return await invoke<PresetImportResult>("preset_import");
 }
 
 export async function openSettingsWindow(): Promise<void> {

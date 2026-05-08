@@ -1,0 +1,187 @@
+/* Slider Popover — Premium Polish */
+.xs-slider-pop {
+  min-width: 220px;
+}
+
+.xs-slider-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.xs-slider-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--xs-text-dim);
+}
+
+.xs-slider-value-badge {
+  background: var(--control-bg);
+  padding: 4px 10px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid var(--border-subtle);
+}
+
+.xs-slider-value {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--xs-accent);
+}
+
+.xs-slider-unit {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--xs-text-dim);
+  text-transform: uppercase;
+}
+
+.xs-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.xs-slider-action {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: none;
+  background: rgba(255, 255, 255, 0.06);
+  color: #cbd5e1;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.xs-slider-action:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.xs-slider-track-container {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.xs-slider-track-container::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 8px;
+  transform: translateY(-50%);
+  border-radius: 999px;
+  background: var(--control-bg);
+  border: 1px solid var(--border-subtle);
+  box-shadow:
+    inset 0 1px 0 var(--control-inner-rim),
+    0 4px 10px rgba(0, 0, 0, 0.1);
+  pointer-events: none;
+}
+
+.xs-slider-track-container::after {
+  content: "";
+  position: absolute;
+  left: 1px;
+  top: 50%;
+  width: var(--fill-width);
+  max-width: calc(100% - 2px);
+  min-width: 0;
+  height: 6px;
+  transform: translateY(-50%);
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, rgba(129, 140, 248, 0.98) 0%, rgba(99, 102, 241, 1) 48%, rgba(34, 211, 238, 0.92) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.26),
+    0 0 10px rgba(99, 102, 241, 0.28);
+  pointer-events: none;
+}
+
+.xs-slider-input {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 24px;
+  background: transparent;
+  border-radius: 2px;
+  outline: none;
+  position: relative;
+  z-index: 1;
+}
+
+.xs-slider-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 18px;
+  width: 18px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 1) 0%, rgba(243, 246, 255, 0.96) 58%, rgba(215, 223, 243, 0.92) 100%);
+  border: 2px solid rgba(129, 140, 248, 0.95);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 4px 12px rgba(12, 18, 34, 0.36),
+    0 0 0 2px rgba(99, 102, 241, 0.16);
+  cursor: pointer;
+  transition: transform 0.14s ease, box-shadow 0.14s ease;
+}
+
+.xs-slider-input::-webkit-slider-thumb:hover {
+  transform: scale(1.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    0 5px 14px rgba(12, 18, 34, 0.38),
+    0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+.xs-slider-input::-moz-range-track {
+  height: 8px;
+  background: transparent;
+  border: none;
+}
+
+.xs-slider-input::-moz-range-progress {
+  height: 6px;
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, rgba(129, 140, 248, 0.98) 0%, rgba(99, 102, 241, 1) 48%, rgba(34, 211, 238, 0.92) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.26),
+    0 0 10px rgba(99, 102, 241, 0.28);
+}
+
+.xs-slider-input::-moz-range-thumb {
+  height: 18px;
+  width: 18px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 1) 0%, rgba(243, 246, 255, 0.96) 58%, rgba(215, 223, 243, 0.92) 100%);
+  border: 2px solid rgba(129, 140, 248, 0.95);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 4px 12px rgba(12, 18, 34, 0.36),
+    0 0 0 2px rgba(99, 102, 241, 0.16);
+  cursor: pointer;
+}
+
+.xs-slider-ticks {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 4px;
+}
+
+.xs-slider-tick {
+  font-size: 9px;
+  font-weight: 600;
+  color: #94a3b8;
+}

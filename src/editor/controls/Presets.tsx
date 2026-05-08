@@ -132,13 +132,18 @@ export function PresetsControl({ preset, settings, onApply, onRefresh, showToast
 
   const handleImport = async () => {
     try {
-      const count = await presetImport();
-      if (count > 0) {
+      const result = await presetImport();
+      if (result.imported > 0) {
         onRefresh();
-        showToast(`Imported ${count} preset(s)`, "success");
+        const msg = result.skipped > 0 
+          ? `Imported ${result.imported} presets (${result.skipped} skipped)`
+          : `Imported ${result.imported} preset(s)`;
+        showToast(msg, "success");
+      } else if (result.skipped > 0) {
+        showToast(`Skipped ${result.skipped} invalid entries`, "error");
       }
     } catch (err) {
-      showToast("Import failed", "error");
+      showToast(typeof err === 'string' ? err : "Import failed", "error");
     }
   };
 

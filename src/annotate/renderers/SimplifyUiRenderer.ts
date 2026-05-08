@@ -1,5 +1,18 @@
 import { SimplifyUiObject } from '../state/types';
 
+type CanvasWithRoundRect = CanvasRenderingContext2D & {
+  roundRect?: (x: number, y: number, w: number, h: number, r: number) => void;
+};
+
+function addSimplifyUiMaskPath(ctx: CanvasRenderingContext2D, obj: SimplifyUiObject) {
+  const ctxWithRoundRect = ctx as CanvasWithRoundRect;
+  if (ctxWithRoundRect.roundRect) {
+    ctxWithRoundRect.roundRect(obj.x, obj.y, obj.width, obj.height, obj.cornerRadius);
+  } else {
+    ctx.rect(obj.x, obj.y, obj.width, obj.height);
+  }
+}
+
 export function createSimplifyUiOverlay(sourceCanvas: HTMLCanvasElement, obj: SimplifyUiObject): HTMLCanvasElement {
   const overlay = document.createElement('canvas');
   overlay.width = sourceCanvas.width;
@@ -22,11 +35,7 @@ export function createSimplifyUiOverlay(sourceCanvas: HTMLCanvasElement, obj: Si
   overlayCtx.globalCompositeOperation = 'destination-out';
   overlayCtx.fillStyle = '#000';
   overlayCtx.beginPath();
-  if ((overlayCtx as any).roundRect) {
-    (overlayCtx as any).roundRect(obj.x, obj.y, obj.width, obj.height, obj.cornerRadius);
-  } else {
-    overlayCtx.rect(obj.x, obj.y, obj.width, obj.height);
-  }
+  addSimplifyUiMaskPath(overlayCtx, obj);
   overlayCtx.fill();
   overlayCtx.restore();
 

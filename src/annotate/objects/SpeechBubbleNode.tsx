@@ -1,3 +1,4 @@
+import Konva from 'konva';
 import { Group, Path, Text, Circle } from 'react-konva';
 import { SpeechBubbleObject } from '../state/types';
 import { useAnnotationStore } from '../state/store';
@@ -114,13 +115,13 @@ export const SpeechBubbleNode = ({ obj, isSelected, onSelect, onUpdate }: Speech
             const node = e.target;
             onUpdate(id, { tailX: node.x(), tailY: node.y() });
           }}
-          onMouseEnter={(e: any) => {
+          onMouseEnter={(e: Konva.KonvaEventObject<MouseEvent>) => {
             const stage = e.target.getStage();
-            stage.container().style.cursor = 'move';
+            if (stage) stage.container().style.cursor = 'move';
           }}
-          onMouseLeave={(e: any) => {
+          onMouseLeave={(e: Konva.KonvaEventObject<MouseEvent>) => {
             const stage = e.target.getStage();
-            stage.container().style.cursor = 'default';
+            if (stage) stage.container().style.cursor = 'default';
           }}
         />
       )}

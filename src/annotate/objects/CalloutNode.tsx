@@ -1,3 +1,4 @@
+import Konva from 'konva';
 import { Group, Rect, Line, Text, Circle } from 'react-konva';
 import { CalloutObject } from '../state/types';
 import { useAnnotationStore } from '../state/store';
@@ -81,13 +82,13 @@ export const CalloutNode = ({ obj, onSelect, onUpdate }: CalloutNodeProps) => {
             targetY: y + node.y(),
           });
         }}
-        onMouseEnter={(e: any) => {
+        onMouseEnter={(e: Konva.KonvaEventObject<MouseEvent>) => {
           const stage = e.target.getStage();
-          stage.container().style.cursor = 'move';
+          if (stage) stage.container().style.cursor = 'move';
         }}
-        onMouseLeave={(e: any) => {
+        onMouseLeave={(e: Konva.KonvaEventObject<MouseEvent>) => {
           const stage = e.target.getStage();
-          stage.container().style.cursor = 'default';
+          if (stage) stage.container().style.cursor = 'default';
         }}
       />
       {/* Label Box */}

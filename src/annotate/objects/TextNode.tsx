@@ -1,5 +1,6 @@
+import Konva from 'konva';
 import { Group, Rect, Text } from 'react-konva';
-import { TextObject } from '../state/types';
+import { TextObject, AnnotationObjectPatch } from '../state/types';
 import { useEffect, useRef, useState } from 'react';
 import { useAnnotationStore } from '../state/store';
 
@@ -7,13 +8,13 @@ interface TextNodeProps {
   obj: TextObject;
   isSelected: boolean;
   onSelect: (id: string) => void;
-  onUpdate: (id: string, patch: any) => void;
+  onUpdate: (id: string, patch: AnnotationObjectPatch) => void;
 }
 
 export function TextNode({ obj, isSelected, onSelect, onUpdate }: TextNodeProps) {
   const { editingTextId, setEditingTextId } = useAnnotationStore();
   const [bounds, setBounds] = useState({ width: 100, height: obj.fontSize + obj.padding * 2 });
-  const textRef = useRef<any>(null);
+  const textRef = useRef<Konva.Text>(null);
   const clickAtRef = useRef(0);
   const isEditing = editingTextId === obj.id;
 
@@ -38,7 +39,7 @@ export function TextNode({ obj, isSelected, onSelect, onUpdate }: TextNodeProps)
     setEditingTextId(obj.id);
   };
 
-  const handleWheel = (e: any) => {
+  const handleWheel = (e: Konva.KonvaEventObject<WheelEvent>) => {
     if (!isSelected || isEditing) return;
 
     e.evt.preventDefault();

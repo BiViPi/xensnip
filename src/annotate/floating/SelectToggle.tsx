@@ -1,21 +1,21 @@
 import React from 'react';
 
-interface Option {
+interface Option<T> {
   label: string;
-  value: any;
+  value: T;
 }
 
-interface Props {
-  options: Option[];
-  value: any;
-  onChange: (val: any) => void;
+interface Props<T> {
+  options: Option<T>[];
+  value: T;
+  onChange: (val: T) => void;
   icon?: React.ReactNode;
   title?: string;
   isOpen: boolean;
   onToggle: (open: boolean) => void;
 }
 
-export function SelectToggle({ options, value, onChange, icon, title, isOpen, onToggle }: Props) {
+export function SelectToggle<T extends string | number>({ options, value, onChange, icon, title, isOpen, onToggle }: Props<T>) {
   return (
     <div style={{ position: 'relative' }}>
       <button

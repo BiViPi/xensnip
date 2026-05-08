@@ -1,15 +1,16 @@
+import Konva from 'konva';
 import { Arrow } from 'react-konva';
-import { ArrowObject } from '../state/types';
+import { ArrowObject, AnnotationObjectPatch } from '../state/types';
 
 interface ArrowNodeProps {
   obj: ArrowObject;
   isSelected: boolean;
   onSelect: (id: string) => void;
-  onUpdate: (id: string, patch: any) => void;
+  onUpdate: (id: string, patch: AnnotationObjectPatch) => void;
 }
 
 export function ArrowNode({ obj, isSelected, onSelect, onUpdate }: ArrowNodeProps) {
-  const handleWheel = (e: any) => {
+  const handleWheel = (e: Konva.KonvaEventObject<WheelEvent>) => {
     if (!isSelected) return;
 
     e.evt.preventDefault();

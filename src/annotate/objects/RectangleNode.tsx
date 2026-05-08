@@ -1,18 +1,19 @@
+import Konva from 'konva';
 import { Rect, Shape } from 'react-konva';
-import { RectangleObject } from '../state/types';
+import { RectangleObject, AnnotationObjectPatch } from '../state/types';
 import { drawCloudRect } from '../renderers/rectangleCloud';
 
 interface RectangleNodeProps {
   obj: RectangleObject;
   isSelected: boolean;
   onSelect: (id: string) => void;
-  onUpdate: (id: string, patch: any) => void;
+  onUpdate: (id: string, patch: AnnotationObjectPatch) => void;
 }
 
 export function RectangleNode({ obj, isSelected, onSelect, onUpdate }: RectangleNodeProps) {
   const lineStyle = obj.lineStyle ?? 'solid';
 
-  const handleWheel = (e: any) => {
+  const handleWheel = (e: Konva.KonvaEventObject<WheelEvent>) => {
     if (!isSelected) return;
 
     e.evt.preventDefault();

@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import "./Background.css";
 import { EditorPreset, WALLPAPER_PRESETS, WALLPAPER_MAP, GRADIENT_PRESETS, SOLID_PRESETS, BackgroundMode, GradientType } from "../../compose/preset";
 
 interface Props {
