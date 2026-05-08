@@ -4,6 +4,7 @@ use std::sync::Mutex;
 pub mod errors;
 pub(crate) mod native_region_active;
 mod native_region_geometry;
+mod native_region_paint;
 pub mod native_region_selector;
 mod native_region_state;
 pub mod region;

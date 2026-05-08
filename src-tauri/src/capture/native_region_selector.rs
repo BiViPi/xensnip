@@ -3,6 +3,7 @@ use crate::capture::native_region_active::active_window_slot;
 use crate::capture::native_region_geometry::{
     get_x_lparam, get_y_lparam, invalidate_selection_bounds, selection_bounds,
 };
+use crate::capture::native_region_paint::selection_paint_geometry;
 use crate::capture::native_region_state::{LocalSelectionRect, SelectorState};
 use std::sync::{Mutex, Once};
 use tauri::{AppHandle, Manager};
@@ -334,34 +335,27 @@ unsafe extern "system" fn window_proc(
 
                         if let Some(state) = state_mut(hwnd) {
                             if let Some(rect) = state.selection.current_rect() {
-                                let offset_left = rect.left - ps.rcPaint.left;
-                                let offset_top = rect.top - ps.rcPaint.top;
-                                let offset_right = rect.right - ps.rcPaint.left;
-                                let offset_bottom = rect.bottom - ps.rcPaint.top;
+                                let geometry =
+                                    selection_paint_geometry(rect, ps.rcPaint.left, ps.rcPaint.top);
 
                                 let pen = CreatePen(PS_SOLID, 2, COLORREF(0x00FFFFFF));
                                 let old_pen = SelectObject(mem_dc, HGDIOBJ(pen.0));
                                 let old_brush = SelectObject(mem_dc, GetStockObject(NULL_BRUSH));
                                 let _ = Rectangle(
                                     mem_dc,
-                                    offset_left,
-                                    offset_top,
-                                    offset_right,
-                                    offset_bottom,
+                                    geometry.rect.left,
+                                    geometry.rect.top,
+                                    geometry.rect.right,
+                                    geometry.rect.bottom,
                                 );
 
-                                let label = format!(
-                                    "{} x {}",
-                                    (rect.right - rect.left) as u32,
-                                    (rect.bottom - rect.top) as u32
-                                );
-                                let label_u16: Vec<u16> = label.encode_utf16().collect();
+                                let label_u16: Vec<u16> = geometry.label.encode_utf16().collect();
                                 let _ = SetBkMode(mem_dc, TRANSPARENT);
                                 let _ = SetTextColor(mem_dc, COLORREF(0x00FFFFFF));
                                 let _ = TextOutW(
                                     mem_dc,
-                                    offset_left + 5,
-                                    (offset_top - 20).max(5),
+                                    geometry.label_x,
+                                    geometry.label_y,
                                     &label_u16,
                                 );
 
