@@ -1,6 +1,16 @@
+import type { MutableRefObject } from 'react';
 import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { useQuickAccessSessionController } from '../useQuickAccessSessionController';
+import type {
+  DocumentUndoSnapshot,
+  ScreenshotDocument,
+} from '../../editor/useScreenshotDocuments';
+import {
+  createAnnotationSnapshot,
+  createMockImage,
+  createScreenshotDocument,
+} from '../../test/builders/screenshotDocument';
 
 // Mock generateThumbnail
 vi.mock('../../editor/generateThumbnail', () => ({
@@ -8,32 +18,37 @@ vi.mock('../../editor/generateThumbnail', () => ({
 }));
 
 describe('useQuickAccessSessionController', () => {
-  const createMockDeps = () => ({
-    documents: [] as any[],
-    docsRef: { current: [] } as any,
-    activeIdRef: { current: null } as any,
-    switchToDocument: vi.fn(),
-    removeDocument: vi.fn(),
-    patchDocument: vi.fn(),
-    image: null,
-    cropBounds: null,
-    setImage: vi.fn(),
-    setCropBounds: vi.fn(),
-    undoStackRef: { current: [] } as any,
-    activeTool: 'select',
-    cancelCrop: vi.fn(),
-    releaseDocument: vi.fn(),
-  });
+  const createRef = <T,>(current: T): MutableRefObject<T> => ({ current });
+
+  const createMockDeps = (): Parameters<typeof useQuickAccessSessionController>[0] => {
+    type SessionControllerDeps = Parameters<typeof useQuickAccessSessionController>[0];
+
+    return {
+      documents: [],
+      docsRef: createRef<ScreenshotDocument[]>([]),
+      activeIdRef: createRef<string | null>(null),
+      switchToDocument: vi.fn<SessionControllerDeps['switchToDocument']>(),
+      removeDocument: vi.fn<SessionControllerDeps['removeDocument']>(),
+      patchDocument: vi.fn<SessionControllerDeps['patchDocument']>(),
+      image: null,
+      cropBounds: null,
+      setImage: vi.fn<SessionControllerDeps['setImage']>(),
+      setCropBounds: vi.fn<SessionControllerDeps['setCropBounds']>(),
+      undoStackRef: createRef<DocumentUndoSnapshot[]>([]),
+      activeTool: 'select',
+      cancelCrop: vi.fn<SessionControllerDeps['cancelCrop']>(),
+      releaseDocument: vi.fn<SessionControllerDeps['releaseDocument']>(),
+    };
+  };
 
   it('should handle document switch correctly', () => {
     const deps = createMockDeps();
-    const doc2 = { 
-      id: '2', 
-      image: { src: 'img2' } as any, 
-      annotation: { objects: [], activeTool: 'select' },
+    const doc2 = createScreenshotDocument('2', {
+      image: createMockImage('img2'),
+      annotation: createAnnotationSnapshot(),
       cropBounds: null,
-      undoStack: []
-    };
+      undoStack: [],
+    });
     deps.docsRef.current = [doc2];
     deps.activeIdRef.current = '1';
     
@@ -50,8 +65,8 @@ describe('useQuickAccessSessionController', () => {
 
   it('should handle document deletion correctly', () => {
     const deps = createMockDeps();
-    const removedDoc = { id: '1', image: {} } as any;
-    deps.removeDocument.mockReturnValue({
+    const removedDoc = createScreenshotDocument('1');
+    vi.mocked(deps.removeDocument).mockReturnValue({
       removed: removedDoc,
       nextActiveId: null,
       remainingDocs: []
@@ -70,7 +85,7 @@ describe('useQuickAccessSessionController', () => {
 
   it('should clear all in session', () => {
     const deps = createMockDeps();
-    const doc1 = { id: '1', image: {} } as any;
+    const doc1 = createScreenshotDocument('1');
     deps.documents = [doc1];
     
     const { result } = renderHook(() => useQuickAccessSessionController(deps));
@@ -82,6 +97,6 @@ describe('useQuickAccessSessionController', () => {
     expect(deps.patchDocument).toHaveBeenCalledWith('1', expect.objectContaining({
       cropBounds: null,
       undoStack: []
-    }) as any);
+    }));
   });
 });

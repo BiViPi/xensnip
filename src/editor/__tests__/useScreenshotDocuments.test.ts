@@ -1,36 +1,17 @@
 import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
-import { useScreenshotDocuments, ScreenshotDocument } from '../useScreenshotDocuments';
-
-// Mock HTMLImageElement
-global.HTMLImageElement = class extends HTMLElement {
-  constructor() {
-    super();
-  }
-} as any;
-
-const createMockDoc = (id: string): ScreenshotDocument => ({
-  id,
-  image: new Image(),
-  blobUrl: `blob:${id}`,
-  thumbnailSrc: `thumb:${id}`,
-  annotation: { 
-    objects: [], 
-    activeTool: 'select', 
-    selectedId: null, 
-    editingTextId: null, 
-    toolbarCollapsed: false 
-  },
-  cropBounds: null,
-  isExportChecked: false,
-  undoStack: [],
-  createdAt: Date.now(),
-});
+import { useScreenshotDocuments } from '../useScreenshotDocuments';
+import {
+  createAnnotationSnapshot,
+  createCropBounds,
+  createRectangleObject,
+  createScreenshotDocument,
+} from '../../test/builders/screenshotDocument';
 
 describe('useScreenshotDocuments', () => {
   it('adds a document while active selection remains caller-owned', () => {
     const { result } = renderHook(() => useScreenshotDocuments());
-    const doc = createMockDoc('1');
+    const doc = createScreenshotDocument('1');
 
     act(() => {
       result.current.addDocument(doc);
@@ -52,7 +33,7 @@ describe('useScreenshotDocuments', () => {
     
     for (let i = 1; i <= 20; i++) {
       act(() => {
-        result.current.addDocument(createMockDoc(i.toString()));
+        result.current.addDocument(createScreenshotDocument(i.toString()));
       });
     }
 
@@ -60,7 +41,7 @@ describe('useScreenshotDocuments', () => {
 
     act(() => {
       // Add 21st document
-      result.current.addDocument(createMockDoc('21'));
+      result.current.addDocument(createScreenshotDocument('21'));
     });
 
     expect(result.current.documents).toHaveLength(20);
@@ -71,8 +52,8 @@ describe('useScreenshotDocuments', () => {
 
   it('removes a document and updates active ID only when the removed document was active', () => {
     const { result } = renderHook(() => useScreenshotDocuments());
-    const doc1 = createMockDoc('1');
-    const doc2 = createMockDoc('2');
+    const doc1 = createScreenshotDocument('1');
+    const doc2 = createScreenshotDocument('2');
 
     act(() => {
       result.current.addDocument(doc1);
@@ -96,8 +77,8 @@ describe('useScreenshotDocuments', () => {
 
   it('performs switch transaction correctly', () => {
     const { result } = renderHook(() => useScreenshotDocuments());
-    const doc1 = createMockDoc('1');
-    const doc2 = createMockDoc('2');
+    const doc1 = createScreenshotDocument('1');
+    const doc2 = createScreenshotDocument('2');
 
     act(() => {
       result.current.addDocument(doc1);
@@ -112,14 +93,10 @@ describe('useScreenshotDocuments', () => {
     });
 
     const snapshot = {
-      annotation: { 
-        objects: [{ id: 'obj1' } as any], 
-        activeTool: 'select' as const, 
-        selectedId: null, 
-        editingTextId: null, 
-        toolbarCollapsed: false 
-      },
-      cropBounds: { x: 10, y: 10, w: 100, h: 100 },
+      annotation: createAnnotationSnapshot({
+        objects: [createRectangleObject('obj1')],
+      }),
+      cropBounds: createCropBounds({ x: 10, y: 10, w: 100, h: 100 }),
       undoStack: [],
     };
 
