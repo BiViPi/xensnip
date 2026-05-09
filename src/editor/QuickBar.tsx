@@ -182,7 +182,6 @@ export function QuickBar({
                   value={preset.ratio}
                   onChange={(v) => {
                     setPreset(p => ({ ...p, ratio: v }));
-                    onActivePopChange(null);
                   }}
                 />
               )}

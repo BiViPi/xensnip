@@ -55,6 +55,11 @@ export function QuickAccess() {
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const initialAssetHandledRef = useRef(false);
 
+  const applyLoadedSettings = useCallback((nextSettings: Settings) => {
+    setSettings(nextSettings);
+    applyTheme(nextSettings.theme);
+  }, []);
+
   // ── 1. Document list ────────────────────────────────────────────────────
   const {
     documents,
@@ -142,28 +147,30 @@ export function QuickAccess() {
 
   useEffect(() => {
     settingsLoad().then((s) => {
-      setSettings(s);
-      applyTheme(s.theme);
+      applyLoadedSettings(s);
     }).catch(console.error);
 
-    const unlisten = listen<ThemeMode>("theme-changed", (event) => {
+    const unlistenTheme = listen<ThemeMode>("theme-changed", (event) => {
       applyTheme(event.payload);
+    });
+    const unlistenSettings = listen<Settings>("settings-updated", (event) => {
+      applyLoadedSettings(event.payload);
     });
     const handleResize = () =>
       setViewportSize({ width: window.innerWidth, height: window.innerHeight });
     window.addEventListener("resize", handleResize);
     return () => {
       window.removeEventListener("resize", handleResize);
-      unlisten.then((fn) => fn());
+      unlistenTheme.then((fn) => fn());
+      unlistenSettings.then((fn) => fn());
     };
-  }, []);
+  }, [applyLoadedSettings]);
 
   const refreshSettings = useCallback(() => {
     settingsLoad().then((s) => {
-      setSettings(s);
-      applyTheme(s.theme);
+      applyLoadedSettings(s);
     }).catch(console.error);
-  }, []);
+  }, [applyLoadedSettings]);
 
   const showToast = useCallback((message: string, type: "success" | "error" = "success") => {
     setToast({ message, type });

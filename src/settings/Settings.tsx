@@ -73,6 +73,7 @@ export function Settings() {
       loadedRef.current = draft;
       applyTheme(draft.theme);
       await emit("theme-changed", draft.theme);
+      await emit("settings-updated", draft);
       if (result.warnings.length > 0) {
         for (const w of result.warnings) {
           showToast(`Saved. Shortcut '${w.shortcut}' could not be activated.`, "error");

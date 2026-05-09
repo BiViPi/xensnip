@@ -6,6 +6,16 @@ XenSnip is a Windows screenshot tool built for fast capture, clean annotation, a
 
 It lives in the system tray, captures regions or the active window with global hotkeys, opens a quick-access editor, and lets you turn raw screenshots into presentation-ready visuals without leaving your desktop workflow.
 
+## Preview
+
+### Dark Theme
+
+![XenSnip dark theme](../docs/dark_theme.png)
+
+### Light Theme
+
+![XenSnip light theme](../docs/light_theme.png)
+
 ## Version
 
 Current release: `0.1.0`

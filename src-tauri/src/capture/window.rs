@@ -1,13 +1,13 @@
 use crate::capture::errors::CaptureError;
-use crate::capture::gdi_pixels::normalize_bgra_to_rgba_opaque;
 use std::sync::Arc;
 use tauri::{AppHandle, Emitter, Manager};
 use windows::Win32::Foundation::{HWND, RECT};
 use windows::Win32::Graphics::Dwm::{DwmGetWindowAttribute, DWMWA_EXTENDED_FRAME_BOUNDS};
 use windows::Win32::Graphics::Gdi::{
-    BitBlt, CreateCompatibleBitmap, CreateCompatibleDC, DeleteDC, DeleteObject, GetDC, GetDIBits,
-    GetMonitorInfoW, MonitorFromWindow, ReleaseDC, SelectObject, BITMAPINFOHEADER, BI_RGB,
-    DIB_RGB_COLORS, HDC, HGDIOBJ, MONITORINFO, MONITOR_DEFAULTTONEAREST, SRCCOPY,
+    BitBlt, CreateCompatibleBitmap, CreateCompatibleDC, DeleteDC, DeleteObject, GetDIBits,
+    GetMonitorInfoW, GetWindowDC, MonitorFromWindow, ReleaseDC, SelectObject, BITMAPINFOHEADER,
+    BI_RGB, CAPTUREBLT, DIB_RGB_COLORS, HDC, HGDIOBJ, MONITORINFO, MONITOR_DEFAULTTONEAREST,
+    SRCCOPY,
 };
 use windows::Win32::UI::HiDpi::GetDpiForWindow;
 use windows::Win32::UI::WindowsAndMessaging::{
@@ -297,32 +297,31 @@ fn capture_active_window_gdi(
     hwnd: HWND,
     bounds: (i32, i32, u32, u32),
 ) -> Result<image::RgbaImage, String> {
-    let (x, y, w, h) = bounds;
+    let (_, _, w, h) = bounds;
 
     unsafe {
-        // Capture the composited screen pixels for the active window bounds.
-        // This is more reliable for GPU/compositor-backed apps such as Chrome and Settings,
-        // which can return blank client content through GetWindowDC even when BitBlt succeeds.
-        let hdc_screen = GetDC(None);
-        if hdc_screen.0.is_null() {
-            return Err("GetDC failed".into());
+        let hdc_window = GetWindowDC(Some(hwnd));
+        if hdc_window.0.is_null() {
+            return Err("GetWindowDC failed".into());
         }
 
-        let hdc_mem = CreateCompatibleDC(Some(hdc_screen));
+        let hdc_mem = CreateCompatibleDC(Some(hdc_window));
         if hdc_mem.0.is_null() {
-            let _ = ReleaseDC(None, hdc_screen);
+            let _ = ReleaseDC(Some(hwnd), hdc_window);
             return Err("CreateCompatibleDC failed".into());
         }
 
-        let hbm = CreateCompatibleBitmap(hdc_screen, w as i32, h as i32);
+        let hbm = CreateCompatibleBitmap(hdc_window, w as i32, h as i32);
         if hbm.0.is_null() {
             let _ = DeleteDC(hdc_mem);
-            let _ = ReleaseDC(None, hdc_screen);
+            let _ = ReleaseDC(Some(hwnd), hdc_window);
             return Err("CreateCompatibleBitmap failed".into());
         }
 
         let hgdiobj = HGDIOBJ(hbm.0);
         let old_obj = SelectObject(hdc_mem, hgdiobj);
+
+        let mut capture_result: Result<(), String> = Err("BitBlt failed".into());
 
         if BitBlt(
             hdc_mem,
@@ -330,22 +329,29 @@ fn capture_active_window_gdi(
             0,
             w as i32,
             h as i32,
-            Some(hdc_screen),
-            x,
-            y,
-            SRCCOPY,
+            Some(hdc_window),
+            0,
+            0,
+            SRCCOPY | CAPTUREBLT,
         )
         .is_ok()
         {
-            log::info!(target: "capture", "GDI screen-copy BitBlt successful");
-        } else if PrintWindow(hwnd, hdc_mem, PW_RENDERFULLCONTENT).as_bool() {
-            log::info!(target: "capture", "PrintWindow fallback successful");
+            capture_result = Ok(());
+            log::info!(target: "capture", "GDI BitBlt successful");
         } else {
+            log::warn!(target: "capture", "BitBlt failed; trying PrintWindow fallback");
+            if PrintWindow(hwnd, hdc_mem, PW_RENDERFULLCONTENT).as_bool() {
+                capture_result = Ok(());
+                log::info!(target: "capture", "PrintWindow fallback successful");
+            }
+        }
+
+        if let Err(err) = capture_result {
             let _ = SelectObject(hdc_mem, old_obj);
             let _ = DeleteObject(hgdiobj);
             let _ = DeleteDC(hdc_mem);
-            let _ = ReleaseDC(None, hdc_screen);
-            return Err("BitBlt failed".into());
+            let _ = ReleaseDC(Some(hwnd), hdc_window);
+            return Err(err);
         }
 
         let bmi = BITMAPINFOHEADER {
@@ -373,13 +379,19 @@ fn capture_active_window_gdi(
         let _ = SelectObject(hdc_mem, old_obj);
         let _ = DeleteObject(hgdiobj);
         let _ = DeleteDC(hdc_mem);
-        let _ = ReleaseDC(None, hdc_screen);
+        let _ = ReleaseDC(Some(hwnd), hdc_window);
 
         if copied == 0 {
             return Err("GetDIBits failed".into());
         }
 
-        normalize_bgra_to_rgba_opaque(&mut buf);
+        // Swap BGR to RGB
+        for i in (0..buf.len()).step_by(4) {
+            let b = buf[i];
+            let r = buf[i + 2];
+            buf[i] = r;
+            buf[i + 2] = b;
+        }
 
         image::RgbaImage::from_raw(w, h, buf)
             .ok_or_else(|| "Failed to create image from GDI buffer".into())
