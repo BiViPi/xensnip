@@ -10,11 +10,11 @@ It lives in the system tray, captures regions or the active window with global h
 
 ### Dark Theme
 
-![XenSnip dark theme](../docs/dark_theme.png)
+![XenSnip dark theme](src/assets/dark_theme.png)
 
 ### Light Theme
 
-![XenSnip light theme](../docs/light_theme.png)
+![XenSnip light theme](src/assets/light_theme.png)
 
 ## Version
 
