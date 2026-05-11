@@ -93,15 +93,15 @@ Important notes:
 ### Development
 
 ```bash
-npm install
-npm run tauri dev
+pnpm install
+pnpm run tauri dev
 ```
 
 ### Production Build
 
 ```bash
-npm install
-npm run tauri build
+pnpm install
+pnpm run tauri build
 ```
 
 Windows bundle artifacts are generated under:
@@ -115,9 +115,9 @@ src-tauri/target/release/bundle/
 Before cutting a release, run:
 
 ```bash
-npm test
-npm run lint
-npm run build
+pnpm test
+pnpm run lint
+pnpm run build
 cargo test --manifest-path src-tauri/Cargo.toml
 cargo fmt --check --manifest-path src-tauri/Cargo.toml
 ```
