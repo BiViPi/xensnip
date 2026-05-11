@@ -1,6 +1,7 @@
 use crate::capture::errors::CaptureError;
 use std::sync::Mutex;
 
+pub(crate) mod dpi;
 pub mod errors;
 mod gdi_pixels;
 pub(crate) mod native_region_active;

@@ -227,7 +227,7 @@ fn run_native_selector(app: AppHandle) -> Result<SelectionOutcome, String> {
 }
 
 thread_local! {
-    static LAST_OUTCOME: Mutex<Option<SelectionOutcome>> = Mutex::new(None);
+    static LAST_OUTCOME: Mutex<Option<SelectionOutcome>> = const { Mutex::new(None) };
 }
 
 unsafe extern "system" fn window_proc(

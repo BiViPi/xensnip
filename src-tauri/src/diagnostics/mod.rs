@@ -34,6 +34,8 @@ pub struct CaptureMetadata {
     pub capture_method: CaptureMethod,
     pub output_size: PhysicalSize,
     pub monitor_id: String,
+    /// DPI as a percentage of 96 DPI (e.g. 150 for 150% scaling) when known.
+    /// Failure paths may log `0` when capture aborts before monitor DPI is resolved.
     pub dpi: u32,
     pub process_name: Option<String>,
     pub window_title: Option<String>,

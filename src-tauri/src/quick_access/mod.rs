@@ -104,6 +104,8 @@ pub struct CaptureRectLogical {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CapturePositionMeta {
     pub monitor_work_area_logical: MonitorWorkAreaLogical,
+    /// DPI as a percentage of 96 DPI (e.g. 150 for 150% scaling).
+    /// Always produced by [`crate::capture::dpi::dpi_percent_from_raw`]; never raw DPI.
     pub monitor_dpi: u32,
     pub capture_kind: String,
     pub capture_rect_logical: Option<CaptureRectLogical>,

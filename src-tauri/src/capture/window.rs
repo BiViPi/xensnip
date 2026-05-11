@@ -89,8 +89,8 @@ pub fn capture_active_window(app: &AppHandle) -> Result<(), CaptureError> {
         })?;
 
     let (actual_dpi, actual_monitor_id, monitor_work_area_logical) = unsafe {
-        let dpi = GetDpiForWindow(foreground_hwnd);
-        let dpi_pct = if dpi == 0 { 100 } else { dpi };
+        let raw_dpi = GetDpiForWindow(foreground_hwnd);
+        let dpi_pct = crate::capture::dpi::dpi_percent_from_raw(raw_dpi);
 
         let hmonitor = MonitorFromWindow(foreground_hwnd, MONITOR_DEFAULTTONEAREST);
         let mut monitor_info = MONITORINFO {
@@ -108,10 +108,16 @@ pub fn capture_active_window(app: &AppHandle) -> Result<(), CaptureError> {
 
         let work = monitor_info.rcWork;
         let work_area = crate::quick_access::MonitorWorkAreaLogical {
-            x: logical_i32(work.left, dpi_pct),
-            y: logical_i32(work.top, dpi_pct),
-            w: logical_u32((work.right - work.left) as u32, dpi_pct),
-            h: logical_u32((work.bottom - work.top) as u32, dpi_pct),
+            x: crate::capture::dpi::physical_to_logical_i32(work.left, dpi_pct),
+            y: crate::capture::dpi::physical_to_logical_i32(work.top, dpi_pct),
+            w: crate::capture::dpi::physical_to_logical_u32(
+                (work.right - work.left) as u32,
+                dpi_pct,
+            ),
+            h: crate::capture::dpi::physical_to_logical_u32(
+                (work.bottom - work.top) as u32,
+                dpi_pct,
+            ),
         };
         (dpi_pct, monitor_name, work_area)
     };
@@ -249,10 +255,10 @@ pub fn capture_active_window(app: &AppHandle) -> Result<(), CaptureError> {
             monitor_dpi: actual_dpi,
             capture_kind: "window".to_string(),
             capture_rect_logical: Some(crate::quick_access::CaptureRectLogical {
-                x: logical_i32(win_x, actual_dpi),
-                y: logical_i32(win_y, actual_dpi),
-                w: logical_u32(width, actual_dpi),
-                h: logical_u32(height, actual_dpi),
+                x: crate::capture::dpi::physical_to_logical_i32(win_x, actual_dpi),
+                y: crate::capture::dpi::physical_to_logical_i32(win_y, actual_dpi),
+                w: crate::capture::dpi::physical_to_logical_u32(width, actual_dpi),
+                h: crate::capture::dpi::physical_to_logical_u32(height, actual_dpi),
             }),
         },
     );
@@ -413,18 +419,4 @@ fn emit_failure(
     };
     crate::diagnostics::log_capture_event(app, &meta);
     app.emit("capture.failure", err).ok();
-}
-
-fn logical_i32(value: i32, dpi_pct: u32) -> i32 {
-    if dpi_pct <= 100 {
-        return value;
-    }
-    ((value as f64) / (dpi_pct as f64 / 100.0)).round() as i32
-}
-
-fn logical_u32(value: u32, dpi_pct: u32) -> u32 {
-    if dpi_pct <= 100 {
-        return value;
-    }
-    ((value as f64) / (dpi_pct as f64 / 100.0)).round() as u32
 }

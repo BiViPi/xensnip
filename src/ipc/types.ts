@@ -83,6 +83,7 @@ export interface CaptureRectLogical {
 
 export interface CapturePositionMeta {
   monitor_work_area_logical: MonitorWorkAreaLogical;
+  /** DPI as a percentage of 96 DPI (e.g. 150 for 150% scaling). Never raw DPI. */
   monitor_dpi: number;
   capture_kind: string;
   capture_rect_logical: CaptureRectLogical | null;
