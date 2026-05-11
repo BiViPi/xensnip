@@ -18,7 +18,7 @@ It lives in the system tray, captures regions or the active window with global h
 
 ## Version
 
-Current release: `0.1.0`
+Current release: `0.1.1`
 
 ## What XenSnip Does
 
@@ -36,8 +36,9 @@ Current release: `0.1.0`
 For normal use, download the latest Windows installer from GitHub Releases:
 
 - Release page: `https://github.com/BiViPi/xensnip/releases`
+- Landing page: `https://xensnip-landing-page.vercel.app/`
 
-The `0.1.0` release is intended to be distributed as an installer build rather than as a source-only package.
+The `0.1.1` release is intended to be distributed as an installer build rather than as a source-only package.
 
 ## Platform
 
@@ -119,27 +120,6 @@ npm run lint
 npm run build
 cargo test --manifest-path src-tauri/Cargo.toml
 cargo fmt --check --manifest-path src-tauri/Cargo.toml
-```
-
-## Project Structure
-
-```text
-src/                        React + TypeScript frontend
-src/annotate/               Annotation tools and canvas objects
-src/compose/                Composition engine and preset styling
-src/editor/                 Editor shell and controls
-src/measure/                OCR and measurement utilities
-src/privacy/                Privacy-related tooling and redaction helpers
-src/quick-access/           Quick-access editor and session flow
-src/settings/               Settings UI
-src/sidebar/                Feature rails and tool pickers
-
-src-tauri/src/              Rust + Tauri backend
-src-tauri/src/capture/      Native capture and selector logic
-src-tauri/src/commands/     Tauri command handlers
-src-tauri/src/hotkeys/      Global shortcut registration
-src-tauri/src/quick_access/ Quick-access window lifecycle
-src-tauri/src/settings.rs   Settings persistence and migration
 ```
 
 ## Known Limitations
