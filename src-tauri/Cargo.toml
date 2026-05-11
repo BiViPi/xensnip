@@ -1,6 +1,6 @@
 [package]
 name = "xensnip"
-version = "0.1.1"
+version = "0.2.0"
 description = "Screenshot capture and polish tool for Windows"
 authors = ["Phu Bui"]
 license = "MIT"

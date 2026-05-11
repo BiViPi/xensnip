@@ -1,7 +1,7 @@
 {
   "name": "xensnip",
   "private": true,
-  "version": "0.1.1",
+  "version": "0.2.0",
   "packageManager": "pnpm@11.0.9",
   "license": "MIT",
   "type": "module",
@@ -15,7 +15,7 @@
     "tauri": "tauri"
   },
   "dependencies": {
-    "@tauri-apps/api": "^2",
+    "@tauri-apps/api": "2.10.1",
     "@tauri-apps/plugin-clipboard-manager": "^2",
     "@tauri-apps/plugin-dialog": "^2",
     "@tauri-apps/plugin-fs": "^2",

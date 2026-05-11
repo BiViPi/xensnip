@@ -18,7 +18,7 @@ It lives in the system tray, captures regions or the active window with global h
 
 ## Version
 
-Current release: `0.1.1`
+Current release: `0.2.0`
 
 ## What XenSnip Does
 
@@ -38,7 +38,7 @@ For normal use, download the latest Windows installer from GitHub Releases:
 - Release page: `https://github.com/BiViPi/xensnip/releases`
 - Landing page: `https://xensnip-landing-page.vercel.app/`
 
-The `0.1.1` release is intended to be distributed as an installer build rather than as a source-only package.
+The `0.2.0` release is intended to be distributed as an installer build rather than as a source-only package.
 
 ## Platform
 
