@@ -1,4 +1,5 @@
 allowBuilds:
+  canvas: true
   esbuild: true
   sharp: true
   tesseract.js: true

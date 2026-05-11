@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Validated DPI scaling support at 100%, 125%, 150%, 175%, and 200% for single-monitor Region and Active Window capture.
+- Automated export fidelity matrix covering all Tier 1 annotation types across four composition variants and two output formats. Wired into CI.
 
 ### Fixed
 - Active Window capture coordinate accuracy on non-100% DPI monitors.
