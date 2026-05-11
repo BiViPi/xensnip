@@ -9,7 +9,7 @@ interface OCRResultToolbarProps {
 }
 
 export function OCRResultToolbar({ onDismiss, scale }: OCRResultToolbarProps) {
-  const { ocrStatus, ocrText, ocrError, activeUtility, ocrRegion } = useMeasureStore();
+  const { ocrStatus, ocrText, ocrError, ocrProgress, activeUtility, ocrRegion } = useMeasureStore();
   const [copied, setCopied] = useState(false);
 
   if (
@@ -35,6 +35,17 @@ export function OCRResultToolbar({ onDismiss, scale }: OCRResultToolbarProps) {
   const chipTop = Math.max(10, ocrRegion.y * scale - 18);
 
   const renderBody = () => {
+    if (ocrStatus === 'loading') {
+      return (
+        <>
+          <Loader2 size={14} className="xs-animate-spin" />
+          <span className="xs-ocr-chip-label">
+            {ocrProgress > 0 ? `Loading ${ocrProgress}%` : 'Loading OCR…'}
+          </span>
+        </>
+      );
+    }
+
     if (ocrStatus === 'running') {
       return (
         <>
@@ -48,7 +59,9 @@ export function OCRResultToolbar({ onDismiss, scale }: OCRResultToolbarProps) {
       return (
         <>
           <AlertTriangle size={14} />
-          <span className="xs-ocr-chip-label">{ocrError ? 'Failed' : 'Error'}</span>
+          <span className="xs-ocr-chip-label" title={ocrError ?? ''}>
+            {ocrError ? (ocrError.length > 60 ? ocrError.substring(0, 57) + '...' : ocrError) : 'Error'}
+          </span>
         </>
       );
     }

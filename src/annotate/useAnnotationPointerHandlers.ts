@@ -35,7 +35,8 @@ interface UseAnnotationPointerHandlersDeps {
   colorPickerFrozen: boolean;
   setColorPickerFrozen: (frozen: boolean) => void;
   setOcrRegion: (region: { x: number; y: number; width: number; height: number } | null) => void;
-  setOcrStatus: (status: 'idle' | 'selecting' | 'running' | 'ready' | 'error') => void;
+  setOcrStatus: (status: 'idle' | 'selecting' | 'loading' | 'running' | 'ready' | 'error') => void;
+  setOcrProgress: (progress: number) => void;
   setOcrText: (text: string) => void;
   setOcrError: (error: string | null) => void;
   ocrRequestIdRef: React.RefObject<number>;
@@ -62,6 +63,7 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
     setColorPickerFrozen,
     setOcrRegion,
     setOcrStatus,
+    setOcrProgress,
     setOcrText,
     setOcrError,
     ocrRequestIdRef,
@@ -94,6 +96,7 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
           beginOcrSelection(stageX, stageY, {
             setOcrRegion,
             setOcrStatus,
+            setOcrProgress,
             setOcrText,
             setOcrError,
           })
@@ -167,7 +170,7 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
     },
     [
       scale, activeUtility, activeTool, objects, colorPickerFrozen, setColorPickerFrozen,
-      setOcrRegion, setOcrText, setOcrError, setOcrStatus, resetPrivacy, setPrivacyStatus,
+      setOcrRegion, setOcrText, setOcrError, setOcrStatus, setOcrProgress, resetPrivacy, setPrivacyStatus,
       addObject, select, setEditingTextId, setActiveTool, setDrawingObject,
     ]
   );
@@ -249,6 +252,7 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
         compositionCanvas: compositionCanvasRef.current,
         setOcrRegion,
         setOcrStatus,
+        setOcrProgress,
         setOcrText,
         setOcrError,
         ocrRequestIdRef,
@@ -284,7 +288,7 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
     setDrawingObject(null);
   }, [
     drawingObject, setDrawingObject, compositionCanvasRef, addObject, select, setActiveTool, setEditingTextId,
-    setOcrRegion, setOcrStatus, setOcrText, setOcrError, ocrRequestIdRef, setScope, setSelectionRect, setPrivacyStatus,
+    setOcrRegion, setOcrStatus, setOcrProgress, setOcrText, setOcrError, ocrRequestIdRef, setScope, setSelectionRect, setPrivacyStatus,
   ]);
 
   return { handleMouseDown, handleMouseMove, handleMouseUp, drawingObject };

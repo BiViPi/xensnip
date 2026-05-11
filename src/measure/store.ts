@@ -16,7 +16,8 @@ interface MeasureStore {
   colorPickerFrozen: boolean;
   ocrRegion: { x: number; y: number; width: number; height: number } | null;
   ocrText: string;
-  ocrStatus: 'idle' | 'selecting' | 'running' | 'ready' | 'error';
+  ocrStatus: 'idle' | 'selecting' | 'loading' | 'running' | 'ready' | 'error';
+  ocrProgress: number;
   ocrError: string | null;
 
   setActiveUtility: (utility: MeasureUtilityToolId | null) => void;
@@ -28,6 +29,7 @@ interface MeasureStore {
   setOcrRegion: (region: MeasureStore['ocrRegion']) => void;
   setOcrText: (text: string) => void;
   setOcrStatus: (status: MeasureStore['ocrStatus']) => void;
+  setOcrProgress: (progress: number) => void;
   setOcrError: (error: string | null) => void;
 }
 
@@ -41,6 +43,7 @@ export const useMeasureStore = create<MeasureStore>((set) => ({
   ocrRegion: null,
   ocrText: '',
   ocrStatus: 'idle',
+  ocrProgress: 0,
   ocrError: null,
 
   setActiveUtility: (activeUtility) => set({ activeUtility, colorPickerFrozen: false }),
@@ -52,5 +55,6 @@ export const useMeasureStore = create<MeasureStore>((set) => ({
   setOcrRegion: (ocrRegion) => set({ ocrRegion }),
   setOcrText: (ocrText) => set({ ocrText }),
   setOcrStatus: (ocrStatus) => set({ ocrStatus }),
+  setOcrProgress: (ocrProgress) => set({ ocrProgress }),
   setOcrError: (ocrError) => set({ ocrError }),
 }));

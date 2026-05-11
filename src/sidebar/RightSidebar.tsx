@@ -247,7 +247,7 @@ function StepsTools({ onClose }: { onClose: () => void }) {
 function CropTools({ onClose }: { onClose: () => void }) {
   const tools = [
     { id: 'crop', label: 'Crop', icon: CropIcon, hint: 'Crop — drag handles to crop' },
-    { id: 'canvas', label: 'Canvas Size', icon: SquareIcon, hint: 'Canvas Size — coming soon', disabled: true },
+
   ] satisfies AnnotationFeatureToolItem[];
   return <ToolGrid tools={tools} onClose={onClose} />;
 }

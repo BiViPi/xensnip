@@ -55,6 +55,7 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
     ocrRegion,
     setOcrRegion,
     setOcrStatus,
+    setOcrProgress,
     setOcrText,
     setOcrError,
   } = useMeasureStore();
@@ -77,18 +78,20 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
     ocrRequestIdRef.current += 1;
     setOcrRegion(null);
     setOcrStatus('idle');
+    setOcrProgress(0);
     setOcrText('');
     setOcrError(null);
 
     if (activeUtility !== 'smart_redact_ai') {
       resetPrivacy();
     }
-  }, [activeUtility, setOcrError, setOcrRegion, setOcrStatus, setOcrText, resetPrivacy]);
+  }, [activeUtility, setOcrError, setOcrRegion, setOcrStatus, setOcrProgress, setOcrText, resetPrivacy]);
 
   const dismissOcrResult = () => {
     ocrRequestIdRef.current += 1;
     setOcrRegion(null);
     setOcrStatus('idle');
+    setOcrProgress(0);
     setOcrText('');
     setOcrError(null);
   };
@@ -109,6 +112,7 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
       setColorPickerFrozen,
       setOcrRegion,
       setOcrStatus,
+      setOcrProgress,
       setOcrText,
       setOcrError,
       ocrRequestIdRef,

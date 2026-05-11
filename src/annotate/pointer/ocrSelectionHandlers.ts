@@ -1,5 +1,6 @@
 import { getCompositionCoordinates } from '../../measure/coordinates';
 import { extractTextFromCanvas } from '../../measure/ocr';
+import { isTesseractWorkerReady } from '../../ocr/tesseractWorker';
 import { DrawingOcr } from '../state/drawingTypes';
 import { normalizeRect } from './selectionRect';
 
@@ -7,7 +8,8 @@ const MIN_SELECTION_SIZE = 5;
 
 interface OcrSelectionStartDeps {
   setOcrRegion: (region: { x: number; y: number; width: number; height: number } | null) => void;
-  setOcrStatus: (status: 'idle' | 'selecting' | 'running' | 'ready' | 'error') => void;
+  setOcrStatus: (status: 'idle' | 'selecting' | 'loading' | 'running' | 'ready' | 'error') => void;
+  setOcrProgress: (progress: number) => void;
   setOcrText: (text: string) => void;
   setOcrError: (error: string | null) => void;
 }
@@ -24,6 +26,7 @@ export function beginOcrSelection(
   deps: OcrSelectionStartDeps
 ): DrawingOcr {
   deps.setOcrRegion(null);
+  deps.setOcrProgress(0);
   deps.setOcrText('');
   deps.setOcrError(null);
   deps.setOcrStatus('selecting');
@@ -52,7 +55,14 @@ export function completeOcrSelection(
   }
 
   deps.setOcrRegion(selection);
-  deps.setOcrStatus('running');
+  
+  if (!isTesseractWorkerReady()) {
+    deps.setOcrStatus('loading');
+    deps.setOcrProgress(0);
+  } else {
+    deps.setOcrStatus('running');
+  }
+
   deps.setOcrText('');
   deps.setOcrError(null);
 
@@ -67,6 +77,17 @@ export function completeOcrSelection(
     y: region.y,
     width: regionWidth,
     height: regionHeight,
+  }, {
+    onProgress: (progress) => {
+      if (deps.ocrRequestIdRef.current === reqId) {
+        deps.setOcrProgress(progress);
+      }
+    },
+    onWorkerReady: () => {
+      if (deps.ocrRequestIdRef.current === reqId) {
+        deps.setOcrStatus('running');
+      }
+    }
   })
     .then((text) => {
       if (deps.ocrRequestIdRef.current === reqId) {

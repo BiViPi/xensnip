@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Active Window capture coordinate accuracy on non-100% DPI monitors.
+- Removed the non-functional Canvas Size placeholder from the Crop & Canvas sidebar menu.
+- OCR first use now shows a loading indicator with download progress while the Tesseract model downloads.
+- OCR failures now show the reason in the toolbar chip instead of a generic error label.
+- Subsequent OCR requests in the same session skip the loading phase once the worker is ready.
 
 ### Known Limitations
 - Cross-monitor mixed-DPI region capture is not yet validated.

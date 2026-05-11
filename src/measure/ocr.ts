@@ -2,7 +2,11 @@ import { getTesseractWorker, terminateTesseractWorker } from '../ocr/tesseractWo
 
 export async function extractTextFromCanvas(
   canvas: HTMLCanvasElement,
-  region: { x: number; y: number; width: number; height: number }
+  region: { x: number; y: number; width: number; height: number },
+  hooks?: {
+    onProgress?: (p: number) => void;
+    onWorkerReady?: () => void;
+  }
 ): Promise<string> {
   const tempCanvas = document.createElement('canvas');
   tempCanvas.width = region.width;
@@ -17,7 +21,8 @@ export async function extractTextFromCanvas(
     0, 0, region.width, region.height
   );
 
-  const worker = await getTesseractWorker();
+  const worker = await getTesseractWorker(hooks?.onProgress);
+  hooks?.onWorkerReady?.();
   const { data: { text } } = await worker.recognize(tempCanvas);
   return text;
 }
