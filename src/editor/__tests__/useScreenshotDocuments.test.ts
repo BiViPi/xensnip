@@ -98,6 +98,7 @@ describe('useScreenshotDocuments', () => {
       }),
       cropBounds: createCropBounds({ x: 10, y: 10, w: 100, h: 100 }),
       undoStack: [],
+      redoStack: [],
     };
 
     act(() => {

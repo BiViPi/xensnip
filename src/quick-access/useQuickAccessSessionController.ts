@@ -25,6 +25,7 @@ interface SessionControllerInput {
 
   // undo stack — shared ref from useEditorUndoStack; mutated directly
   undoStackRef: React.MutableRefObject<DocumentUndoSnapshot[]>;
+  redoStackRef: React.MutableRefObject<DocumentUndoSnapshot[]>;
 
   // crop flow — needed to cancel active crop before a document switch
   activeTool: string;
@@ -56,6 +57,7 @@ export function useQuickAccessSessionController(
     setImage,
     setCropBounds,
     undoStackRef,
+    redoStackRef,
     activeTool,
     cancelCrop,
     releaseDocument,
@@ -75,10 +77,11 @@ export function useQuickAccessSessionController(
       },
       cropBounds: cropBounds ? { ...cropBounds } : null,
       undoStack: [...undoStackRef.current],
+      redoStack: [...redoStackRef.current],
       image: image || undefined,
     };
     switchToDocument(activeId, snap);
-  }, [activeIdRef, cropBounds, image, switchToDocument, undoStackRef]);
+  }, [activeIdRef, cropBounds, image, switchToDocument, undoStackRef, redoStackRef]);
 
   const handleSwitchDocument = useCallback(
     (nextId: string) => {
@@ -98,6 +101,7 @@ export function useQuickAccessSessionController(
         },
         cropBounds: cropBounds ?? null,
         undoStack: [...undoStackRef.current],
+        redoStack: [...redoStackRef.current],
         image: image ?? undefined,
       };
 
@@ -109,6 +113,7 @@ export function useQuickAccessSessionController(
       useAnnotationStore.getState().restoreSnapshot(nextDoc.annotation);
       setCropBounds(nextDoc.cropBounds);
       undoStackRef.current = [...nextDoc.undoStack];
+      redoStackRef.current = [...nextDoc.redoStack];
     },
     [
       activeIdRef,
@@ -121,6 +126,7 @@ export function useQuickAccessSessionController(
       setImage,
       switchToDocument,
       undoStackRef,
+      redoStackRef,
     ]
   );
 
@@ -139,15 +145,17 @@ export function useQuickAccessSessionController(
           useAnnotationStore.getState().restoreSnapshot(nextDoc.annotation);
           setCropBounds(nextDoc.cropBounds);
           undoStackRef.current = [...nextDoc.undoStack];
+          redoStackRef.current = [...nextDoc.redoStack];
         }
       } else if (remainingDocs.length === 0) {
         setImage(null);
         useAnnotationStore.getState().clearAll();
         setCropBounds(null);
         undoStackRef.current = [];
+        redoStackRef.current = [];
       }
     },
-    [removeDocument, releaseDocument, setImage, setCropBounds, undoStackRef]
+    [removeDocument, releaseDocument, setImage, setCropBounds, undoStackRef, redoStackRef]
   );
 
   const handleClearAllInSession = useCallback(() => {
@@ -164,12 +172,15 @@ export function useQuickAccessSessionController(
         },
         cropBounds: null,
         undoStack: [],
+        redoStack: [],
       });
       void generateThumbnail(doc.image).then((thumb) => {
         patchDocument(doc.id, { thumbnailSrc: thumb });
       });
     });
-  }, [documents, patchDocument]);
+    undoStackRef.current = [];
+    redoStackRef.current = [];
+  }, [documents, patchDocument, undoStackRef, redoStackRef]);
 
   return {
     flushActiveDocument,

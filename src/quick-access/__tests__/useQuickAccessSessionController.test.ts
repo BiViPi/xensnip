@@ -35,6 +35,7 @@ describe('useQuickAccessSessionController', () => {
       setImage: vi.fn<SessionControllerDeps['setImage']>(),
       setCropBounds: vi.fn<SessionControllerDeps['setCropBounds']>(),
       undoStackRef: createRef<DocumentUndoSnapshot[]>([]),
+      redoStackRef: createRef<DocumentUndoSnapshot[]>([]),
       activeTool: 'select',
       cancelCrop: vi.fn<SessionControllerDeps['cancelCrop']>(),
       releaseDocument: vi.fn<SessionControllerDeps['releaseDocument']>(),
@@ -48,6 +49,7 @@ describe('useQuickAccessSessionController', () => {
       annotation: createAnnotationSnapshot(),
       cropBounds: null,
       undoStack: [],
+      redoStack: [],
     });
     deps.docsRef.current = [doc2];
     deps.activeIdRef.current = '1';
@@ -87,6 +89,12 @@ describe('useQuickAccessSessionController', () => {
     const deps = createMockDeps();
     const doc1 = createScreenshotDocument('1');
     deps.documents = [doc1];
+    deps.undoStackRef.current = [
+      { imageSrc: 'undo', annotation: createAnnotationSnapshot(), cropBounds: null },
+    ];
+    deps.redoStackRef.current = [
+      { imageSrc: 'redo', annotation: createAnnotationSnapshot(), cropBounds: null },
+    ];
     
     const { result } = renderHook(() => useQuickAccessSessionController(deps));
 
@@ -96,7 +104,10 @@ describe('useQuickAccessSessionController', () => {
 
     expect(deps.patchDocument).toHaveBeenCalledWith('1', expect.objectContaining({
       cropBounds: null,
-      undoStack: []
+      undoStack: [],
+      redoStack: []
     }));
+    expect(deps.undoStackRef.current).toEqual([]);
+    expect(deps.redoStackRef.current).toEqual([]);
   });
 });

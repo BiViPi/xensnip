@@ -25,6 +25,7 @@ interface UseAssetBootstrapDeps {
   setSettings: (s: Settings) => void;
   setPreset: (p: EditorPreset) => void;
   undoStackRef: React.MutableRefObject<DocumentUndoSnapshot[]>;
+  redoStackRef: React.MutableRefObject<DocumentUndoSnapshot[]>;
 }
 
 export function useAssetBootstrap(deps: UseAssetBootstrapDeps): {
@@ -44,6 +45,7 @@ export function useAssetBootstrap(deps: UseAssetBootstrapDeps): {
     setSettings,
     setPreset,
     undoStackRef,
+    redoStackRef,
   } = deps;
 
   const [isLoading, setIsLoading] = useState(true);
@@ -103,6 +105,7 @@ export function useAssetBootstrap(deps: UseAssetBootstrapDeps): {
         cropBounds: null,
         isExportChecked: true, // Default to checked for export
         undoStack: [],
+        redoStack: [],
         createdAt: Date.now(),
       };
 
@@ -115,6 +118,7 @@ export function useAssetBootstrap(deps: UseAssetBootstrapDeps): {
       useAnnotationStore.getState().clearAll();
       setCropBounds(null);
       undoStackRef.current = [];
+      redoStackRef.current = [];
 
       setIsLoading(false); // UI becomes usable here immediately after image is ready
 
@@ -175,6 +179,7 @@ export function useAssetBootstrap(deps: UseAssetBootstrapDeps): {
     setPreset,
     patchDocument,
     undoStackRef,
+    redoStackRef,
   ]);
 
   const bootstrapAssetRef = useRef(bootstrapAsset);

@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - OCR first use now shows a loading indicator with download progress while the Tesseract model downloads.
 - OCR failures now show the reason in the toolbar chip instead of a generic error label.
 - Subsequent OCR requests in the same session skip the loading phase once the worker is ready.
+- Redo support via `Ctrl+Y` or `Ctrl+Shift+Z`, with redo stacks preserved per document across document switches.
+- Arrow-key nudge now moves selected annotations by 1 px, or 10 px with `Shift`.
+- Added a `Shift` guard to `Ctrl+Z` so redo shortcuts do not accidentally trigger undo.
 
 ### Known Limitations
 - Cross-monitor mixed-DPI region capture is not yet validated.

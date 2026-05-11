@@ -3,10 +3,11 @@ import { useAnnotationStore } from '../annotate/state/store';
 
 interface KeyboardShortcutsOptions {
   onUndo?: () => void;
+  onRedo?: () => void;
 }
 
-export function useKeyboardShortcuts({ onUndo }: KeyboardShortcutsOptions = {}) {
-  const { selectedId, select, removeObject, setActiveTool, activeTool } = useAnnotationStore();
+export function useKeyboardShortcuts({ onUndo, onRedo }: KeyboardShortcutsOptions = {}) {
+  const { selectedId, select, removeObject, setActiveTool, activeTool, nudgeObject } = useAnnotationStore();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -19,9 +20,30 @@ export function useKeyboardShortcuts({ onUndo }: KeyboardShortcutsOptions = {}) 
         return;
       }
 
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+      // Ctrl+Z (no Shift) — undo
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z') {
         e.preventDefault();
         onUndo?.();
+        return;
+      }
+
+      // Ctrl+Y or Ctrl+Shift+Z — redo
+      if (
+        ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') ||
+        ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'z')
+      ) {
+        e.preventDefault();
+        onRedo?.();
+        return;
+      }
+
+      // Arrow nudge (annotation must be selected)
+      if (selectedId && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        e.preventDefault();
+        const delta = e.shiftKey ? 10 : 1;
+        const dx = e.key === 'ArrowLeft' ? -delta : e.key === 'ArrowRight' ? delta : 0;
+        const dy = e.key === 'ArrowUp' ? -delta : e.key === 'ArrowDown' ? delta : 0;
+        nudgeObject(selectedId, dx, dy);
         return;
       }
 
@@ -41,5 +63,5 @@ export function useKeyboardShortcuts({ onUndo }: KeyboardShortcutsOptions = {}) 
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedId, select, removeObject, setActiveTool, activeTool, onUndo]);
+  }, [selectedId, select, removeObject, setActiveTool, activeTool, onUndo, onRedo, nudgeObject]);
 }

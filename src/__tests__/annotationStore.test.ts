@@ -58,4 +58,22 @@ describe('annotationStore', () => {
     expect(state.selectedId).toBeNull();
     expect(state.activeTool).toBe('rectangle');
   });
+
+  it('nudgeObject updates x and y relative to current position', () => {
+    useAnnotationStore.getState().addObject({ ...makeArrow('a1'), x: 10, y: 20 });
+    useAnnotationStore.getState().nudgeObject('a1', 5, -2);
+    
+    const obj = useAnnotationStore.getState().objects[0];
+    expect(obj.x).toBe(15);
+    expect(obj.y).toBe(18);
+  });
+
+  it('nudgeObject is a no-op when id is not found', () => {
+    useAnnotationStore.getState().addObject(makeArrow('a1'));
+    useAnnotationStore.getState().nudgeObject('nonexistent', 1, 1);
+    
+    const obj = useAnnotationStore.getState().objects[0];
+    expect(obj.x).toBe(0);
+    expect(obj.y).toBe(0);
+  });
 });

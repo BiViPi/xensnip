@@ -25,6 +25,7 @@ export interface ScreenshotDocument {
   cropBounds: CropBounds | null;
   isExportChecked: boolean;
   undoStack: DocumentUndoSnapshot[];
+  redoStack: DocumentUndoSnapshot[];
   createdAt: number;
 }
 
@@ -35,6 +36,7 @@ export interface DocumentStateSnapshot {
   annotation: AnnotationSnapshot;
   cropBounds: CropBounds | null;
   undoStack: DocumentUndoSnapshot[];
+  redoStack: DocumentUndoSnapshot[];
   image?: HTMLImageElement; // Added to support persisting image changes (crops)
 }
 
@@ -118,6 +120,7 @@ export function useScreenshotDocuments() {
               annotation: { ...currentSnapshot.annotation }, 
               cropBounds: currentSnapshot.cropBounds,
               undoStack: [...currentSnapshot.undoStack],
+              redoStack: [...currentSnapshot.redoStack],
               image: currentSnapshot.image || doc.image,
             } 
           : doc

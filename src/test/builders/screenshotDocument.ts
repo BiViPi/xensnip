@@ -78,6 +78,7 @@ export function createScreenshotDocument(
     cropBounds: null,
     isExportChecked: false,
     undoStack: [],
+    redoStack: [],
     createdAt: Number(id) || Date.now(),
     ...overrides,
   };

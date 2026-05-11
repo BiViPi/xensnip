@@ -21,9 +21,12 @@ export function useEditorUndoStack({
 }: UseEditorUndoStackDeps): {
   pushHistorySnapshot: () => void;
   handleUndo: () => Promise<void>;
+  handleRedo: () => Promise<void>;
   undoStackRef: React.MutableRefObject<DocumentUndoSnapshot[]>;
+  redoStackRef: React.MutableRefObject<DocumentUndoSnapshot[]>;
 } {
   const undoStackRef = useRef<DocumentUndoSnapshot[]>([]);
+  const redoStackRef = useRef<DocumentUndoSnapshot[]>([]);
 
   const buildAnnotationSnapshot = useCallback(() => {
     const s = useAnnotationStore.getState();
@@ -73,11 +76,22 @@ export function useEditorUndoStack({
     if (undoStackRef.current.length > HISTORY_LIMIT) {
       undoStackRef.current.shift();
     }
+    // New action invalidates the redo future
+    redoStackRef.current = [];
   }, [buildSnapshot]);
 
   const handleUndo = useCallback(async () => {
     const snapshot = undoStackRef.current.pop();
     if (!snapshot) return;
+
+    // Capture current state to redo stack before applying undo
+    const currentSnapshot = buildSnapshot();
+    if (currentSnapshot) {
+      redoStackRef.current.push(currentSnapshot);
+      if (redoStackRef.current.length > HISTORY_LIMIT) {
+        redoStackRef.current.shift();
+      }
+    }
 
     try {
       const restoredImage = await loadSnapshotImage(snapshot.imageSrc);
@@ -89,8 +103,39 @@ export function useEditorUndoStack({
       });
     } catch (error) {
       console.error("Undo restore failed", error);
+      // Rollback stacks
+      undoStackRef.current.push(snapshot);
+      redoStackRef.current.pop();
     }
-  }, [loadSnapshotImage, setImage, setCropBounds]);
+  }, [buildSnapshot, loadSnapshotImage, setImage, setCropBounds]);
 
-  return { pushHistorySnapshot, handleUndo, undoStackRef };
+  const handleRedo = useCallback(async () => {
+    const snapshot = redoStackRef.current.pop();
+    if (!snapshot) return;
+
+    // Capture current state to undo stack before applying redo
+    const currentSnapshot = buildSnapshot();
+    if (currentSnapshot) {
+      undoStackRef.current.push(currentSnapshot);
+      if (undoStackRef.current.length > HISTORY_LIMIT) {
+        undoStackRef.current.shift();
+      }
+    }
+
+    try {
+      const restoredImage = await loadSnapshotImage(snapshot.imageSrc);
+      withHistorySuspended(() => {
+        setImage(restoredImage);
+        useAnnotationStore.getState().restoreSnapshot(snapshot.annotation);
+        setCropBounds(snapshot.cropBounds ? { ...snapshot.cropBounds } : null);
+      });
+    } catch (error) {
+      console.error("Redo restore failed", error);
+      // Rollback stacks
+      redoStackRef.current.push(snapshot);
+      undoStackRef.current.pop();
+    }
+  }, [buildSnapshot, loadSnapshotImage, setImage, setCropBounds]);
+
+  return { pushHistorySnapshot, handleUndo, handleRedo, undoStackRef, redoStackRef };
 }

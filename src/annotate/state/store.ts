@@ -26,11 +26,12 @@ interface AnnotationState {
   setToolbarCollapsed: (collapsed: boolean) => void;
   clearAll: () => void;
   restoreSnapshot: (snapshot: AnnotationSnapshot) => void;
+  nudgeObject: (id: string, dx: number, dy: number) => void;
 }
 
 const cloneObjects = (objects: AnnotateObject[]) => objects.map((obj) => ({ ...obj })) as AnnotateObject[];
 
-export const useAnnotationStore = create<AnnotationState>((set) => ({
+export const useAnnotationStore = create<AnnotationState>((set, get) => ({
   activeTool: 'select',
   objects: [],
   selectedId: null,
@@ -48,6 +49,11 @@ export const useAnnotationStore = create<AnnotationState>((set) => ({
       objects: state.objects.map((o) => (o.id === id ? { ...o, ...patch } as AnnotateObject : o)),
     };
   }),
+  nudgeObject: (id, dx, dy) => {
+    const target = get().objects.find((o) => o.id === id);
+    if (!target) return;
+    get().updateObject(id, { x: target.x + dx, y: target.y + dy });
+  },
   removeObject: (id) => set((state) => {
     recordHistorySnapshot();
     return {

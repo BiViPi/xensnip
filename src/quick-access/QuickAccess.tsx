@@ -102,7 +102,7 @@ export function QuickAccess() {
   });
 
   // ── 3. Undo stack ───────────────────────────────────────────────────────
-  const { pushHistorySnapshot, handleUndo, undoStackRef } = useEditorUndoStack({
+  const { pushHistorySnapshot, handleUndo, handleRedo, undoStackRef, redoStackRef } = useEditorUndoStack({
     image,
     cropBounds,
     setImage,
@@ -123,6 +123,7 @@ export function QuickAccess() {
       setImage,
       setCropBounds,
       undoStackRef,
+      redoStackRef,
       activeTool,
       cancelCrop,
       releaseDocument,
@@ -141,6 +142,7 @@ export function QuickAccess() {
     setSettings,
     setPreset,
     undoStackRef,
+    redoStackRef,
   });
 
   // ── Lifecycle ───────────────────────────────────────────────────────────
@@ -178,7 +180,10 @@ export function QuickAccess() {
     toastTimerRef.current = setTimeout(() => setToast(null), 3000);
   }, []);
 
-  useKeyboardShortcuts({ onUndo: () => void handleUndo() });
+  useKeyboardShortcuts({
+    onUndo: () => void handleUndo(),
+    onRedo: () => void handleRedo(),
+  });
 
   useEffect(() => {
     registerHistoryRecorder(pushHistorySnapshot);
