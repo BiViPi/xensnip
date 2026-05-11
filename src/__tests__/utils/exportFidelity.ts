@@ -5,8 +5,8 @@
  * for the Workstream 2 export matrix.
  *
  * API:
- *   createTestImage(w, h)         → byte-stable 800×600 gradient+grid PNG
- *   assertExportFidelity(bytes, case) → FidelityResult with pass/fail
+ *   createTestImage(w, h) -> byte-stable 800x600 gradient+grid PNG
+ *   assertExportFidelity(bytes, case) -> FidelityResult with pass/fail
  *
  * When UPDATE_BASELINES=1 is set, assertExportFidelity writes the actual
  * bytes as the new baseline and returns pass: true.
@@ -19,10 +19,10 @@ import pixelmatch from 'pixelmatch';
 import { PNG } from 'pngjs';
 import '../setup/konva-headless';
 
-// ── Types ────────────────────────────────────────────────────────────────────
+// Types
 
 export interface FidelityTolerance {
-  /** Maximum percentage of differing pixels across the entire image (0–100). */
+  /** Maximum percentage of differing pixels across the entire image (0-100). */
   totalDiffPercent: number;
   /** Maximum pixels allowed to differ outside the annotation's objectBounds. */
   outsideObjectMaxPixels?: number;
@@ -45,17 +45,17 @@ export interface FidelityResult {
   diffPath?: string;
 }
 
-// ── Paths ────────────────────────────────────────────────────────────────────
+// Paths
 
 const FIXTURES_DIR = path.resolve(
   __dirname,
   '../__fixtures__/export-fidelity'
 );
 
-// ── Deterministic test image ─────────────────────────────────────────────────
+// Deterministic test image
 
 /**
- * Creates an 800×600 gradient + grid image. The gradient and grid are
+ * Creates an 800x600 gradient + grid image. The gradient and grid are
  * computed deterministically so two consecutive calls produce byte-identical
  * PNG buffers.
  */
@@ -63,7 +63,7 @@ export function createTestImageBuffer(w = 800, h = 600): Buffer {
   const canvas = createCanvas(w, h);
   const ctx = canvas.getContext('2d');
 
-  // Gradient background: top-left blue → bottom-right teal
+  // Gradient background: top-left blue -> bottom-right teal
   const grad = ctx.createLinearGradient(0, 0, w, h);
   grad.addColorStop(0, '#1e3a5f');
   grad.addColorStop(0.5, '#2d6a8a');
@@ -101,12 +101,11 @@ export function createTestImageBuffer(w = 800, h = 600): Buffer {
 export async function createTestImageElement(w = 800, h = 600): Promise<HTMLImageElement> {
   const { loadImage } = await import('canvas');
   const buffer = createTestImageBuffer(w, h);
-  // loadImage accepts a Buffer and returns a node-canvas Image
   const img = await loadImage(buffer);
   return img as unknown as HTMLImageElement;
 }
 
-// ── PNG decode helper ────────────────────────────────────────────────────────
+// PNG decode helper
 
 function decodePng(buffer: Buffer): { data: Buffer; width: number; height: number } {
   const png = PNG.sync.read(buffer);
@@ -115,7 +114,7 @@ function decodePng(buffer: Buffer): { data: Buffer; width: number; height: numbe
 
 /**
  * Decode a JPEG or PNG Uint8Array to raw RGBA via node-canvas.
- * We re-draw to a canvas to get a consistent RGBA buffer.
+ * We redraw to a canvas to get a consistent RGBA buffer.
  */
 async function decodeToRgba(
   bytes: Uint8Array,
@@ -124,7 +123,7 @@ async function decodeToRgba(
   if (mimeType === 'png') {
     return decodePng(Buffer.from(bytes));
   }
-  // JPEG: use node-canvas loadImage to decode, then read pixels
+
   const { loadImage } = await import('canvas');
   const img = await loadImage(Buffer.from(bytes));
   const c = createCanvas(img.width, img.height);
@@ -134,7 +133,7 @@ async function decodeToRgba(
   return { data: Buffer.from(imageData.data.buffer), width: img.width, height: img.height };
 }
 
-// ── Core fidelity assertion ──────────────────────────────────────────────────
+// Core fidelity assertion
 
 export async function assertExportFidelity(
   actualBytes: Uint8Array,
@@ -147,14 +146,12 @@ export async function assertExportFidelity(
     fidelityCase.baselineName.replace(/\.png$/, '.diff.png')
   );
 
-  // UPDATE_BASELINES mode: write and return pass
-  // Baselines are ALWAYS stored as PNG (even for JPEG format rows) so the
-  // decodePng() path works consistently during comparison.
+  // UPDATE_BASELINES mode: write and return pass.
+  // Baselines are always stored as PNG, even for JPEG rows.
   if (process.env.UPDATE_BASELINES === '1') {
     fs.mkdirSync(baselineDir, { recursive: true });
     let baselineBuffer: Buffer;
     if (fidelityCase.format === 'jpeg') {
-      // Re-encode JPEG output as PNG for baseline storage
       const decoded = await decodeToRgba(actualBytes, 'jpeg');
       const png = new PNG({ width: decoded.width, height: decoded.height });
       png.data = decoded.data;
@@ -169,7 +166,6 @@ export async function assertExportFidelity(
     return { pass: true, totalDiffPercent: 0, outsideObjectDiffPixels: 0 };
   }
 
-  // Normal mode: compare against committed baseline
   if (!fs.existsSync(baselinePath)) {
     throw new Error(
       `Baseline not found: ${baselinePath}\n` +
@@ -178,10 +174,9 @@ export async function assertExportFidelity(
   }
 
   const baselineBuffer = fs.readFileSync(baselinePath);
-  // Baseline is always stored as PNG. Actual is in fidelityCase.format.
   const [actual, baseline] = await Promise.all([
     decodeToRgba(actualBytes, fidelityCase.format),
-    decodePng(baselineBuffer), // baselines are always PNG
+    decodePng(baselineBuffer),
   ]);
 
   if (actual.width !== baseline.width || actual.height !== baseline.height) {
@@ -195,7 +190,7 @@ export async function assertExportFidelity(
 
   const { width, height } = baseline;
   const totalPixels = width * height;
-  const diffData = Buffer.alloc(totalPixels * 4, 0); // initialize to zero
+  const diffData = Buffer.alloc(totalPixels * 4, 0);
 
   const pixelDiff = pixelmatch(
     actual.data,
@@ -203,12 +198,12 @@ export async function assertExportFidelity(
     diffData,
     width,
     height,
-    { threshold: 0.1, includeAA: true }
+    { threshold: 0.1, includeAA: true, diffMask: true }
   );
 
   const totalDiffPercent = (pixelDiff / totalPixels) * 100;
 
-  // Outside-object pixel check — only meaningful when there are actual diffs
+  // Outside-object pixel check is only meaningful when there are actual diffs.
   let outsideObjectDiffPixels = 0;
   if (pixelDiff > 0 && fidelityCase.objectBounds) {
     const { x: ox, y: oy, w: ow, h: oh } = fidelityCase.objectBounds;
@@ -217,7 +212,7 @@ export async function assertExportFidelity(
         const inBounds = px >= ox && px < ox + ow && py >= oy && py < oy + oh;
         if (!inBounds) {
           const idx = (py * width + px) * 4;
-          // pixelmatch marks diff pixels with a distinct red color (non-zero r and non-zero alpha)
+          // With diffMask enabled, only true diff pixels keep a visible alpha channel.
           if (diffData[idx + 3] > 128) {
             outsideObjectDiffPixels++;
           }

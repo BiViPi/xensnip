@@ -305,3 +305,21 @@
     transform: translateX(0) scale(1);
   }
 }
+
+.xs-beta-dot {
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #f59e0b; /* Amber */
+  border: 1px solid var(--surface-base);
+  pointer-events: none;
+  z-index: 2;
+  box-shadow: 0 0 4px rgba(245, 158, 11, 0.4);
+}
+
+[data-theme='light'] .xs-beta-dot {
+  border-color: #fff;
+}

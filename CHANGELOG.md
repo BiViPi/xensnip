@@ -20,6 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Redo support via `Ctrl+Y` or `Ctrl+Shift+Z`, with redo stacks preserved per document across document switches.
 - Arrow-key nudge now moves selected annotations by 1 px, or 10 px with `Shift`.
 - Added a `Shift` guard to `Ctrl+Z` so redo shortcuts do not accidentally trigger undo.
+- Beta indicators now appear on Tier 2 sidebar groups: Steps & Callouts, Focus & Polish, and Measure & Extract.
+- Promoted `speech_bubble` and `freehand_arrow` to Tier 1 after they passed the export fidelity matrix.
+- Formalized Smart Redact AI as a retained hidden Tier 3 feature for future R&D work (see `docs/11-decisions/TDR-004-smart-redact-direction.md`).
 
 ### Known Limitations
 - Cross-monitor mixed-DPI region capture is not yet validated.
