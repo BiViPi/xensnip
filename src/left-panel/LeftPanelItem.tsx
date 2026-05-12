@@ -1,5 +1,6 @@
 import { Pen, X } from 'lucide-react';
 import { ScreenshotDocument } from '../editor/useScreenshotDocuments';
+import { Tooltip } from '../editor/Tooltip';
 
 interface Props {
   doc: ScreenshotDocument;
@@ -23,13 +24,15 @@ export function LeftPanelItem({
     <div className={`xs-left-item-wrapper ${isActive ? 'is-active' : ''}`}>
       <div className="xs-left-active-rail" />
       
-      <div 
-        className={`xs-left-export-dot ${doc.isExportChecked ? 'is-checked' : ''}`}
-        onClick={(e) => {
-          e.stopPropagation();
-          onToggleCheck();
-        }}
-      />
+      <Tooltip text="Mark for Export" position="right">
+        <div 
+          className={`xs-left-export-dot ${doc.isExportChecked ? 'is-checked' : ''}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleCheck();
+          }}
+        />
+      </Tooltip>
 
       <div className="xs-left-item-card" onClick={onSelect}>
         <div className="xs-left-thumb-container">
@@ -42,16 +45,17 @@ export function LeftPanelItem({
           </div>
         )}
 
-        <button 
-          className="xs-left-item-badge delete-btn"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete();
-          }}
-          title="Delete"
-        >
-          <X size={16} />
-        </button>
+        <Tooltip text="Delete" position="top">
+          <button 
+            className="xs-left-item-badge delete-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+          >
+            <X size={16} />
+          </button>
+        </Tooltip>
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import { useAnnotationStore } from '../state/store';
 import { NumberedObject } from '../state/types';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 import { PaletteIcon } from './ToolbarIcons';
+import { Tooltip } from '../../editor/Tooltip';
 
 interface Props {
   anchor: { left: number; top: number; width: number; height: number };
@@ -33,34 +34,38 @@ export function NumberedToolbar({ anchor, obj }: Props) {
         pointerEvents: 'auto'
       }}
     >
-      <button 
-        className="xs-toolbar-btn xs-toolbar-toggle"
-        onClick={() => setToolbarCollapsed(!toolbarCollapsed)}
-      >
-        {toolbarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
-      </button>
+      <Tooltip text={toolbarCollapsed ? "Expand Toolbar" : "Collapse Toolbar"} position="top">
+        <button 
+          className="xs-toolbar-btn xs-toolbar-toggle"
+          onClick={() => setToolbarCollapsed(!toolbarCollapsed)}
+        >
+          {toolbarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+        </button>
+      </Tooltip>
 
       {!toolbarCollapsed && (
         <div className="xs-toolbar-section">
           <div className="xs-toolbar-divider" />
           <div style={{ position: 'relative' }}>
-            <button
-              className={`xs-toolbar-btn ${showColors ? 'active' : ''}`}
-              onClick={() => setShowColors(!showColors)}
-              title="Marker Color"
-            >
-              <PaletteIcon />
-            </button>
+            <Tooltip text="Marker Color" position="top">
+              <button
+                className={`xs-toolbar-btn ${showColors ? 'active' : ''}`}
+                onClick={() => setShowColors(!showColors)}
+              >
+                <PaletteIcon />
+              </button>
+            </Tooltip>
             {showColors && (
               <div className="xs-toolbar-slider-popover xs-color-popover">
                 {COLORS.map(c => (
-                  <button
-                    key={c}
-                    className={`xs-color-chip ${obj.fill === c ? 'active' : ''}`}
-                    style={{ background: c }}
-                    onClick={() => updateObject(obj.id, { fill: c })}
-                    title={c}
-                  />
+                  <Tooltip key={c} text={c} position="top">
+                    <button
+                      key={c}
+                      className={`xs-color-chip ${obj.fill === c ? 'active' : ''}`}
+                      style={{ background: c }}
+                      onClick={() => updateObject(obj.id, { fill: c })}
+                    />
+                  </Tooltip>
                 ))}
               </div>
             )}

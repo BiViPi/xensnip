@@ -208,7 +208,8 @@
 
 /* ── Popover ── */
 .xs-sidebar-popover {
-  width: 44px;
+  min-width: 44px;
+  width: auto;
   background: var(--surface-overlay);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
@@ -216,7 +217,6 @@
   border-radius: 16px;
   box-shadow: var(--shadow-popover);
   pointer-events: auto;
-  overflow: hidden;
   animation: popoverIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -322,4 +322,27 @@
 
 [data-theme='light'] .xs-beta-dot {
   border-color: #fff;
+}
+
+/* ── Popover Header ── */
+.xs-popover-header {
+  padding: 6px 6px 4px 6px;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 4px;
+  min-width: 130px;
+}
+
+.xs-popover-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.xs-popover-desc {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+  line-height: 1.3;
 }

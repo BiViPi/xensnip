@@ -1,5 +1,6 @@
 import React from 'react';
 import { StrokeWidthIcon } from './ToolbarIcons';
+import { Tooltip } from '../../editor/Tooltip';
 
 interface Props {
   value: number;
@@ -29,13 +30,14 @@ export function SliderToggle({
 
   return (
     <div style={{ position: 'relative' }}>
-      <button
-        className={`xs-toolbar-btn ${isOpen ? 'active' : ''}`}
-        onClick={() => onToggle(!isOpen)}
-        title={title || "Adjustment"}
-      >
-        {icon || <StrokeWidthIcon />}
-      </button>
+      <Tooltip text={title || "Adjustment"} position="top">
+        <button
+          className={`xs-toolbar-btn ${isOpen ? 'active' : ''}`}
+          onClick={() => onToggle(!isOpen)}
+        >
+          {icon || <StrokeWidthIcon />}
+        </button>
+      </Tooltip>
       {isOpen && (
         <div className="xs-toolbar-slider-popover">
           <div className="xs-compact-slider-row">

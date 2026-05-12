@@ -1,3 +1,4 @@
+import React from "react";
 import { EditorPreset } from "../compose/preset";
 import { 
   RatioIcon, BackgroundIcon, PaddingIcon, RadiusIcon, 
@@ -16,6 +17,7 @@ import { SliderControl } from "./controls/Slider";
 import { ShadowControl } from "./controls/Shadow";
 import { BackgroundControl } from "./controls/Background";
 import { PresetsControl } from "./controls/Presets";
+import { Tooltip } from "./Tooltip";
 
 interface Props {
   preset: EditorPreset;
@@ -40,8 +42,36 @@ export function QuickBar({
   activePop, onActivePopChange, settings, onRefreshSettings, onOpenPresetManager,
   documents, activeDocument, onClearAllSession, onFlush
 }: Props) {
+  const dockRef = React.useRef<HTMLDivElement>(null);
   const hasAnnotations = useHasAnnotations();
   const clearAll = useAnnotationStore(s => s.clearAll);
+
+  React.useEffect(() => {
+    if (!activePop) return;
+
+    const handleClickOutside = (e: PointerEvent) => {
+      if (dockRef.current && !dockRef.current.contains(e.target as Node)) {
+        onActivePopChange(null);
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        onActivePopChange(null);
+      }
+    };
+
+    // Use capture for Escape to ensure we catch it before annotation shortcuts
+    window.addEventListener('keydown', handleKeyDown, true);
+    window.addEventListener('pointerdown', handleClickOutside);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown, true);
+      window.removeEventListener('pointerdown', handleClickOutside);
+    };
+  }, [activePop, onActivePopChange]);
+
   const hasAnyAnnotations = documents.some(d => d.annotation.objects.length > 0 || d.cropBounds !== null) || hasAnnotations;
   const toggle = (n: string) => onActivePopChange(activePop === n ? null : n);
 
@@ -142,15 +172,18 @@ export function QuickBar({
   };
 
   return (
-    <div className="xs-dock">
+    <div className="xs-dock" ref={dockRef}>
       <div style={{ display: 'flex', gap: '8px' }}>
         <div style={{ position: "relative", display: 'flex', width: 'fit-content' }}>
-          <button 
-            className={`xs-btn xs-pill-btn xs-pill-btn-ratio ${activePop === 'ratio' ? 'active' : ''}`}
-            onClick={() => toggle('ratio')}
-          >
-            <span className="xs-ratio-button-icon"><RatioIcon /></span> {preset.ratio} <ChevronIcon />
-          </button>
+          <Tooltip text="Aspect Ratio">
+            <button 
+              className={`xs-btn xs-pill-btn xs-pill-btn-ratio ${activePop === 'ratio' ? 'active' : ''}`}
+              onClick={() => toggle('ratio')}
+              aria-label="Aspect Ratio"
+            >
+              <span className="xs-ratio-button-icon"><RatioIcon /></span> {preset.ratio} <ChevronIcon />
+            </button>
+          </Tooltip>
           {activePop === 'ratio' && (
             <div className="xs-pop">
               {hasAnyAnnotations ? (
@@ -190,9 +223,11 @@ export function QuickBar({
         </div>
 
         <div style={{ position: "relative", display: 'flex', width: 'fit-content' }}>
-          <button className={`xs-btn xs-icon-btn ${activePop === 'background' ? 'active' : ''}`} onClick={() => toggle('background')}>
-            <BackgroundIcon />
-          </button>
+          <Tooltip text="Background">
+            <button className={`xs-btn xs-icon-btn ${activePop === 'background' ? 'active' : ''}`} onClick={() => toggle('background')} aria-label="Background">
+              <BackgroundIcon />
+            </button>
+          </Tooltip>
           {activePop === 'background' && (
             <div className="xs-pop background-pop">
               <BackgroundControl
@@ -208,12 +243,16 @@ export function QuickBar({
 
       <div style={{ display: 'flex', gap: '8px' }}>
         <div style={{ position: 'relative', display: 'flex', width: 'fit-content' }}>
-          <button className={`xs-btn xs-icon-btn ${activePop === 'padding' ? 'active' : ''}`} onClick={() => toggle('padding')}><PaddingIcon /></button>
+          <Tooltip text="Padding">
+            <button className={`xs-btn xs-icon-btn ${activePop === 'padding' ? 'active' : ''}`} onClick={() => toggle('padding')} aria-label="Padding"><PaddingIcon /></button>
+          </Tooltip>
           {activePop === 'padding' && <div className="xs-pop"><SliderControl label="Padding" min={0} max={96} value={preset.padding} onChange={v => setPreset(p => ({ ...p, padding: v }))} /></div>}
         </div>
 
         <div style={{ position: 'relative', display: 'flex', width: 'fit-content' }}>
-          <button className={`xs-btn xs-icon-btn ${activePop === 'radius' ? 'active' : ''}`} onClick={() => toggle('radius')}><RadiusIcon /></button>
+          <Tooltip text="Radius & Border">
+            <button className={`xs-btn xs-icon-btn ${activePop === 'radius' ? 'active' : ''}`} onClick={() => toggle('radius')} aria-label="Radius and Border"><RadiusIcon /></button>
+          </Tooltip>
           {activePop === 'radius' && (
             <div className="xs-pop" style={{ minWidth: '240px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -226,13 +265,14 @@ export function QuickBar({
                     { label: 'White', color: 'rgba(255, 255, 255, 0.95)' },
                     { label: 'Glass', color: 'rgba(186, 230, 253, 0.4)' }
                   ].map(c => (
-                    <button
-                      key={c.color}
-                      className={`xs-color-swatch ${preset.border_color === c.color ? 'active' : ''}`}
-                      style={{ background: c.color }}
-                      onClick={() => setPreset(p => ({ ...p, border_color: c.color }))}
-                      title={c.label}
-                    />
+                    <Tooltip key={c.color} text={c.label} position="top">
+                      <button
+                        className={`xs-color-swatch ${preset.border_color === c.color ? 'active' : ''}`}
+                        style={{ background: c.color }}
+                        onClick={() => setPreset(p => ({ ...p, border_color: c.color }))}
+                        aria-label={`${c.label} border color`}
+                      />
+                    </Tooltip>
                   ))}
                 </div>
               </div>
@@ -241,7 +281,9 @@ export function QuickBar({
         </div>
 
         <div style={{ position: 'relative', display: 'flex', width: 'fit-content' }}>
-          <button className={`xs-btn xs-icon-btn ${activePop === 'shadow' ? 'active' : ''}`} onClick={() => toggle('shadow')}><ShadowIcon /></button>
+          <Tooltip text="Shadow">
+            <button className={`xs-btn xs-icon-btn ${activePop === 'shadow' ? 'active' : ''}`} onClick={() => toggle('shadow')} aria-label="Shadow"><ShadowIcon /></button>
+          </Tooltip>
           {activePop === 'shadow' && (
             <div className="xs-pop light">
               <ShadowControl
@@ -253,7 +295,9 @@ export function QuickBar({
         </div>
 
         <div style={{ position: 'relative', display: 'flex', width: 'fit-content' }}>
-          <button className={`xs-btn xs-icon-btn ${activePop === 'presets' ? 'active' : ''}`} onClick={() => toggle('presets')}><PresetIcon /></button>
+          <Tooltip text="Presets">
+            <button className={`xs-btn xs-icon-btn ${activePop === 'presets' ? 'active' : ''}`} onClick={() => toggle('presets')} aria-label="Presets"><PresetIcon /></button>
+          </Tooltip>
           {activePop === 'presets' && (
             <div className="xs-pop">
               <PresetsControl
@@ -275,13 +319,15 @@ export function QuickBar({
         <button className="xs-btn xs-action-primary" onClick={handleCopy} disabled={isActionInFlight}><CopyIcon /> Copy</button>
         <button className="xs-btn xs-action-secondary" onClick={handleExport} disabled={isActionInFlight}><ExportIcon /> Export</button>
         <div className="xs-divider" />
-        <button 
-          className="xs-btn xs-icon-btn" 
-          onClick={() => void handleOpenSettings()} 
-          title="Settings"
-        >
-          <SettingsIcon />
-        </button>
+        <Tooltip text="Settings">
+          <button 
+            className="xs-btn xs-icon-btn" 
+            onClick={() => void handleOpenSettings()} 
+            aria-label="Settings"
+          >
+            <SettingsIcon />
+          </button>
+        </Tooltip>
       </div>
     </div>
   );

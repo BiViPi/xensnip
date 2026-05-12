@@ -32,7 +32,6 @@
   flex-direction: column;
   z-index: 100;
   transition: width 260ms cubic-bezier(0.22, 1, 0.36, 1);
-  overflow: hidden;
 }
 
 .xs-left-panel.is-collapsed {
@@ -119,11 +118,19 @@
   transform: scale(1.05);
 }
 
-.xs-left-collapsed-handle {
+.xs-left-collapsed-handle-container {
   position: absolute;
   top: 16px;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
+  width: var(--xs-left-rail-width);
+  display: flex;
+  justify-content: center;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.xs-left-collapsed-handle {
+  position: relative;
   width: 32px;
   height: 32px;
   background: var(--accent-primary);
@@ -136,11 +143,11 @@
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: var(--shadow-button-primary);
-  z-index: 2;
+  pointer-events: auto;
 }
 
 .xs-left-collapsed-handle:hover {
-  transform: translateX(-50%) scale(1.04);
+  transform: scale(1.04);
 }
 
 /* Scroll List */

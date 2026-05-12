@@ -27,6 +27,7 @@ import { useAnnotationStore } from '../annotate/state/store';
 import type { ToolId } from '../annotate/state/types';
 import { useMeasureStore, type MeasureUtilityToolId } from '../measure/store';
 import { FEATURES } from './features.config';
+import { Tooltip } from '../editor/Tooltip';
 import './Sidebar.css';
 
 const SHOW_SMART_REDACT_TOOL = false;
@@ -98,13 +99,15 @@ export function RightSidebar() {
         ref={railRef}
         className={`xs-sidebar-rail ${collapsed ? 'collapsed' : ''}`}
       >
-        <button
-          className={`xs-rail-toggle ${!collapsed ? 'active' : ''}`}
-          onClick={toggle}
-          title={collapsed ? 'Open sidebar' : 'Close sidebar'}
-        >
-          {collapsed ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-        </button>
+        <Tooltip text={collapsed ? 'Open sidebar' : 'Close sidebar'} position="left">
+          <button
+            className={`xs-rail-toggle ${!collapsed ? 'active' : ''}`}
+            onClick={toggle}
+            aria-label={collapsed ? 'Open sidebar' : 'Close sidebar'}
+          >
+            {collapsed ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </button>
+        </Tooltip>
 
         {!collapsed && (
           <>
@@ -115,26 +118,27 @@ export function RightSidebar() {
                 : feature.label;
 
               return (
-                <button
-                  key={feature.id}
-                  ref={(node) => {
-                    featureRefs.current[feature.id] = node;
-                  }}
-                  className={`xs-rail-item ${activeFeatureId === feature.id ? 'active' : ''} ${feature.locked ? 'locked' : ''}`}
-                  onClick={() => handleFeatureClick(feature.id, feature.locked)}
-                  disabled={!feature.enabled}
-                  title={title}
-                >
-                  <feature.icon size={32} />
-                  {feature.tier === 'beta' && !feature.locked && (
-                    <div className="xs-beta-dot" aria-label="beta" />
-                  )}
-                  {feature.locked && (
-                    <div className="xs-lock-dot">
-                      <Lock size={7} />
-                    </div>
-                  )}
-                </button>
+                <Tooltip key={feature.id} text={title} position="left">
+                  <button
+                    ref={(node) => {
+                      featureRefs.current[feature.id] = node;
+                    }}
+                    className={`xs-rail-item ${activeFeatureId === feature.id ? 'active' : ''} ${feature.locked ? 'locked' : ''}`}
+                    onClick={() => handleFeatureClick(feature.id, feature.locked)}
+                    disabled={!feature.enabled}
+                    aria-label={title}
+                  >
+                    <feature.icon size={32} />
+                    {feature.tier === 'beta' && !feature.locked && (
+                      <div className="xs-beta-dot" aria-label="beta" />
+                    )}
+                    {feature.locked && (
+                      <div className="xs-lock-dot">
+                        <Lock size={7} />
+                      </div>
+                    )}
+                  </button>
+                </Tooltip>
               );
             })}
           </>
@@ -188,7 +192,7 @@ function ToolGrid({ tools, onClose }: { tools: FeatureToolItem[]; onClose: () =>
         setActiveTool('select');
       }
     } else {
-      setActiveTool(tool.id);
+      setActiveTool(activeTool === tool.id ? 'select' : tool.id);
       setActiveUtility(null);
     }
 
@@ -205,15 +209,16 @@ function ToolGrid({ tools, onClose }: { tools: FeatureToolItem[]; onClose: () =>
           : activeTool === tool.id;
 
         return (
-          <button
-            key={tool.id}
-            className={`xs-tool-icon-btn ${isActive ? 'active' : ''} ${tool.disabled ? 'disabled' : ''}`}
-            onClick={() => !tool.disabled && handleToolClick(tool)}
-            title={tool.hint || tool.label}
-            disabled={tool.disabled}
-          >
-            <tool.icon size={24} />
-          </button>
+          <Tooltip key={tool.id} text={tool.hint || tool.label} position="left">
+            <button
+              className={`xs-tool-icon-btn ${isActive ? 'active' : ''} ${tool.disabled ? 'disabled' : ''}`}
+              onClick={() => !tool.disabled && handleToolClick(tool)}
+              disabled={tool.disabled}
+              aria-label={tool.hint || tool.label}
+            >
+              <tool.icon size={24} />
+            </button>
+          </Tooltip>
         );
       })}
     </div>
@@ -253,13 +258,21 @@ function CropTools({ onClose }: { onClose: () => void }) {
 
 function StepsTools({ onClose }: { onClose: () => void }) {
   const tools = [
-    { id: 'numbered', label: 'Numbered Steps', icon: Hash, hint: 'Numbered Steps - click on canvas' },
+    { id: 'numbered', label: 'Numbered Steps', icon: Hash, hint: 'Numbered Stamp - click to place step numbers in sequence' },
     { id: 'speech_bubble', label: 'Speech Bubble', icon: MessageSquare, hint: 'Speech Bubble - click on canvas' },
     { id: 'callout', label: 'Callout', icon: MousePointer2, hint: 'Callout - drag from target to label' },
     { id: 'freehand_arrow', label: 'Freehand Arrow', icon: PencilLine, hint: 'Freehand Arrow - drag to sketch' },
   ] satisfies AnnotationFeatureToolItem[];
 
-  return <ToolGrid tools={tools} onClose={onClose} />;
+  return (
+    <>
+      <div className="xs-popover-header">
+        <div className="xs-popover-title">Steps</div>
+        <div className="xs-popover-desc">Sequential numbers & callouts</div>
+      </div>
+      <ToolGrid tools={tools} onClose={onClose} />
+    </>
+  );
 }
 
 function FocusTools({ onClose }: { onClose: () => void }) {

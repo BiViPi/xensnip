@@ -1,6 +1,7 @@
 import { getCurrentWindow, type Window } from "@tauri-apps/api/window";
 import { useEffect, useState } from "react";
 import logo from "../assets/logo.png";
+import { Tooltip } from "./Tooltip";
 import "./TitleBar.css";
 
 interface Props {
@@ -100,30 +101,36 @@ export function TitleBar({
       {/* Controls Area - Fixed width to prevent overlap */}
       <div className="xs-titlebar-controls">
         {showMinimize && (
-          <button onClick={handleMinimize} className="xs-titlebar-btn" title="Minimize" disabled={!appWindow}>
-            <svg width="14" height="14" viewBox="0 0 16 16"><rect fill="currentColor" x="3" y="7.5" width="10" height="1" /></svg>
-          </button>
+          <Tooltip text="Minimize" position="bottom">
+            <button onClick={handleMinimize} className="xs-titlebar-btn" disabled={!appWindow} aria-label="Minimize">
+              <svg width="14" height="14" viewBox="0 0 16 16"><rect fill="currentColor" x="3" y="7.5" width="10" height="1" /></svg>
+            </button>
+          </Tooltip>
         )}
         {showMaximize && (
-          <button onClick={handleMaximize} className="xs-titlebar-btn" title={isMaximized ? "Restore" : "Maximize"} disabled={!appWindow}>
-            {isMaximized ? (
-              <svg width="14" height="14" viewBox="0 0 16 16">
-                <rect x="5.5" y="3.5" width="7" height="7" fill="none" stroke="currentColor" strokeWidth="1.2" />
-                <path d="M3.5 5.5 v7 h7 v-7 h-7" fill="none" stroke="currentColor" strokeWidth="1.2" />
-              </svg>
-            ) : (
-              <svg width="14" height="14" viewBox="0 0 16 16">
-                <rect x="3.5" y="3.5" width="9" height="9" fill="none" stroke="currentColor" strokeWidth="1.2" />
-              </svg>
-            )}
-          </button>
+          <Tooltip text={isMaximized ? "Restore" : "Maximize"} position="bottom">
+            <button onClick={handleMaximize} className="xs-titlebar-btn" disabled={!appWindow} aria-label={isMaximized ? "Restore" : "Maximize"}>
+              {isMaximized ? (
+                <svg width="14" height="14" viewBox="0 0 16 16">
+                  <rect x="5.5" y="3.5" width="7" height="7" fill="none" stroke="currentColor" strokeWidth="1.2" />
+                  <path d="M3.5 5.5 v7 h7 v-7 h-7" fill="none" stroke="currentColor" strokeWidth="1.2" />
+                </svg>
+              ) : (
+                <svg width="14" height="14" viewBox="0 0 16 16">
+                  <rect x="3.5" y="3.5" width="9" height="9" fill="none" stroke="currentColor" strokeWidth="1.2" />
+                </svg>
+              )}
+            </button>
+          </Tooltip>
         )}
         {showClose && (
-          <button onClick={handleClose} className="xs-titlebar-btn close" title="Close" disabled={!onClose && !appWindow}>
-            <svg width="14" height="14" viewBox="0 0 16 16">
-              <path fill="none" stroke="currentColor" strokeWidth="1.2" d="M4 4 L12 12 M4 12 L12 4" />
-            </svg>
-          </button>
+          <Tooltip text="Close" position="bottom">
+            <button onClick={handleClose} className="xs-titlebar-btn close" disabled={!onClose && !appWindow} aria-label="Close">
+              <svg width="14" height="14" viewBox="0 0 16 16">
+                <path fill="none" stroke="currentColor" strokeWidth="1.2" d="M4 4 L12 12 M4 12 L12 4" />
+              </svg>
+            </button>
+          </Tooltip>
         )}
       </div>
     </div>

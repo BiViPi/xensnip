@@ -235,6 +235,21 @@ pub fn dismiss(app: &AppHandle, asset_id: &str) {
     }
 }
 
+pub fn dismiss_current(app: &AppHandle) {
+    if let Some(active_asset) = app.try_state::<ActiveAsset>() {
+        if let Some(asset_id) = active_asset.0.lock().unwrap().take() {
+            if let Some(registry) = app.try_state::<crate::asset::AssetRegistry>() {
+                let _ = registry.release(&asset_id, "quick_access_ui");
+                let _ = registry.release(&asset_id, "quick_access_orchestrator");
+            }
+        }
+    }
+
+    if let Some(window) = app.get_webview_window(QA_LABEL) {
+        let _ = window.hide();
+    }
+}
+
 pub fn focus_window(app: &AppHandle) {
     if let Some(window) = app.get_webview_window(QA_LABEL) {
         let _ = window.unminimize();

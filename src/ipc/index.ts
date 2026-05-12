@@ -91,6 +91,10 @@ export async function quickAccessDismiss(assetId: string): Promise<void> {
   return await invoke<void>("quick_access_dismiss", { assetId });
 }
 
+export async function quickAccessDismissCurrent(): Promise<void> {
+  return await invoke<void>("quick_access_dismiss_current");
+}
+
 export async function quickAccessSetBusy(assetId: string, busy: boolean): Promise<void> {
   return await invoke<void>("quick_access_set_busy", { assetId, busy });
 }

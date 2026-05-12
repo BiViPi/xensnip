@@ -5,6 +5,7 @@ import Konva from "konva";
 import {
   assetRelease,
   quickAccessMarkReady,
+  quickAccessDismissCurrent,
   settingsLoad,
 } from "../ipc/index";
 import { QuickAccessShowPayload, Settings, ThemeMode } from "../ipc/types";
@@ -27,6 +28,7 @@ import { useAssetBootstrap } from "./useAssetBootstrap";
 import { useQuickAccessSessionController } from "./useQuickAccessSessionController";
 import { QuickAccessViewport } from "./QuickAccessViewport";
 import { QuickAccessDock } from "./QuickAccessDock";
+import { CloseGuardModal } from "./CloseGuardModal";
 import "./QuickAccess.css";
 
 const LEFT_PANEL_MIN_WIDTH = 220;
@@ -49,6 +51,7 @@ export function QuickAccess() {
   const [isPresetManagerOpen, setIsPresetManagerOpen] = useState(false);
   const [activePop, setActivePop] = useState<string | null>(null);
   const [isLeftPanelCollapsed, setIsLeftPanelCollapsed] = useState(false);
+  const [showCloseGuard, setShowCloseGuard] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stageRef = useRef<Konva.Stage | null>(null);
@@ -86,7 +89,7 @@ export function QuickAccess() {
   }, []);
 
   // ── 2. Crop tool ────────────────────────────────────────────────────────
-  const { activeTool, setActiveTool } = useAnnotationStore();
+  const { activeTool, setActiveTool, objects } = useAnnotationStore();
   const {
     cropBounds,
     setCropBounds,
@@ -246,11 +249,49 @@ export function QuickAccess() {
     }
   }, [preset.bg_mode, preset.bg_value]);
 
-  const handleDismiss = useCallback(async () => {
+  const hasUnsavedChanges = useCallback(() => {
+    return objects.length > 0
+      || cropBounds !== null
+      || (undoStackRef.current?.length ?? 0) > 0
+      || (redoStackRef.current?.length ?? 0) > 0;
+  }, [objects.length, cropBounds, undoStackRef, redoStackRef]);
+
+  const closeWindow = useCallback(async () => {
     const allDocs = clearAll();
     allDocs.forEach(releaseDocument);
-    await getCurrentWindow().close();
+    setImage(null);
+    setCropBounds(null);
+    setShowCloseGuard(false);
+    await quickAccessDismissCurrent();
   }, [clearAll, releaseDocument]);
+
+  const handleDismiss = useCallback(async () => {
+    const isDirty = hasUnsavedChanges();
+    if (isDirty) {
+      setShowCloseGuard(true);
+      return;
+    }
+    await closeWindow();
+  }, [hasUnsavedChanges, closeWindow]);
+
+  const handleConfirmClose = useCallback(async () => {
+    await closeWindow();
+  }, [closeWindow]);
+
+  useEffect(() => {
+    const unlisten = getCurrentWindow().onCloseRequested(async (event) => {
+      event.preventDefault();
+      if (hasUnsavedChanges()) {
+        event.preventDefault();
+        setShowCloseGuard(true);
+        return;
+      }
+      await closeWindow();
+    });
+    return () => {
+      unlisten.then(fn => fn());
+    };
+  }, [hasUnsavedChanges, closeWindow]);
 
   // ── Layout metrics ──────────────────────────────────────────────────────
 
@@ -351,6 +392,13 @@ export function QuickAccess() {
 
       {toast && <Toast message={toast.message} type={toast.type} />}
       <RightSidebar />
+
+      {showCloseGuard && (
+        <CloseGuardModal 
+          onConfirm={handleConfirmClose}
+          onCancel={() => setShowCloseGuard(false)}
+        />
+      )}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { ChevronLeft, ChevronRight, Camera } from 'lucide-react';
 import { ScreenshotDocument } from '../editor/useScreenshotDocuments';
 import { LeftPanelItem } from './LeftPanelItem';
+import { Tooltip } from '../editor/Tooltip';
 import './LeftPanel.css';
 
 interface Props {
@@ -32,16 +33,19 @@ export function LeftPanel({
       onClick={isCollapsed ? () => onCollapsedChange(false) : undefined}
     >
       {isCollapsed && (
-        <button
-          className="xs-left-collapsed-handle"
-          onClick={(e) => {
-            e.stopPropagation();
-            onCollapsedChange(false);
-          }}
-          title="Expand"
-        >
-          <ChevronRight size={16} />
-        </button>
+        <div className="xs-left-collapsed-handle-container">
+          <Tooltip text="Expand" position="right">
+            <button
+              className="xs-left-collapsed-handle"
+              onClick={(e) => {
+                e.stopPropagation();
+                onCollapsedChange(false);
+              }}
+            >
+              <ChevronRight size={16} />
+            </button>
+          </Tooltip>
+        </div>
       )}
 
       {!isCollapsed && (
@@ -54,13 +58,14 @@ export function LeftPanel({
             </div>
           </div>
           
-          <button 
-            className="xs-left-toggle-floating"
-            onClick={() => onCollapsedChange(true)}
-            title="Collapse"
-          >
-            <ChevronLeft size={18} />
-          </button>
+          <Tooltip text="Collapse" position="left">
+            <button 
+              className="xs-left-toggle-floating"
+              onClick={() => onCollapsedChange(true)}
+            >
+              <ChevronLeft size={18} />
+            </button>
+          </Tooltip>
         </div>
       )}
 

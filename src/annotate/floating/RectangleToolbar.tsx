@@ -6,6 +6,7 @@ import { ChevronRight, ChevronLeft } from 'lucide-react';
 import { CloudLineIcon, DashedLineIcon, PaletteIcon, SolidLineIcon } from './ToolbarIcons';
 import { SliderToggle } from './SliderToggle';
 import { RadiusToggle } from './RadiusToggle';
+import { Tooltip } from '../../editor/Tooltip';
 
 interface Props {
   anchor: { left: number; top: number; width: number; height: number };
@@ -43,28 +44,30 @@ export function RectangleToolbar({ anchor, obj }: Props) {
         pointerEvents: 'auto'
       }}
     >
-      <button 
-        className="xs-toolbar-btn xs-toolbar-toggle"
-        onClick={() => setToolbarCollapsed(!toolbarCollapsed)}
-      >
-        {toolbarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
-      </button>
+      <Tooltip text={toolbarCollapsed ? "Expand Toolbar" : "Collapse Toolbar"} position="top">
+        <button 
+          className="xs-toolbar-btn xs-toolbar-toggle"
+          onClick={() => setToolbarCollapsed(!toolbarCollapsed)}
+        >
+          {toolbarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+        </button>
+      </Tooltip>
 
       {!toolbarCollapsed && (
         <div className="xs-toolbar-section">
           <div className="xs-toolbar-divider" />
 
           {LINE_STYLES.map((style) => (
-            <button
-              key={style.id}
-              className={`xs-toolbar-btn ${lineStyle === style.id ? 'active' : ''}`}
-              onClick={() => updateObject(obj.id, { lineStyle: style.id })}
-              title={style.label}
-            >
-              {style.id === 'solid' && <SolidLineIcon />}
-              {style.id === 'dashed' && <DashedLineIcon />}
-              {style.id === 'cloud' && <CloudLineIcon />}
-            </button>
+            <Tooltip key={style.id} text={style.label} position="top">
+              <button
+                className={`xs-toolbar-btn ${lineStyle === style.id ? 'active' : ''}`}
+                onClick={() => updateObject(obj.id, { lineStyle: style.id })}
+              >
+                {style.id === 'solid' && <SolidLineIcon />}
+                {style.id === 'dashed' && <DashedLineIcon />}
+                {style.id === 'cloud' && <CloudLineIcon />}
+              </button>
+            </Tooltip>
           ))}
 
           <div className="xs-toolbar-divider" />
@@ -86,27 +89,28 @@ export function RectangleToolbar({ anchor, obj }: Props) {
           <div className="xs-toolbar-divider" />
 
           <div style={{ position: 'relative' }}>
-            <button
-              className={`xs-toolbar-btn ${showColors ? 'active' : ''}`}
-              onClick={() => {
-                setShowColors(!showColors);
-                setShowThickness(false);
-                setShowRadius(false);
-              }}
-              title="Stroke Color"
-            >
-              <PaletteIcon />
-            </button>
+            <Tooltip text="Stroke Color" position="top">
+              <button
+                className={`xs-toolbar-btn ${showColors ? 'active' : ''}`}
+                onClick={() => {
+                  setShowColors(!showColors);
+                  setShowThickness(false);
+                  setShowRadius(false);
+                }}
+              >
+                <PaletteIcon />
+              </button>
+            </Tooltip>
             {showColors && (
               <div className="xs-toolbar-slider-popover xs-color-popover">
                 {COLORS.map(c => (
-                  <button
-                    key={c}
-                    className={`xs-color-chip ${obj.stroke === c ? 'active' : ''}`}
-                    style={{ background: c }}
-                    onClick={() => updateObject(obj.id, { stroke: c })}
-                    title={c}
-                  />
+                  <Tooltip key={c} text={c} position="top">
+                    <button
+                      className={`xs-color-chip ${obj.stroke === c ? 'active' : ''}`}
+                      style={{ background: c }}
+                      onClick={() => updateObject(obj.id, { stroke: c })}
+                    />
+                  </Tooltip>
                 ))}
               </div>
             )}

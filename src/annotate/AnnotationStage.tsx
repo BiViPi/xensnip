@@ -195,16 +195,20 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
               height={Math.abs(drawingObject.end.y - drawingObject.start.y)}
               stroke={
                 drawingObject?.type === 'blur' || drawingObject?.type === 'simplify_ui' || drawingObject?.type === 'pixelate'
-                  ? "rgba(255,255,255,0.5)"
+                  ? "#6366f1"
                   : (drawingObject?.type === 'ocr_selection' || drawingObject?.type === 'smart_redact_selection' ? "#fbbf24" : (drawingObject?.type === 'opaque_redact' ? "#000000" : "#ef4444"))
               }
-              strokeWidth={drawingObject?.type === 'blur' || drawingObject?.type === 'simplify_ui' || drawingObject?.type === 'pixelate' ? 1 : (drawingObject?.type === 'ocr_selection' || drawingObject?.type === 'smart_redact_selection' ? 2 : 4)}
+              strokeWidth={drawingObject?.type === 'blur' || drawingObject?.type === 'simplify_ui' || drawingObject?.type === 'pixelate' ? 2 : (drawingObject?.type === 'ocr_selection' || drawingObject?.type === 'smart_redact_selection' ? 2 : 4)}
               fill={
                 drawingObject?.type === 'blur' || drawingObject?.type === 'simplify_ui' || drawingObject?.type === 'pixelate'
-                  ? "rgba(255,255,255,0.2)"
+                  ? "rgba(99, 102, 241, 0.1)"
                   : (drawingObject?.type === 'ocr_selection' || drawingObject?.type === 'smart_redact_selection' ? "rgba(251, 191, 36, 0.1)" : (drawingObject?.type === 'opaque_redact' ? "#000000" : "transparent"))
               }
-              dash={drawingObject?.type === 'ocr_selection' || drawingObject?.type === 'smart_redact_selection' ? [4, 4] : undefined}
+              dash={
+                drawingObject?.type === 'blur' || drawingObject?.type === 'simplify_ui' || drawingObject?.type === 'pixelate' || drawingObject?.type === 'ocr_selection' || drawingObject?.type === 'smart_redact_selection'
+                  ? [4, 4]
+                  : undefined
+              }
               opacity={drawingObject?.type === 'opaque_redact' ? 1 : 0.6}
             />
           )}

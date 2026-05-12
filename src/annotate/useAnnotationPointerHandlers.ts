@@ -25,7 +25,22 @@ import {
   beginSmartRedactSelection,
   completeSmartRedactSelection,
 } from './pointer/smartRedactSelectionHandlers';
-import { FreehandArrowObject } from './state/types';
+import { FreehandArrowObject, ToolId } from './state/types';
+
+const REPEATABLE_TOOLS = new Set<ToolId>([
+  'arrow',
+  'rectangle',
+  'numbered',
+  'blur',
+  'pixelate',
+  'opaque_redact',
+  'spotlight',
+  'simplify_ui',
+  'magnify',
+  'pixel_ruler',
+  'callout',
+  'freehand_arrow',
+]);
 
 interface UseAnnotationPointerHandlersDeps {
   scale: number;
@@ -129,7 +144,7 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
         const numbered = createImmediateNumbered(stageX, stageY, count);
         addObject(numbered);
         select(numbered.id);
-        setActiveTool('select');
+        if (!REPEATABLE_TOOLS.has(activeTool)) setActiveTool('select');
         return;
       }
 
@@ -236,7 +251,7 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
         };
         addObject(arrow);
         select(newId);
-        setActiveTool('select');
+        if (!REPEATABLE_TOOLS.has(activeTool)) setActiveTool('select');
       }
       setDrawingObject(null);
       return;
@@ -282,13 +297,14 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
           setEditingTextId(newId);
         }
         select(newId);
-        setActiveTool('select');
+        if (!REPEATABLE_TOOLS.has(activeTool)) setActiveTool('select');
       }
     }
     setDrawingObject(null);
   }, [
     drawingObject, setDrawingObject, compositionCanvasRef, addObject, select, setActiveTool, setEditingTextId,
     setOcrRegion, setOcrStatus, setOcrProgress, setOcrText, setOcrError, ocrRequestIdRef, setScope, setSelectionRect, setPrivacyStatus,
+    activeTool,
   ]);
 
   return { handleMouseDown, handleMouseMove, handleMouseUp, drawingObject };

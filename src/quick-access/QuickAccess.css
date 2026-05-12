@@ -124,3 +124,153 @@ body {
   color: var(--xs-text-dim);
   font-size: 14px;
 }
+
+/* ── Modal (xs-modal) ── */
+.xs-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(12px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: xs-modal-fadein 0.25s ease-out;
+}
+
+[data-theme='dark'] .xs-modal-overlay {
+  background: rgba(0, 0, 0, 0.75);
+}
+
+.xs-modal-content {
+  width: 440px;
+  background: var(--surface-overlay);
+  border: 1px solid var(--border-subtle);
+  border-radius: 24px;
+  box-shadow: 
+    0 32px 64px rgba(0, 0, 0, 0.15);
+  padding: 32px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  animation: xs-modal-popin 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-theme='dark'] .xs-modal-content {
+  box-shadow: 
+    0 0 0 1px rgba(255, 255, 255, 0.05),
+    0 32px 64px rgba(0, 0, 0, 0.6);
+}
+
+.xs-modal-close-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.xs-modal-close-btn:hover {
+  background: var(--surface-raised);
+  color: var(--text-primary);
+}
+
+.xs-guard-icon-box {
+  width: 52px;
+  height: 52px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.15);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ef4444;
+  margin-bottom: 20px;
+}
+
+.xs-modal-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  letter-spacing: -0.01em;
+}
+
+.xs-modal-body {
+  padding: 0;
+  margin-bottom: 28px;
+}
+
+.xs-modal-body p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.xs-modal-footer {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.xs-modal-btn {
+  flex: 1;
+  padding: 11px 12px; /* Reduced padding to prevent wrap */
+  border-radius: 11px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.xs-btn-destructive {
+  background: #ef4444;
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(239, 68, 68, 0.2);
+}
+
+.xs-btn-destructive:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.3);
+}
+
+.xs-btn-cancel {
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+}
+
+.xs-btn-cancel:hover {
+  background: var(--surface-base);
+  color: var(--text-primary);
+  border-color: var(--border-hover);
+}
+
+@keyframes xs-modal-fadein {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes xs-modal-popin {
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
