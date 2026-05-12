@@ -25,7 +25,7 @@ import {
   beginSmartRedactSelection,
   completeSmartRedactSelection,
 } from './pointer/smartRedactSelectionHandlers';
-import { FreehandArrowObject, ToolId } from './state/types';
+import { AnnotateObject, FreehandArrowObject, ToolId } from './state/types';
 
 const REPEATABLE_TOOLS = new Set<ToolId>([
   'arrow',
@@ -44,6 +44,7 @@ const REPEATABLE_TOOLS = new Set<ToolId>([
 
 interface UseAnnotationPointerHandlersDeps {
   scale: number;
+  stageRef: React.RefObject<Konva.Stage | null>;
   compositionCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   // measure store setters
   setCurrentSample: (sample: { x: number; y: number; rgb: [number, number, number]; hex: string } | null) => void;
@@ -72,6 +73,7 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
 } {
   const {
     scale,
+    stageRef,
     compositionCanvasRef,
     setCurrentSample,
     colorPickerFrozen,
@@ -93,6 +95,71 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
     useAnnotationStore();
 
   const { drawingObject, setDrawingObject } = usePointerHandlersState();
+
+  const getObjectBounds = useCallback(
+    (obj: AnnotateObject): { minX: number; minY: number; maxX: number; maxY: number } => {
+      const stage = stageRef.current;
+      if (stage) {
+        const node = stage.findOne(`#${obj.id}`);
+        if (node) {
+          const rect = node.getClientRect({ skipShadow: true, relativeTo: stage });
+          return {
+            minX: rect.x,
+            minY: rect.y,
+            maxX: rect.x + rect.width,
+            maxY: rect.y + rect.height,
+          };
+        }
+      }
+
+      const { x, y } = obj;
+      switch (obj.type) {
+        case 'arrow':
+        case 'pixel_ruler': {
+          const p = obj.points;
+          return {
+            minX: x + Math.min(p[0], p[2]),
+            minY: y + Math.min(p[1], p[3]),
+            maxX: x + Math.max(p[0], p[2]),
+            maxY: y + Math.max(p[1], p[3]),
+          };
+        }
+        case 'freehand_arrow': {
+          let minX = Infinity;
+          let minY = Infinity;
+          let maxX = -Infinity;
+          let maxY = -Infinity;
+          for (let i = 0; i < obj.points.length; i += 2) {
+            minX = Math.min(minX, x + obj.points[i]);
+            maxX = Math.max(maxX, x + obj.points[i]);
+            minY = Math.min(minY, y + obj.points[i + 1]);
+            maxY = Math.max(maxY, y + obj.points[i + 1]);
+          }
+          return { minX, minY, maxX, maxY };
+        }
+        case 'numbered': {
+          const r = obj.radius;
+          return { minX: x - r, minY: y - r, maxX: x + r, maxY: y + r };
+        }
+        case 'text': {
+          const approxWidth = Math.max(100, obj.text.length * obj.fontSize * 0.6);
+          const approxHeight = obj.fontSize * 1.5 + obj.padding * 2;
+          return { minX: x, minY: y, maxX: x + approxWidth, maxY: y + approxHeight };
+        }
+        default:
+          if ('width' in obj && 'height' in obj) {
+            return {
+              minX: x,
+              minY: y,
+              maxX: x + obj.width,
+              maxY: y + obj.height,
+            };
+          }
+          return { minX: x, minY: y, maxX: x, maxY: y };
+      }
+    },
+    [stageRef]
+  );
 
   const handleMouseDown = useCallback(
     (e: Konva.KonvaEventObject<MouseEvent>) => {
@@ -269,7 +336,6 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
     const dy = drawingObject.end.y - drawingObject.start.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
 
-    // Select Box Deletion
     if (drawingObject.type === 'select_box') {
       const minX = Math.min(drawingObject.start.x, drawingObject.end.x);
       const maxX = Math.max(drawingObject.start.x, drawingObject.end.x);
@@ -277,51 +343,26 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
       const maxY = Math.max(drawingObject.start.y, drawingObject.end.y);
 
       if (maxX - minX > 4 && maxY - minY > 4) {
-        const toSelectIds = objects.filter(obj => {
-          let oMinX = obj.x;
-          let oMinY = obj.y;
-          let oMaxX = obj.x;
-          let oMaxY = obj.y;
-
-          if (obj.type === 'freehand_arrow') {
-             let fMinX = Infinity, fMinY = Infinity, fMaxX = -Infinity, fMaxY = -Infinity;
-             for (let i = 0; i < obj.points.length; i += 2) {
-                fMinX = Math.min(fMinX, obj.x + obj.points[i]);
-                fMaxX = Math.max(fMaxX, obj.x + obj.points[i]);
-                fMinY = Math.min(fMinY, obj.y + obj.points[i+1]);
-                fMaxY = Math.max(fMaxY, obj.y + obj.points[i+1]);
-             }
-             oMinX = fMinX; oMinY = fMinY; oMaxX = fMaxX; oMaxY = fMaxY;
-          } else if (obj.type === 'arrow' || obj.type === 'pixel_ruler') {
-             oMinX = obj.x + Math.min(obj.points[0], obj.points[2]);
-             oMaxX = obj.x + Math.max(obj.points[0], obj.points[2]);
-             oMinY = obj.y + Math.min(obj.points[1], obj.points[3]);
-             oMaxY = obj.y + Math.max(obj.points[1], obj.points[3]);
-          } else if (obj.type === 'speech_bubble' || obj.type === 'callout') {
-             oMaxX = obj.x + obj.width;
-             oMaxY = obj.y + obj.height;
-          } else {
-             oMaxX = obj.x + ('width' in obj ? (obj.width as number) : 0);
-             oMaxY = obj.y + ('height' in obj ? (obj.height as number) : 0);
-          }
-
+        const toSelectIds = objects.filter((obj) => {
+          const { minX: oMinX, minY: oMinY, maxX: oMaxX, maxY: oMaxY } = getObjectBounds(obj);
           return !(oMaxX < minX || oMinX > maxX || oMaxY < minY || oMinY > maxY);
-        }).map(o => o.id);
+        }).map((o) => o.id);
 
         const isAdditive = e.evt.ctrlKey || e.evt.metaKey;
 
         if (toSelectIds.length > 0) {
-           if (isAdditive) {
-             selectAdditive(toSelectIds);
-           } else {
-             selectMultiple(toSelectIds);
-           }
-        } else {
-           if (!isAdditive) select(null);
+          if (isAdditive) {
+            selectAdditive(toSelectIds);
+          } else {
+            selectMultiple(toSelectIds);
+          }
+        } else if (!isAdditive) {
+          select(null);
         }
-      } else {
-        if (!(e.evt.ctrlKey || e.evt.metaKey)) select(null);
+      } else if (!(e.evt.ctrlKey || e.evt.metaKey)) {
+        select(null);
       }
+
       setDrawingObject(null);
       return;
     }
@@ -365,11 +406,12 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
         if (!REPEATABLE_TOOLS.has(activeTool)) setActiveTool('select');
       }
     }
+
     setDrawingObject(null);
   }, [
     drawingObject, setDrawingObject, compositionCanvasRef, addObject, select, selectMultiple, selectAdditive, setActiveTool, setEditingTextId,
     setOcrRegion, setOcrStatus, setOcrProgress, setOcrText, setOcrError, ocrRequestIdRef, setScope, setSelectionRect, setPrivacyStatus,
-    activeTool, objects
+    activeTool, objects, getObjectBounds
   ]);
 
   return { handleMouseDown, handleMouseMove, handleMouseUp, drawingObject };

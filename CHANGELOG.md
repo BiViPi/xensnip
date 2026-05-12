@@ -5,11 +5,11 @@ All notable changes to this project will be documented in this file.
 ## [0.2.1] - 2026-05-12
 
 ### Added
-- Marquee Multi-Select: You can now click and drag on an empty canvas area using the Select tool to create a selection box that selects multiple annotations at once. The selection box uses the app's primary indigo color.
+- Marquee Multi-Select: You can now click and drag on an empty canvas area using the Select tool to create a selection box that selects multiple annotations at once.
 - Destructive Close Warning: New premium modal to guard against accidental loss of unsaved work.
 
 ### Fixed
-- Window Border Bleed: Resolved artifacts in Active Window captures on high-DPI displays.
+- Window Border Bleed: Improved Active Window capture cleanup by trimming capture edges before editor bootstrap, reducing DWM border bleed artifacts on high-DPI displays.
 - UI Polish: Fixed missing tooltips on Sidebar and icon-only editor controls.
 - Settings UI: Fixed unstyled browser-default tooltips on Settings window title bar buttons.
 - Popover Logic: Improved dismissal on outside click/Escape and persistence while dragging canvas handles.
@@ -17,6 +17,12 @@ All notable changes to this project will be documented in this file.
 - Steps & Callouts: Refined popover layout and discoverability.
 - Visual Feedback: Enhanced selection area visibility for Blur and Pixelate tools.
 - Freehand Arrow: Fixed coordinate offset in the real-time drawing preview.
+- Marquee Selection: Fixed multi-select hit-testing for mixed annotation sets, including `text`, `numbered`, and other object combinations.
+- Annotation Selection UX: Added additive marquee selection with `Ctrl/Cmd`, plus more consistent multi-object bulk actions and selection transforms.
+- Sidebar Behavior: Right sidebar feature popovers now close correctly on outside click, matching the bottom toolbar behavior.
+- OCR Workflow: `Esc` now cancels the active OCR utility mode instead of forcing users to switch tools manually.
+- Preset Manager: Fixed the broken `Manage Presets` modal layout caused by modal style collisions in Quick Access.
+- Preset Manager: `Esc` now closes the `Manage Presets` modal.
 
 ## [0.2.0] - 2026-05-11
 

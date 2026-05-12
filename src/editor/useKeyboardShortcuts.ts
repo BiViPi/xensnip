@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useAnnotationStore } from '../annotate/state/store';
+import { useMeasureStore } from '../measure/store';
 import { recordHistorySnapshot, withHistorySuspended } from './historyBridge';
 
 interface KeyboardShortcutsOptions {
@@ -9,6 +10,7 @@ interface KeyboardShortcutsOptions {
 
 export function useKeyboardShortcuts({ onUndo, onRedo }: KeyboardShortcutsOptions = {}) {
   const { selectedIds, select, removeObjects, setActiveTool, activeTool, nudgeObject } = useAnnotationStore();
+  const { activeUtility, setActiveUtility } = useMeasureStore();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -52,6 +54,12 @@ export function useKeyboardShortcuts({ onUndo, onRedo }: KeyboardShortcutsOption
       }
 
       if (e.key === 'Escape') {
+        if (activeUtility) {
+          setActiveUtility(null);
+          setActiveTool('select');
+          return;
+        }
+
         if (selectedIds.length > 0) {
           select(null);
           setActiveTool('select');
@@ -67,5 +75,5 @@ export function useKeyboardShortcuts({ onUndo, onRedo }: KeyboardShortcutsOption
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedIds, select, removeObjects, setActiveTool, activeTool, onUndo, onRedo, nudgeObject]);
+  }, [selectedIds, select, removeObjects, setActiveTool, activeTool, activeUtility, setActiveUtility, onUndo, onRedo, nudgeObject]);
 }

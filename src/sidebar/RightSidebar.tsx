@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type ComponentType } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ComponentType } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
   ChevronDown,
@@ -53,6 +53,7 @@ type FeatureToolItem = AnnotationFeatureToolItem | UtilityFeatureToolItem;
 
 export function RightSidebar() {
   const { activeFeatureId, collapsed, toggle, openFeature, closeFeature } = useSidebarStore();
+  const rootRef = useRef<HTMLDivElement | null>(null);
   const railRef = useRef<HTMLDivElement | null>(null);
   const featureRefs = useRef<Partial<Record<FeatureId, HTMLButtonElement | null>>>({});
   const [popoverAnchorTop, setPopoverAnchorTop] = useState(0);
@@ -93,8 +94,35 @@ export function RightSidebar() {
     return () => window.removeEventListener('resize', updateAnchorTop);
   }, [activeFeatureId, collapsed]);
 
+  useEffect(() => {
+    if (!activeFeatureId || collapsed) {
+      return;
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (rootRef.current && !rootRef.current.contains(event.target as Node)) {
+        closeFeature();
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.stopPropagation();
+        closeFeature();
+      }
+    };
+
+    window.addEventListener('pointerdown', handlePointerDown);
+    window.addEventListener('keydown', handleKeyDown, true);
+
+    return () => {
+      window.removeEventListener('pointerdown', handlePointerDown);
+      window.removeEventListener('keydown', handleKeyDown, true);
+    };
+  }, [activeFeatureId, collapsed, closeFeature]);
+
   return (
-    <div className="xs-sidebar-root">
+    <div className="xs-sidebar-root" ref={rootRef}>
       <div
         ref={railRef}
         className={`xs-sidebar-rail ${collapsed ? 'collapsed' : ''}`}

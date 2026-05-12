@@ -34,6 +34,27 @@ export function PresetManager({ settings, onRefresh, onClose, showToast }: Props
     }
   }, [editingId, presets]);
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") {
+        return;
+      }
+
+      if (
+        event.target instanceof HTMLInputElement ||
+        event.target instanceof HTMLTextAreaElement ||
+        (event.target instanceof HTMLElement && event.target.isContentEditable)
+      ) {
+        return;
+      }
+
+      onClose();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
@@ -125,11 +146,11 @@ export function PresetManager({ settings, onRefresh, onClose, showToast }: Props
   };
 
   return (
-    <div className="xs-modal-overlay" onClick={onClose}>
-      <div className="xs-modal-content xs-preset-manager" onClick={(e) => e.stopPropagation()}>
-        <div className="xs-modal-header">
-          <div className="xs-modal-title">Manage Presets</div>
-          <button className="xs-modal-close" onClick={onClose}>
+    <div className="xs-preset-manager-overlay" onClick={onClose}>
+      <div className="xs-preset-manager-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="xs-preset-manager-header">
+          <div className="xs-preset-manager-title">Manage Presets</div>
+          <button className="xs-preset-manager-close" onClick={onClose}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
           </button>
         </div>

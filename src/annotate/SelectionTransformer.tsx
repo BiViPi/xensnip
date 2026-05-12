@@ -3,6 +3,7 @@ import Konva from 'konva';
 import { Transformer } from 'react-konva';
 import { useAnnotationStore } from './state/store';
 import { recordHistorySnapshot, withHistorySuspended } from '../editor/historyBridge';
+
 export function SelectionTransformer() {
   const { selectedIds, updateObject, objects, editingTextId } = useAnnotationStore();
   const transformerRef = useRef<Konva.Transformer | null>(null);
@@ -28,31 +29,28 @@ export function SelectionTransformer() {
     }
 
     const selectedNodes = selectedIds.map(id => stage.findOne((node: Konva.Node) => node.id() === id)).filter(Boolean) as Konva.Node[];
-    if (selectedNodes.length === 0) {
+    if (selectedNodes.length === 0 || selectedIds.includes(editingTextId || '')) {
       transformerRef.current.nodes([]);
-      return;
-    }
-
-    const RESIZE_DISABLED_TYPES = new Set(['text', 'numbered']);
-    const hasDisabledType = selectedObjects.some(o => RESIZE_DISABLED_TYPES.has(o.type));
-    if (hasDisabledType || selectedIds.includes(editingTextId || '')) {
-      transformerRef.current.nodes([]);
-      const layer = transformerRef.current.getLayer();
-      if (layer) layer.batchDraw();
       return;
     }
 
     transformerRef.current.nodes(selectedNodes);
+
+    const RESIZE_DISABLED_TYPES = new Set(['text', 'numbered']);
+    const hasDisabledType = selectedObjects.some(o => RESIZE_DISABLED_TYPES.has(o.type));
     const RESIZE_ENABLED_GROUPS = new Set(['magnify', 'pixel_ruler', 'speech_bubble', 'callout']);
+    
     // Only allow resizing groups if single selection and enabled group type
     const isSingleEnabledGroup = selectedNodes.length === 1 && selectedNodes[0].className === 'Group' && RESIZE_ENABLED_GROUPS.has(selectedObjects[0]?.type || '');
     const isMultiOrNonGroup = selectedNodes.length > 1 || selectedNodes[0].className !== 'Group';
     
-    if (isSingleEnabledGroup || isMultiOrNonGroup) {
+    // Hide anchors if any disabled type is present in selection
+    if (!hasDisabledType && (isSingleEnabledGroup || isMultiOrNonGroup)) {
       transformerRef.current.enabledAnchors([...fullResizeAnchors]);
     } else {
       transformerRef.current.enabledAnchors([]);
     }
+
     const finalLayer = transformerRef.current.getLayer();
     if (finalLayer) finalLayer.batchDraw();
   }, [selectedIds, objects, editingTextId]);

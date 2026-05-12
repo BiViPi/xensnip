@@ -2,6 +2,7 @@ import { renderHook, cleanup } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useKeyboardShortcuts } from '../useKeyboardShortcuts';
 import { useAnnotationStore } from '../../annotate/state/store';
+import { useMeasureStore } from '../../measure/store';
 
 describe('useKeyboardShortcuts routing', () => {
   const triggerKey = (key: string, modifiers: { ctrlKey?: boolean; shiftKey?: boolean; metaKey?: boolean } = {}) => {
@@ -11,6 +12,13 @@ describe('useKeyboardShortcuts routing', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    useAnnotationStore.setState({
+      selectedIds: [],
+      activeTool: 'select',
+    });
+    useMeasureStore.setState({
+      activeUtility: null,
+    });
   });
 
   afterEach(() => {
@@ -67,5 +75,17 @@ describe('useKeyboardShortcuts routing', () => {
     expect(nudgeObject).not.toHaveBeenCalled();
 
     document.body.removeChild(input);
+  });
+
+  it('Escape clears active utility modes like OCR', () => {
+    useAnnotationStore.setState({ activeTool: 'rectangle' });
+    useMeasureStore.setState({ activeUtility: 'ocr_extract' });
+
+    renderHook(() => useKeyboardShortcuts());
+
+    triggerKey('Escape');
+
+    expect(useMeasureStore.getState().activeUtility).toBeNull();
+    expect(useAnnotationStore.getState().activeTool).toBe('select');
   });
 });

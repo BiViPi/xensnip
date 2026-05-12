@@ -105,6 +105,7 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
   const { handleMouseDown, handleMouseMove, handleMouseUp, drawingObject } =
     useAnnotationPointerHandlers({
       scale,
+      stageRef,
       compositionCanvasRef,
       activeUtility,
       setCurrentSample,

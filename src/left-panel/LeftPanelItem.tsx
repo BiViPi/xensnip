@@ -45,17 +45,19 @@ export function LeftPanelItem({
           </div>
         )}
 
-        <Tooltip text="Delete" position="top">
-          <button 
-            className="xs-left-item-badge delete-btn"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete();
-            }}
-          >
-            <X size={16} />
-          </button>
-        </Tooltip>
+        <div className="xs-left-delete-wrap">
+          <Tooltip text="Delete" position="top">
+            <button 
+              className="xs-left-item-badge delete-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+              }}
+            >
+              <X size={16} />
+            </button>
+          </Tooltip>
+        </div>
       </div>
     </div>
   );
