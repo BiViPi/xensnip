@@ -1,3 +1,4 @@
+import Konva from 'konva';
 import { Image, Rect } from 'react-konva';
 import { AnnotationObjectPatch, SimplifyUiObject } from '../state/types';
 import { useEffect, useState } from 'react';
@@ -8,7 +9,7 @@ interface Props {
   isSelected: boolean;
   stageWidth: number;
   stageHeight: number;
-  onSelect: (id: string) => void;
+  onSelect: (id: string, e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => void;
   onUpdate: (id: string, patch: AnnotationObjectPatch) => void;
   compositionCanvasRef: React.RefObject<HTMLCanvasElement | null>;
 }
@@ -45,8 +46,8 @@ export function SimplifyUiNode({ obj, stageWidth, stageHeight, onSelect, onUpdat
         stroke="rgba(255,255,255,0.2)"
         strokeWidth={1}
         draggable={obj.draggable}
-        onClick={() => onSelect(obj.id)}
-        onTap={() => onSelect(obj.id)}
+        onClick={(e) => onSelect(obj.id, e)}
+        onTap={(e) => onSelect(obj.id, e)}
         onDragEnd={(e) => {
           onUpdate(obj.id, { x: e.target.x(), y: e.target.y() });
         }}

@@ -71,7 +71,7 @@ export function useQuickAccessSessionController(
       annotation: {
         activeTool: s.activeTool,
         objects: s.objects.map((obj) => ({ ...obj })),
-        selectedId: s.selectedId,
+        selectedIds: s.selectedIds,
         editingTextId: s.editingTextId,
         toolbarCollapsed: s.toolbarCollapsed,
       },
@@ -95,7 +95,7 @@ export function useQuickAccessSessionController(
         annotation: {
           activeTool: annotationState.activeTool,
           objects: annotationState.objects.map((obj) => ({ ...obj })),
-          selectedId: annotationState.selectedId,
+          selectedIds: annotationState.selectedIds,
           editingTextId: annotationState.editingTextId,
           toolbarCollapsed: annotationState.toolbarCollapsed,
         },
@@ -167,7 +167,7 @@ export function useQuickAccessSessionController(
         annotation: {
           ...doc.annotation,
           objects: [],
-          selectedId: null,
+          selectedIds: [],
           editingTextId: null,
         },
         cropBounds: null,

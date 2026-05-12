@@ -122,7 +122,7 @@ export function useAssetBootstrap(deps: UseAssetBootstrapDeps): {
         annotation: {
           activeTool: "select",
           objects: [],
-          selectedId: null,
+          selectedIds: [],
           editingTextId: null,
           toolbarCollapsed: false,
         },

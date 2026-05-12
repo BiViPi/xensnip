@@ -37,7 +37,7 @@ describe('useKeyboardShortcuts routing', () => {
 
   it('Arrow keys call nudgeObject when an annotation is selected', () => {
     const nudgeObject = vi.fn();
-    useAnnotationStore.setState({ selectedId: 'obj-1', nudgeObject });
+    useAnnotationStore.setState({ selectedIds: ['obj-1'], nudgeObject });
     
     renderHook(() => useKeyboardShortcuts());
 
@@ -50,7 +50,7 @@ describe('useKeyboardShortcuts routing', () => {
 
   it('Arrow keys do nothing when an input element has focus', () => {
     const nudgeObject = vi.fn();
-    useAnnotationStore.setState({ selectedId: 'obj-1', nudgeObject });
+    useAnnotationStore.setState({ selectedIds: ['obj-1'], nudgeObject });
     
     renderHook(() => useKeyboardShortcuts());
 

@@ -1,9 +1,10 @@
+import Konva from 'konva';
 import { Arrow } from 'react-konva';
 import { FreehandArrowObject } from '../state/types';
 
 interface FreehandArrowNodeProps {
   obj: FreehandArrowObject;
-  onSelect: () => void;
+  onSelect: (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => void;
   onUpdate: (id: string, attrs: Partial<FreehandArrowObject>) => void;
 }
 

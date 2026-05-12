@@ -8,7 +8,7 @@ interface SpotlightNodeProps {
   isSelected: boolean;
   stageWidth: number;
   stageHeight: number;
-  onSelect: (id: string) => void;
+  onSelect: (id: string, e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => void;
   onUpdate: (id: string, patch: AnnotationObjectPatch) => void;
 }
 
@@ -92,8 +92,8 @@ export function SpotlightNode({
         shadowBlur={18}
         shadowOpacity={0.28}
         hitStrokeWidth={20}
-        onClick={() => onSelect(obj.id)}
-        onTap={() => onSelect(obj.id)}
+        onClick={(e) => onSelect(obj.id, e)}
+        onTap={(e) => onSelect(obj.id, e)}
         onWheel={handleWheel}
         onDragEnd={(e) => {
           onUpdate(obj.id, { x: e.target.x(), y: e.target.y() });

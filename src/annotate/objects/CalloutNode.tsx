@@ -5,7 +5,7 @@ import { useAnnotationStore } from '../state/store';
 
 interface CalloutNodeProps {
   obj: CalloutObject;
-  onSelect: () => void;
+  onSelect: (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => void;
   onUpdate: (id: string, attrs: Partial<CalloutObject>) => void;
 }
 

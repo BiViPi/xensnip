@@ -2,8 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [0.2.1] - 2026-05-12
+
+### Added
+- Marquee Multi-Select: You can now click and drag on an empty canvas area using the Select tool to create a selection box that selects multiple annotations at once. The selection box uses the app's primary indigo color.
+- Destructive Close Warning: New premium modal to guard against accidental loss of unsaved work.
+
+### Fixed
+- Window Border Bleed: Resolved artifacts in Active Window captures on high-DPI displays.
+- UI Polish: Fixed missing tooltips on Sidebar and icon-only editor controls.
+- Settings UI: Fixed unstyled browser-default tooltips on Settings window title bar buttons.
+- Popover Logic: Improved dismissal on outside click/Escape and persistence while dragging canvas handles.
+- Tool Workflow: Drawing tools now remain active for repeated use until explicitly cancelled.
+- Steps & Callouts: Refined popover layout and discoverability.
+- Visual Feedback: Enhanced selection area visibility for Blur and Pixelate tools.
+- Freehand Arrow: Fixed coordinate offset in the real-time drawing preview.
 
 ## [0.2.0] - 2026-05-11
 

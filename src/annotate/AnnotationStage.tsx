@@ -285,6 +285,19 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
               />
             </>
           )}
+          {drawingObject?.type === 'select_box' && (
+            <Rect
+              x={Math.min(drawingObject.start.x, drawingObject.end.x)}
+              y={Math.min(drawingObject.start.y, drawingObject.end.y)}
+              width={Math.abs(drawingObject.end.x - drawingObject.start.x)}
+              height={Math.abs(drawingObject.end.y - drawingObject.start.y)}
+              fill="rgba(99, 102, 241, 0.15)"
+              stroke="#6366f1"
+              strokeWidth={1}
+              listening={false}
+            />
+          )}
+
           {drawingObject?.type === 'freehand_arrow' && (
             <Arrow
               x={drawingObject.start.x}

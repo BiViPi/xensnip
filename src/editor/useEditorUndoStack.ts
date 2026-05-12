@@ -33,7 +33,7 @@ export function useEditorUndoStack({
     return {
       activeTool: s.activeTool,
       objects: s.objects.map((obj) => ({ ...obj })),
-      selectedId: s.selectedId,
+      selectedIds: s.selectedIds,
       editingTextId: s.editingTextId,
       toolbarCollapsed: s.toolbarCollapsed,
     };

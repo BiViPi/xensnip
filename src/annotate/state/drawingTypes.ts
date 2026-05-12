@@ -22,4 +22,10 @@ export type DrawingRedact = {
   end: { x: number; y: number }; 
 };
 
-export type DrawingObject = DrawingStart | DrawingFreehand | DrawingOcr | DrawingRedact;
+export type DrawingSelectBox = {
+  type: 'select_box';
+  start: { x: number; y: number };
+  end: { x: number; y: number };
+};
+
+export type DrawingObject = DrawingStart | DrawingFreehand | DrawingOcr | DrawingRedact | DrawingSelectBox;

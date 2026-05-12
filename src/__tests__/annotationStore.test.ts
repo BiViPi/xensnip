@@ -20,7 +20,7 @@ function makeArrow(id: string): ArrowObject {
 }
 
 beforeEach(() => {
-  useAnnotationStore.setState({ objects: [], selectedId: null, activeTool: 'select' });
+  useAnnotationStore.setState({ objects: [], selectedIds: [], activeTool: 'select' });
 });
 
 describe('annotationStore', () => {
@@ -42,20 +42,20 @@ describe('annotationStore', () => {
     expect(objects[0].id).toBe('a2');
   });
 
-  it('removeObject sets selectedId to null when it matched the removed id', () => {
+  it('removeObject removes id from selectedIds when it matched the removed id', () => {
     useAnnotationStore.getState().addObject(makeArrow('a1'));
-    useAnnotationStore.setState({ selectedId: 'a1' });
+    useAnnotationStore.setState({ selectedIds: ['a1'] });
     useAnnotationStore.getState().removeObject('a1');
-    expect(useAnnotationStore.getState().selectedId).toBeNull();
+    expect(useAnnotationStore.getState().selectedIds).toHaveLength(0);
   });
 
-  it('clearAll resets objects and selectedId but preserves activeTool', () => {
+  it('clearAll resets objects and selectedIds but preserves activeTool', () => {
     useAnnotationStore.getState().addObject(makeArrow('a1'));
-    useAnnotationStore.setState({ selectedId: 'a1', activeTool: 'rectangle' });
+    useAnnotationStore.setState({ selectedIds: ['a1'], activeTool: 'rectangle' });
     useAnnotationStore.getState().clearAll();
     const state = useAnnotationStore.getState();
     expect(state.objects).toHaveLength(0);
-    expect(state.selectedId).toBeNull();
+    expect(state.selectedIds).toHaveLength(0);
     expect(state.activeTool).toBe('rectangle');
   });
 

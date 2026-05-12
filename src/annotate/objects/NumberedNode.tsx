@@ -5,7 +5,7 @@ import { NumberedObject, AnnotationObjectPatch } from '../state/types';
 interface NumberedNodeProps {
   obj: NumberedObject;
   isSelected: boolean;
-  onSelect: (id: string) => void;
+  onSelect: (id: string, e: Konva.KonvaEventObject<any>) => void;
   onUpdate: (id: string, patch: AnnotationObjectPatch) => void;
 }
 
@@ -30,8 +30,8 @@ export function NumberedNode({ obj, isSelected, onSelect, onUpdate }: NumberedNo
       x={obj.x}
       y={obj.y}
       draggable={obj.draggable}
-      onClick={() => onSelect(obj.id)}
-      onTap={() => onSelect(obj.id)}
+      onClick={(e) => onSelect(obj.id, e)}
+      onTap={(e) => onSelect(obj.id, e)}
       onWheel={handleWheel}
       onDragEnd={(e) => {
         onUpdate(obj.id, { x: e.target.x(), y: e.target.y() });

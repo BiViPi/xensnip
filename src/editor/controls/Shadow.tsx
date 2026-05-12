@@ -14,23 +14,14 @@ export function ShadowControl({ preset, onChange }: Props) {
           <ShadowPanelIcon />
           <span style={{ fontSize: "15px", fontWeight: 700 }}>Shadow</span>
         </div>
-        <div
-          onClick={() => onChange({ shadow_enabled: !preset.shadow_enabled })}
-          style={{
-            width: "40px", height: "22px",
-            backgroundColor: preset.shadow_enabled ? "#6366F1" : "rgba(255,255,255,0.1)",
-            borderRadius: "11px", position: "relative", cursor: "pointer",
-            transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
-          }}
-        >
-          <div style={{
-            width: "18px", height: "18px", backgroundColor: "white",
-            borderRadius: "50%", position: "absolute", top: "2px",
-            left: preset.shadow_enabled ? "20px" : "2px",
-            transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-            boxShadow: "0 2px 4px rgba(0,0,0,0.15)"
-          }} />
-        </div>
+        <label className="xs-switch">
+          <input
+            type="checkbox"
+            checked={preset.shadow_enabled}
+            onChange={() => onChange({ shadow_enabled: !preset.shadow_enabled })}
+          />
+          <span className="xs-slider"></span>
+        </label>
       </div>
 
       <div style={{

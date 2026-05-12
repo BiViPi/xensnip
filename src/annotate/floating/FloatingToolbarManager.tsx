@@ -26,7 +26,7 @@ interface Props {
 }
 
 export function FloatingToolbarManager({ scale, stageRef }: Props) {
-  const { selectedId, objects, editingTextId } = useAnnotationStore();
+  const { selectedIds, objects, editingTextId } = useAnnotationStore();
   const { activeUtility, currentSample, colorPickerFrozen } = useMeasureStore();
   const anchor = useObjectAnchor(scale, stageRef);
   
@@ -35,7 +35,8 @@ export function FloatingToolbarManager({ scale, stageRef }: Props) {
     return <ColorPickerToolbar sample={currentSample} anchor={cpAnchor} frozen={colorPickerFrozen} />;
   }
 
-  if (!selectedId || !anchor || editingTextId === selectedId) return null;
+  if (selectedIds.length !== 1 || !anchor || editingTextId === selectedIds[0]) return null;
+  const selectedId = selectedIds[0];
 
   const selectedObject = objects.find(o => o.id === selectedId);
   if (!selectedObject) return null;

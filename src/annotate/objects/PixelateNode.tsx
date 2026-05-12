@@ -1,10 +1,11 @@
+import Konva from 'konva';
 import React, { useEffect, useState } from 'react';
 import { Image } from 'react-konva';
 import { PixelateObject } from '../state/types';
 
 interface Props {
   obj: PixelateObject;
-  onSelect: (id: string | null) => void;
+  onSelect: (id: string | null, e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => void;
   onUpdate: (id: string, attrs: Partial<PixelateObject>) => void;
   compositionCanvasRef: React.RefObject<HTMLCanvasElement | null>;
 }
@@ -65,8 +66,8 @@ export function PixelateNode({ obj, onSelect, onUpdate, compositionCanvasRef }: 
       width={obj.width}
       height={obj.height}
       draggable={obj.draggable}
-      onClick={() => onSelect(obj.id)}
-      onTap={() => onSelect(obj.id)}
+      onClick={(e) => onSelect(obj.id, e)}
+      onTap={(e) => onSelect(obj.id, e)}
       onDragEnd={(e) => {
         onUpdate(obj.id, {
           x: e.target.x(),

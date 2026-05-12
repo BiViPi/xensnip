@@ -67,7 +67,7 @@ interface UseAnnotationPointerHandlersDeps {
 export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersDeps): {
   handleMouseDown: (e: Konva.KonvaEventObject<MouseEvent>) => void;
   handleMouseMove: (e: Konva.KonvaEventObject<MouseEvent>) => void;
-  handleMouseUp: () => void;
+  handleMouseUp: (e: Konva.KonvaEventObject<MouseEvent>) => void;
   drawingObject: DrawingObject | null;
 } {
   const {
@@ -89,7 +89,7 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
     activeUtility,
   } = deps;
 
-  const { activeTool, select, addObject, setActiveTool, objects, setEditingTextId } =
+  const { activeTool, select, selectMultiple, selectAdditive, addObject, setActiveTool, objects, setEditingTextId } =
     useAnnotationStore();
 
   const { drawingObject, setDrawingObject } = usePointerHandlersState();
@@ -179,8 +179,16 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
       // 4. Fallback: deselect on empty stage click
       const clickedOnEmpty = e.target === e.target.getStage();
       if (clickedOnEmpty && activeTool === 'select') {
-        select(null);
-        setEditingTextId(null);
+        const isAdditive = e.evt.ctrlKey || e.evt.metaKey;
+        if (!isAdditive) {
+          select(null);
+          setEditingTextId(null);
+        }
+        setDrawingObject({
+          type: 'select_box',
+          start: { x: stageX, y: stageY },
+          end: { x: stageX, y: stageY },
+        });
       }
     },
     [
@@ -235,7 +243,7 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
     [scale, activeUtility, colorPickerFrozen, compositionCanvasRef, setCurrentSample, drawingObject, setDrawingObject]
   );
 
-  const handleMouseUp = useCallback(() => {
+  const handleMouseUp = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
     if (!drawingObject) return;
 
     // Freehand arrow — uses accumulated points array
@@ -260,6 +268,63 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
     const dx = drawingObject.end.x - drawingObject.start.x;
     const dy = drawingObject.end.y - drawingObject.start.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
+
+    // Select Box Deletion
+    if (drawingObject.type === 'select_box') {
+      const minX = Math.min(drawingObject.start.x, drawingObject.end.x);
+      const maxX = Math.max(drawingObject.start.x, drawingObject.end.x);
+      const minY = Math.min(drawingObject.start.y, drawingObject.end.y);
+      const maxY = Math.max(drawingObject.start.y, drawingObject.end.y);
+
+      if (maxX - minX > 4 && maxY - minY > 4) {
+        const toSelectIds = objects.filter(obj => {
+          let oMinX = obj.x;
+          let oMinY = obj.y;
+          let oMaxX = obj.x;
+          let oMaxY = obj.y;
+
+          if (obj.type === 'freehand_arrow') {
+             let fMinX = Infinity, fMinY = Infinity, fMaxX = -Infinity, fMaxY = -Infinity;
+             for (let i = 0; i < obj.points.length; i += 2) {
+                fMinX = Math.min(fMinX, obj.x + obj.points[i]);
+                fMaxX = Math.max(fMaxX, obj.x + obj.points[i]);
+                fMinY = Math.min(fMinY, obj.y + obj.points[i+1]);
+                fMaxY = Math.max(fMaxY, obj.y + obj.points[i+1]);
+             }
+             oMinX = fMinX; oMinY = fMinY; oMaxX = fMaxX; oMaxY = fMaxY;
+          } else if (obj.type === 'arrow' || obj.type === 'pixel_ruler') {
+             oMinX = obj.x + Math.min(obj.points[0], obj.points[2]);
+             oMaxX = obj.x + Math.max(obj.points[0], obj.points[2]);
+             oMinY = obj.y + Math.min(obj.points[1], obj.points[3]);
+             oMaxY = obj.y + Math.max(obj.points[1], obj.points[3]);
+          } else if (obj.type === 'speech_bubble' || obj.type === 'callout') {
+             oMaxX = obj.x + obj.width;
+             oMaxY = obj.y + obj.height;
+          } else {
+             oMaxX = obj.x + ('width' in obj ? (obj.width as number) : 0);
+             oMaxY = obj.y + ('height' in obj ? (obj.height as number) : 0);
+          }
+
+          return !(oMaxX < minX || oMinX > maxX || oMaxY < minY || oMinY > maxY);
+        }).map(o => o.id);
+
+        const isAdditive = e.evt.ctrlKey || e.evt.metaKey;
+
+        if (toSelectIds.length > 0) {
+           if (isAdditive) {
+             selectAdditive(toSelectIds);
+           } else {
+             selectMultiple(toSelectIds);
+           }
+        } else {
+           if (!isAdditive) select(null);
+        }
+      } else {
+        if (!(e.evt.ctrlKey || e.evt.metaKey)) select(null);
+      }
+      setDrawingObject(null);
+      return;
+    }
 
     // OCR selection
     if (drawingObject.type === 'ocr_selection') {
@@ -302,9 +367,9 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
     }
     setDrawingObject(null);
   }, [
-    drawingObject, setDrawingObject, compositionCanvasRef, addObject, select, setActiveTool, setEditingTextId,
+    drawingObject, setDrawingObject, compositionCanvasRef, addObject, select, selectMultiple, selectAdditive, setActiveTool, setEditingTextId,
     setOcrRegion, setOcrStatus, setOcrProgress, setOcrText, setOcrError, ocrRequestIdRef, setScope, setSelectionRect, setPrivacyStatus,
-    activeTool,
+    activeTool, objects
   ]);
 
   return { handleMouseDown, handleMouseMove, handleMouseUp, drawingObject };

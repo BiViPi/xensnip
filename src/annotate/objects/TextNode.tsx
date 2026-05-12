@@ -7,7 +7,7 @@ import { useAnnotationStore } from '../state/store';
 interface TextNodeProps {
   obj: TextObject;
   isSelected: boolean;
-  onSelect: (id: string) => void;
+  onSelect: (id: string, e: Konva.KonvaEventObject<any>) => void;
   onUpdate: (id: string, patch: AnnotationObjectPatch) => void;
 }
 
@@ -34,8 +34,8 @@ export function TextNode({ obj, isSelected, onSelect, onUpdate }: TextNodeProps)
     }
   }, [isSelected, isEditing, setEditingTextId]);
 
-  const openEditor = () => {
-    onSelect(obj.id);
+  const openEditor = (e?: Konva.KonvaEventObject<any>) => {
+    if (e) onSelect(obj.id, e);
     setEditingTextId(obj.id);
   };
 
@@ -53,13 +53,13 @@ export function TextNode({ obj, isSelected, onSelect, onUpdate }: TextNodeProps)
     }
   };
 
-  const handleClick = () => {
+  const handleClick = (e: Konva.KonvaEventObject<any>) => {
     const now = Date.now();
     const isDoubleIntent = now - clickAtRef.current < 300;
     clickAtRef.current = now;
 
-    if (!isSelected) {
-      onSelect(obj.id);
+    if (!isSelected || e.evt.ctrlKey || e.evt.metaKey) {
+      onSelect(obj.id, e);
       return;
     }
 

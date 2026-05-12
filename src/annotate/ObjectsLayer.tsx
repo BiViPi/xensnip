@@ -1,3 +1,4 @@
+import Konva from 'konva';
 import { useAnnotationStore } from './state/store';
 import { ArrowNode } from './objects/ArrowNode';
 import { RectangleNode } from './objects/RectangleNode';
@@ -22,7 +23,19 @@ interface Props {
 }
 
 export function ObjectsLayer({ compositionCanvasRef, stageWidth, stageHeight, scale }: Props) {
-  const { objects, select, updateObject, selectedId } = useAnnotationStore();
+  const { objects, select, toggleSelect, updateObject, selectedIds } = useAnnotationStore();
+
+  const handleSelect = (id: string | null, e?: Konva.KonvaEventObject<any>) => {
+    if (!id) {
+      select(null);
+      return;
+    }
+    if (e?.evt?.ctrlKey || e?.evt?.metaKey) {
+      toggleSelect(id);
+    } else {
+      select(id);
+    }
+  };
 
   return (
     <>
@@ -32,8 +45,8 @@ export function ObjectsLayer({ compositionCanvasRef, stageWidth, stageHeight, sc
             <ArrowNode
               key={obj.id}
               obj={obj}
-              isSelected={selectedId === obj.id}
-              onSelect={select}
+              isSelected={selectedIds.includes(obj.id)}
+              onSelect={handleSelect}
               onUpdate={updateObject}
             />
           );
@@ -43,8 +56,8 @@ export function ObjectsLayer({ compositionCanvasRef, stageWidth, stageHeight, sc
             <RectangleNode
               key={obj.id}
               obj={obj}
-              isSelected={selectedId === obj.id}
-              onSelect={select}
+              isSelected={selectedIds.includes(obj.id)}
+              onSelect={handleSelect}
               onUpdate={updateObject}
             />
           );
@@ -54,8 +67,8 @@ export function ObjectsLayer({ compositionCanvasRef, stageWidth, stageHeight, sc
             <TextNode
               key={obj.id}
               obj={obj}
-              isSelected={selectedId === obj.id}
-              onSelect={select}
+              isSelected={selectedIds.includes(obj.id)}
+              onSelect={handleSelect}
               onUpdate={updateObject}
             />
           );
@@ -65,7 +78,7 @@ export function ObjectsLayer({ compositionCanvasRef, stageWidth, stageHeight, sc
             <BlurNode
               key={obj.id}
               obj={obj}
-              onSelect={select}
+              onSelect={handleSelect}
               onUpdate={updateObject}
               compositionCanvasRef={compositionCanvasRef}
             />
@@ -76,8 +89,8 @@ export function ObjectsLayer({ compositionCanvasRef, stageWidth, stageHeight, sc
             <NumberedNode
               key={obj.id}
               obj={obj}
-              isSelected={selectedId === obj.id}
-              onSelect={select}
+              isSelected={selectedIds.includes(obj.id)}
+              onSelect={handleSelect}
               onUpdate={updateObject}
             />
           );
@@ -87,10 +100,10 @@ export function ObjectsLayer({ compositionCanvasRef, stageWidth, stageHeight, sc
             <SpotlightNode
               key={obj.id}
               obj={obj}
-              isSelected={selectedId === obj.id}
+              isSelected={selectedIds.includes(obj.id)}
               stageWidth={stageWidth}
               stageHeight={stageHeight}
-              onSelect={select}
+              onSelect={handleSelect}
               onUpdate={updateObject}
             />
           );
@@ -100,8 +113,8 @@ export function ObjectsLayer({ compositionCanvasRef, stageWidth, stageHeight, sc
             <MagnifyNode
               key={obj.id}
               obj={obj}
-              isSelected={selectedId === obj.id}
-              onSelect={select}
+              isSelected={selectedIds.includes(obj.id)}
+              onSelect={handleSelect}
               onUpdate={updateObject}
               compositionCanvasRef={compositionCanvasRef}
             />
@@ -112,10 +125,10 @@ export function ObjectsLayer({ compositionCanvasRef, stageWidth, stageHeight, sc
             <SimplifyUiNode
               key={obj.id}
               obj={obj}
-              isSelected={selectedId === obj.id}
+              isSelected={selectedIds.includes(obj.id)}
               stageWidth={stageWidth}
               stageHeight={stageHeight}
-              onSelect={select}
+              onSelect={handleSelect}
               onUpdate={updateObject}
               compositionCanvasRef={compositionCanvasRef}
             />
@@ -126,9 +139,9 @@ export function ObjectsLayer({ compositionCanvasRef, stageWidth, stageHeight, sc
             <PixelRulerNode
               key={obj.id}
               obj={obj}
-              isSelected={selectedId === obj.id}
-              onSelect={() => select(obj.id)}
-              onChange={(attrs) => updateObject(obj.id, attrs)}
+              isSelected={selectedIds.includes(obj.id)}
+              onSelect={(e) => handleSelect(obj.id, e)}
+              onChange={(attrs: any) => updateObject(obj.id, attrs)}
               scale={scale}
             />
           );
@@ -138,8 +151,8 @@ export function ObjectsLayer({ compositionCanvasRef, stageWidth, stageHeight, sc
             <SpeechBubbleNode
               key={obj.id}
               obj={obj}
-              isSelected={selectedId === obj.id}
-              onSelect={() => select(obj.id)}
+              isSelected={selectedIds.includes(obj.id)}
+              onSelect={(e) => handleSelect(obj.id, e)}
               onUpdate={updateObject}
             />
           );
@@ -149,7 +162,7 @@ export function ObjectsLayer({ compositionCanvasRef, stageWidth, stageHeight, sc
             <CalloutNode
               key={obj.id}
               obj={obj}
-              onSelect={() => select(obj.id)}
+              onSelect={(e) => handleSelect(obj.id, e)}
               onUpdate={updateObject}
             />
           );
@@ -159,7 +172,7 @@ export function ObjectsLayer({ compositionCanvasRef, stageWidth, stageHeight, sc
             <FreehandArrowNode
               key={obj.id}
               obj={obj}
-              onSelect={() => select(obj.id)}
+              onSelect={(e) => handleSelect(obj.id, e)}
               onUpdate={updateObject}
             />
           );
@@ -169,7 +182,7 @@ export function ObjectsLayer({ compositionCanvasRef, stageWidth, stageHeight, sc
             <PixelateNode
               key={obj.id}
               obj={obj}
-              onSelect={select}
+              onSelect={handleSelect}
               onUpdate={updateObject}
               compositionCanvasRef={compositionCanvasRef}
             />
@@ -180,7 +193,7 @@ export function ObjectsLayer({ compositionCanvasRef, stageWidth, stageHeight, sc
             <OpaqueRedactNode
               key={obj.id}
               obj={obj}
-              onSelect={select}
+              onSelect={handleSelect}
               onUpdate={updateObject}
             />
           );

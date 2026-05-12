@@ -1,9 +1,10 @@
+import Konva from 'konva';
 import { Rect } from 'react-konva';
 import { OpaqueRedactObject } from '../state/types';
 
 interface Props {
   obj: OpaqueRedactObject;
-  onSelect: (id: string | null) => void;
+  onSelect: (id: string | null, e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => void;
   onUpdate: (id: string, attrs: Partial<OpaqueRedactObject>) => void;
 }
 
@@ -21,8 +22,8 @@ export function OpaqueRedactNode({ obj, onSelect, onUpdate }: Props) {
       strokeWidth={obj.borderWidth}
       cornerRadius={0}
       draggable={obj.draggable}
-      onClick={() => onSelect(obj.id)}
-      onTap={() => onSelect(obj.id)}
+      onClick={(e) => onSelect(obj.id, e)}
+      onTap={(e) => onSelect(obj.id, e)}
       onDragEnd={(e) => {
         onUpdate(obj.id, {
           x: e.target.x(),

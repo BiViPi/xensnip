@@ -5,7 +5,7 @@ import { recordHistorySnapshot } from '../../editor/historyBridge';
 export interface AnnotationSnapshot {
   activeTool: ToolId;
   objects: AnnotateObject[];
-  selectedId: string | null;
+  selectedIds: string[];
   editingTextId: string | null;
   toolbarCollapsed: boolean;
 }
@@ -13,7 +13,7 @@ export interface AnnotationSnapshot {
 interface AnnotationState {
   activeTool: ToolId;
   objects: AnnotateObject[];
-  selectedId: string | null;
+  selectedIds: string[];
   editingTextId: string | null;
   toolbarCollapsed: boolean;
   
@@ -21,7 +21,11 @@ interface AnnotationState {
   addObject: (obj: AnnotateObject) => void;
   updateObject: (id: string, patch: Partial<AnnotateObject>) => void;
   removeObject: (id: string) => void;
+  removeObjects: (ids: string[]) => void;
   select: (id: string | null) => void;
+  selectMultiple: (ids: string[]) => void;
+  selectAdditive: (ids: string[]) => void;
+  toggleSelect: (id: string) => void;
   setEditingTextId: (id: string | null) => void;
   setToolbarCollapsed: (collapsed: boolean) => void;
   clearAll: () => void;
@@ -34,7 +38,7 @@ const cloneObjects = (objects: AnnotateObject[]) => objects.map((obj) => ({ ...o
 export const useAnnotationStore = create<AnnotationState>((set, get) => ({
   activeTool: 'select',
   objects: [],
-  selectedId: null,
+  selectedIds: [],
   editingTextId: null,
   toolbarCollapsed: false,
 
@@ -58,18 +62,37 @@ export const useAnnotationStore = create<AnnotationState>((set, get) => ({
     recordHistorySnapshot();
     return {
       objects: state.objects.filter((o) => o.id !== id),
-      selectedId: state.selectedId === id ? null : state.selectedId,
+      selectedIds: state.selectedIds.filter((sid) => sid !== id),
       editingTextId: state.editingTextId === id ? null : state.editingTextId,
     };
   }),
-  select: (id) => set({ selectedId: id }),
+  removeObjects: (ids) => set((state) => {
+    if (ids.length === 0) return state;
+    recordHistorySnapshot();
+    const idSet = new Set(ids);
+    return {
+      objects: state.objects.filter((o) => !idSet.has(o.id)),
+      selectedIds: state.selectedIds.filter((sid) => !idSet.has(sid)),
+      editingTextId: state.editingTextId && idSet.has(state.editingTextId) ? null : state.editingTextId,
+    };
+  }),
+  select: (id) => set({ selectedIds: id ? [id] : [] }),
+  selectMultiple: (ids) => set({ selectedIds: ids }),
+  selectAdditive: (ids) => set((state) => ({
+    selectedIds: Array.from(new Set([...state.selectedIds, ...ids]))
+  })),
+  toggleSelect: (id) => set((state) => ({
+    selectedIds: state.selectedIds.includes(id)
+      ? state.selectedIds.filter(sid => sid !== id)
+      : [...state.selectedIds, id]
+  })),
   setEditingTextId: (id) => set({ editingTextId: id }),
   setToolbarCollapsed: (collapsed) => set({ toolbarCollapsed: collapsed }),
   clearAll: () => set((state) => {
     recordHistorySnapshot();
     return {
       objects: [],
-      selectedId: null,
+      selectedIds: [],
       editingTextId: null,
       activeTool: state.activeTool,
     };
@@ -77,7 +100,7 @@ export const useAnnotationStore = create<AnnotationState>((set, get) => ({
   restoreSnapshot: (snapshot) => set({
     activeTool: snapshot.activeTool,
     objects: cloneObjects(snapshot.objects),
-    selectedId: snapshot.selectedId,
+    selectedIds: (snapshot as any).selectedId ? [(snapshot as any).selectedId] : (snapshot.selectedIds || []), // backward compat for old snapshots
     editingTextId: snapshot.editingTextId,
     toolbarCollapsed: snapshot.toolbarCollapsed,
   }),

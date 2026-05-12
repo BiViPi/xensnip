@@ -6,7 +6,7 @@ import { drawCloudRect } from '../renderers/rectangleCloud';
 interface RectangleNodeProps {
   obj: RectangleObject;
   isSelected: boolean;
-  onSelect: (id: string) => void;
+  onSelect: (id: string, e: Konva.KonvaEventObject<any>) => void;
   onUpdate: (id: string, patch: AnnotationObjectPatch) => void;
 }
 
@@ -49,8 +49,8 @@ export function RectangleNode({ obj, isSelected, onSelect, onUpdate }: Rectangle
           drawCloudRect(context, obj.width, obj.height);
           context.fillStrokeShape(shape);
         }}
-        onClick={() => onSelect(obj.id)}
-        onTap={() => onSelect(obj.id)}
+        onClick={(e) => onSelect(obj.id, e)}
+        onTap={(e) => onSelect(obj.id, e)}
         onWheel={handleWheel}
         onDragEnd={(e) => {
           onUpdate(obj.id, { x: e.target.x(), y: e.target.y() });
@@ -73,8 +73,8 @@ export function RectangleNode({ obj, isSelected, onSelect, onUpdate }: Rectangle
       draggable={obj.draggable}
       strokeScaleEnabled={false}
       dash={lineStyle === 'dashed' ? [10, 6] : undefined}
-      onClick={() => onSelect(obj.id)}
-      onTap={() => onSelect(obj.id)}
+      onClick={(e) => onSelect(obj.id, e)}
+      onTap={(e) => onSelect(obj.id, e)}
       onWheel={handleWheel}
       onDragEnd={(e) => {
         onUpdate(obj.id, { x: e.target.x(), y: e.target.y() });

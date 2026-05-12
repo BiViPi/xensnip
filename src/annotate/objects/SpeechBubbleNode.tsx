@@ -6,7 +6,7 @@ import { useAnnotationStore } from '../state/store';
 interface SpeechBubbleNodeProps {
   obj: SpeechBubbleObject;
   isSelected: boolean;
-  onSelect: () => void;
+  onSelect: (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => void;
   onUpdate: (id: string, attrs: Partial<SpeechBubbleObject>) => void;
 }
 

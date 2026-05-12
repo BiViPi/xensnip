@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useAnnotationStore } from '../annotate/state/store';
+import { recordHistorySnapshot, withHistorySuspended } from './historyBridge';
 
 interface KeyboardShortcutsOptions {
   onUndo?: () => void;
@@ -7,7 +8,7 @@ interface KeyboardShortcutsOptions {
 }
 
 export function useKeyboardShortcuts({ onUndo, onRedo }: KeyboardShortcutsOptions = {}) {
-  const { selectedId, select, removeObject, setActiveTool, activeTool, nudgeObject } = useAnnotationStore();
+  const { selectedIds, select, removeObjects, setActiveTool, activeTool, nudgeObject } = useAnnotationStore();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -38,17 +39,20 @@ export function useKeyboardShortcuts({ onUndo, onRedo }: KeyboardShortcutsOption
       }
 
       // Arrow nudge (annotation must be selected)
-      if (selectedId && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+      if (selectedIds.length > 0 && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
         e.preventDefault();
         const delta = e.shiftKey ? 10 : 1;
         const dx = e.key === 'ArrowLeft' ? -delta : e.key === 'ArrowRight' ? delta : 0;
         const dy = e.key === 'ArrowUp' ? -delta : e.key === 'ArrowDown' ? delta : 0;
-        nudgeObject(selectedId, dx, dy);
+        recordHistorySnapshot();
+        withHistorySuspended(() => {
+          selectedIds.forEach(id => nudgeObject(id, dx, dy));
+        });
         return;
       }
 
       if (e.key === 'Escape') {
-        if (selectedId) {
+        if (selectedIds.length > 0) {
           select(null);
           setActiveTool('select');
         } else if (activeTool !== 'select') {
@@ -56,12 +60,12 @@ export function useKeyboardShortcuts({ onUndo, onRedo }: KeyboardShortcutsOption
         }
       }
 
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId) {
-        removeObject(selectedId);
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedIds.length > 0) {
+        removeObjects(selectedIds);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedId, select, removeObject, setActiveTool, activeTool, onUndo, onRedo, nudgeObject]);
+  }, [selectedIds, select, removeObjects, setActiveTool, activeTool, onUndo, onRedo, nudgeObject]);
 }

@@ -5,7 +5,7 @@ import Konva from 'konva';
 
 interface BlurNodeProps {
   obj: BlurObject;
-  onSelect: (id: string) => void;
+  onSelect: (id: string, e: Konva.KonvaEventObject<any>) => void;
   onUpdate: (id: string, patch: AnnotationObjectPatch) => void;
   compositionCanvasRef: React.RefObject<HTMLCanvasElement | null>;
 }
@@ -69,8 +69,8 @@ export function BlurNode({ obj, onSelect, onUpdate, compositionCanvasRef }: Blur
       draggable={obj.draggable}
       filters={[Konva.Filters.Blur]}
       blurRadius={obj.blurRadius}
-      onClick={() => onSelect(obj.id)}
-      onTap={() => onSelect(obj.id)}
+      onClick={(e) => onSelect(obj.id, e)}
+      onTap={(e) => onSelect(obj.id, e)}
       hitStrokeWidth={20}
       onDragEnd={(e) => {
         onUpdate(obj.id, { x: e.target.x(), y: e.target.y() });

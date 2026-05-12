@@ -1,10 +1,11 @@
+import Konva from 'konva';
 import { Group, Arrow, Text, Rect } from 'react-konva';
 import { PixelRulerObject } from '../state/types';
 
 interface Props {
   obj: PixelRulerObject;
   isSelected: boolean;
-  onSelect: () => void;
+  onSelect: (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => void;
   onChange: (newAttrs: Partial<PixelRulerObject>) => void;
   scale: number;
 }

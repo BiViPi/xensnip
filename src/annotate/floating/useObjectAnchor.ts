@@ -3,14 +3,15 @@ import Konva from 'konva';
 import { useAnnotationStore } from '../state/store';
 
 export function useObjectAnchor(stageScale: number, stageRef: React.RefObject<Konva.Stage | null>) {
-  const { selectedId, objects } = useAnnotationStore();
+  const { selectedIds, objects } = useAnnotationStore();
   const [anchor, setAnchor] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
 
   useEffect(() => {
-    if (!selectedId) {
+    if (selectedIds.length !== 1) {
       setAnchor(null);
       return;
     }
+    const selectedId = selectedIds[0];
 
     const updateAnchor = () => {
       const stage = stageRef.current;
@@ -30,7 +31,7 @@ export function useObjectAnchor(stageScale: number, stageRef: React.RefObject<Ko
 
     const interval = setInterval(updateAnchor, 16); // Follow movement
     return () => clearInterval(interval);
-  }, [selectedId, objects, stageScale, stageRef]);
+  }, [selectedIds, objects, stageScale, stageRef]);
 
   return anchor;
 }

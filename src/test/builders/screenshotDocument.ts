@@ -35,7 +35,7 @@ export function createAnnotationSnapshot(
   return {
     activeTool: 'select',
     objects: [],
-    selectedId: null,
+    selectedIds: [],
     editingTextId: null,
     toolbarCollapsed: false,
     ...overrides,

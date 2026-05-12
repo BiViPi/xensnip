@@ -1,3 +1,4 @@
+import Konva from 'konva';
 import { Group, Image, Rect } from 'react-konva';
 import { MagnifyObject, AnnotationObjectPatch } from '../state/types';
 import { useEffect, useState } from 'react';
@@ -5,7 +6,7 @@ import { useEffect, useState } from 'react';
 interface MagnifyNodeProps {
   obj: MagnifyObject;
   isSelected: boolean;
-  onSelect: (id: string) => void;
+  onSelect: (id: string, e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => void;
   onUpdate: (id: string, patch: AnnotationObjectPatch) => void;
   compositionCanvasRef: React.RefObject<HTMLCanvasElement | null>;
 }
@@ -43,8 +44,8 @@ export function MagnifyNode({ obj, onSelect, onUpdate, compositionCanvasRef }: M
       height={obj.height}
       rotation={obj.rotation}
       draggable={obj.draggable}
-      onClick={() => onSelect(obj.id)}
-      onTap={() => onSelect(obj.id)}
+      onClick={(e) => onSelect(obj.id, e)}
+      onTap={(e) => onSelect(obj.id, e)}
       onDragEnd={(e) => {
         onUpdate(obj.id, { x: e.target.x(), y: e.target.y() });
       }}
