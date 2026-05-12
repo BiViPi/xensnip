@@ -285,6 +285,20 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
               />
             </>
           )}
+          {drawingObject?.type === 'freehand_arrow' && (
+            <Arrow
+              x={drawingObject.start.x}
+              y={drawingObject.start.y}
+              points={drawingObject.points}
+              stroke="#ef4444"
+              strokeWidth={4}
+              opacity={0.6}
+              lineCap="round"
+              lineJoin="round"
+              pointerLength={12}
+              pointerWidth={12}
+            />
+          )}
         </Layer>
       </Stage>
       <TextInlineEditor

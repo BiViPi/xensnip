@@ -289,7 +289,11 @@ fn spawn_window(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let (x, y) = compute_position(meta);
 
-    let url = format!("quick-access.html?asset_id={}", url_encode(asset_id));
+    let url = format!(
+        "quick-access.html?asset_id={}&capture_kind={}",
+        url_encode(asset_id),
+        url_encode(&meta.capture_kind)
+    );
 
     let window = WebviewWindowBuilder::new(app, QA_LABEL, WebviewUrl::App(url.into()))
         .title("XenSnip Editor")

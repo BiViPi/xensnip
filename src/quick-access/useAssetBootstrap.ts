@@ -28,9 +28,13 @@ interface UseAssetBootstrapDeps {
   redoStackRef: React.MutableRefObject<DocumentUndoSnapshot[]>;
 }
 
+interface BootstrapCaptureContext {
+  captureKind?: string;
+}
+
 export function useAssetBootstrap(deps: UseAssetBootstrapDeps): {
-  bootstrapAsset: (assetId: string) => Promise<void>;
-  bootstrapAssetRef: React.MutableRefObject<(assetId: string) => Promise<void>>;
+  bootstrapAsset: (assetId: string, captureContext?: BootstrapCaptureContext) => Promise<void>;
+  bootstrapAssetRef: React.MutableRefObject<(assetId: string, captureContext?: BootstrapCaptureContext) => Promise<void>>;
   isLoading: boolean;
 } {
   const {
@@ -50,7 +54,7 @@ export function useAssetBootstrap(deps: UseAssetBootstrapDeps): {
 
   const [isLoading, setIsLoading] = useState(true);
 
-  const bootstrapAsset = useCallback(async (nextAssetId: string) => {
+  const bootstrapAsset = useCallback(async (nextAssetId: string, captureContext?: BootstrapCaptureContext) => {
     // Check if we already have this asset using stable docsRef
     if (docsRef.current.some((d) => d.assetId === nextAssetId)) {
       const existing = docsRef.current.find((d) => d.assetId === nextAssetId)!;
@@ -79,12 +83,32 @@ export function useAssetBootstrap(deps: UseAssetBootstrapDeps): {
       const blob = new Blob([bytes], { type: "image/png" });
       const url = URL.createObjectURL(blob);
 
-      const img = new Image();
+      let img = new Image();
       img.src = url;
       await new Promise((resolve, reject) => {
         img.onload = resolve;
         img.onerror = () => reject(new Error("Failed to load blob image"));
       });
+
+      if (captureContext?.captureKind === "window" && img.naturalWidth > 4 && img.naturalHeight > 4) {
+        const cropStart = performance.now();
+        // Use 2px inset to safely clear DWM borders on both 100% and high-DPI displays
+        const insetPx = 2;
+        const cropCanvas = document.createElement('canvas');
+        cropCanvas.width = img.naturalWidth - insetPx * 2;
+        cropCanvas.height = img.naturalHeight - insetPx * 2;
+        const cropCtx = cropCanvas.getContext('2d');
+        if (cropCtx) {
+          cropCtx.drawImage(img, -insetPx, -insetPx);
+          const croppedUrl = cropCanvas.toDataURL("image/png");
+          const croppedImg = new Image();
+          croppedImg.src = croppedUrl;
+          await new Promise((resolve) => { croppedImg.onload = resolve; });
+          img = croppedImg;
+        }
+        void perfLog(`Window inset crop (${insetPx}px) took ${Math.round(performance.now() - cropStart)}ms`);
+      }
+
       void perfLog(
         `Image decode took ${Math.round(performance.now() - decodeStart)}ms (${img.naturalWidth}x${img.naturalHeight})`
       );

@@ -206,7 +206,9 @@ export function QuickAccess() {
         try {
           setToast(null);
           setIsActionInFlight(false);
-          await bootstrapAssetRef.current(event.payload.asset_id);
+          await bootstrapAssetRef.current(event.payload.asset_id, {
+            captureKind: event.payload.capture_meta.capture_kind,
+          });
         } catch {
           showToast("Capture is no longer available.", "error");
         }
@@ -227,12 +229,16 @@ export function QuickAccess() {
 
   useEffect(() => {
     if (initialAssetHandledRef.current) return;
-    const initialId = new URLSearchParams(window.location.search).get("asset_id");
+    const query = new URLSearchParams(window.location.search);
+    const initialId = query.get("asset_id");
+    const initialCaptureKind = query.get("capture_kind") ?? undefined;
     if (initialId) {
       initialAssetHandledRef.current = true;
       void (async () => {
         try {
-          await bootstrapAssetRef.current(initialId);
+          await bootstrapAssetRef.current(initialId, {
+            captureKind: initialCaptureKind,
+          });
         } catch {
           showToast("Capture is no longer available.", "error");
         }

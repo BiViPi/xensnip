@@ -265,13 +265,7 @@ function StepsTools({ onClose }: { onClose: () => void }) {
   ] satisfies AnnotationFeatureToolItem[];
 
   return (
-    <>
-      <div className="xs-popover-header">
-        <div className="xs-popover-title">Steps</div>
-        <div className="xs-popover-desc">Sequential numbers & callouts</div>
-      </div>
-      <ToolGrid tools={tools} onClose={onClose} />
-    </>
+    <ToolGrid tools={tools} onClose={onClose} />
   );
 }
 

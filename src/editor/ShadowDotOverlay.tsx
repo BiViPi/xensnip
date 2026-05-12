@@ -39,15 +39,18 @@ export function ShadowDotOverlay({
     [canvasRef, centerX, centerY, previewScale, preset, onPresetChange]
   );
 
-  const onMouseDownShadow = (e: React.MouseEvent) => {
+  const onPointerDownShadow = (e: React.PointerEvent) => {
     e.preventDefault();
-    const onMouseMove = (ee: MouseEvent) => handleShadowDrag(ee);
-    const onMouseUp = () => {
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp);
+    e.stopPropagation();
+    e.nativeEvent.stopPropagation();
+    
+    const onPointerMove = (ee: PointerEvent) => handleShadowDrag(ee);
+    const onPointerUp = () => {
+      window.removeEventListener("pointermove", onPointerMove as EventListener);
+      window.removeEventListener("pointerup", onPointerUp);
     };
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", onMouseUp);
+    window.addEventListener("pointermove", onPointerMove as EventListener);
+    window.addEventListener("pointerup", onPointerUp);
   };
 
   const angleRad = ((preset.shadow_angle - 90) * Math.PI) / 180;
@@ -69,7 +72,7 @@ export function ShadowDotOverlay({
         />
       </svg>
       <div
-        onMouseDown={onMouseDownShadow}
+        onPointerDown={onPointerDownShadow}
         style={{
           position: "absolute",
           left: `${dotX}px`,
