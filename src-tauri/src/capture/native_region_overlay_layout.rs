@@ -134,12 +134,12 @@ fn guides_to_local(guides: &[ActiveSnapGuide], vx: i32, vy: i32) -> Vec<GuideLin
         .map(|ag| GuideLine {
             axis: match ag.axis {
                 SnapAxis::Horizontal => GuideAxis::Horizontal,
-                SnapAxis::Vertical   => GuideAxis::Vertical,
+                SnapAxis::Vertical => GuideAxis::Vertical,
             },
             // Global → local: horizontal guide uses vy offset, vertical uses vx.
             coord: match ag.axis {
                 SnapAxis::Horizontal => ag.screen_coord - vy,
-                SnapAxis::Vertical   => ag.screen_coord - vx,
+                SnapAxis::Vertical => ag.screen_coord - vx,
             },
         })
         .collect()
@@ -171,26 +171,58 @@ fn build_handles(r: LocalSelectionRect) -> Vec<HandleVisual> {
 
     vec![
         // Corner L-brackets
-        HandleVisual { cx: r.left,  cy: r.top,    kind: HandleVisualKind::CornerBracket { arm: ARM } },
-        HandleVisual { cx: r.right, cy: r.top,    kind: HandleVisualKind::CornerBracket { arm: ARM } },
-        HandleVisual { cx: r.left,  cy: r.bottom, kind: HandleVisualKind::CornerBracket { arm: ARM } },
-        HandleVisual { cx: r.right, cy: r.bottom, kind: HandleVisualKind::CornerBracket { arm: ARM } },
+        HandleVisual {
+            cx: r.left,
+            cy: r.top,
+            kind: HandleVisualKind::CornerBracket { arm: ARM },
+        },
+        HandleVisual {
+            cx: r.right,
+            cy: r.top,
+            kind: HandleVisualKind::CornerBracket { arm: ARM },
+        },
+        HandleVisual {
+            cx: r.left,
+            cy: r.bottom,
+            kind: HandleVisualKind::CornerBracket { arm: ARM },
+        },
+        HandleVisual {
+            cx: r.right,
+            cy: r.bottom,
+            kind: HandleVisualKind::CornerBracket { arm: ARM },
+        },
         // Edge midpoint dots
-        HandleVisual { cx,          cy: r.top,    kind: HandleVisualKind::EdgeDot { radius: RADIUS } },
-        HandleVisual { cx,          cy: r.bottom, kind: HandleVisualKind::EdgeDot { radius: RADIUS } },
-        HandleVisual { cx: r.left,  cy,           kind: HandleVisualKind::EdgeDot { radius: RADIUS } },
-        HandleVisual { cx: r.right, cy,           kind: HandleVisualKind::EdgeDot { radius: RADIUS } },
+        HandleVisual {
+            cx,
+            cy: r.top,
+            kind: HandleVisualKind::EdgeDot { radius: RADIUS },
+        },
+        HandleVisual {
+            cx,
+            cy: r.bottom,
+            kind: HandleVisualKind::EdgeDot { radius: RADIUS },
+        },
+        HandleVisual {
+            cx: r.left,
+            cy,
+            kind: HandleVisualKind::EdgeDot { radius: RADIUS },
+        },
+        HandleVisual {
+            cx: r.right,
+            cy,
+            kind: HandleVisualKind::EdgeDot { radius: RADIUS },
+        },
     ]
 }
 
 // ── Button layout ─────────────────────────────────────────────────────────────
 
 const CONFIRM_W: i32 = 115;
-const CANCEL_W:  i32 = 100;
-const BTN_H:     i32 = 34;
-const BTN_GAP:   i32 = 8;
+const CANCEL_W: i32 = 100;
+const BTN_H: i32 = 34;
+const BTN_GAP: i32 = 8;
 const BTN_MARGIN: i32 = 12;
-const EDGE_PAD:  i32 = 4;
+const EDGE_PAD: i32 = 4;
 
 /// Compute confirm and cancel button rects in local window coordinates.
 ///
@@ -209,7 +241,7 @@ pub(super) fn compute_button_layout(
     let max_x = (window_w - group_w - EDGE_PAD).max(EDGE_PAD);
     let group_x = desired_x.clamp(EDGE_PAD, max_x);
 
-    let cancel_x  = group_x;
+    let cancel_x = group_x;
     let confirm_x = group_x + CANCEL_W + BTN_GAP;
 
     // Below the selection; flip above when there is not enough room.
@@ -223,8 +255,18 @@ pub(super) fn compute_button_layout(
     let btn_y = raw_y.clamp(EDGE_PAD, max_y);
 
     ButtonLayout {
-        confirm: RECT { left: confirm_x, top: btn_y, right: confirm_x + CONFIRM_W, bottom: btn_y + BTN_H },
-        cancel:  RECT { left: cancel_x,  top: btn_y, right: cancel_x  + CANCEL_W,  bottom: btn_y + BTN_H },
+        confirm: RECT {
+            left: confirm_x,
+            top: btn_y,
+            right: confirm_x + CONFIRM_W,
+            bottom: btn_y + BTN_H,
+        },
+        cancel: RECT {
+            left: cancel_x,
+            top: btn_y,
+            right: cancel_x + CANCEL_W,
+            bottom: btn_y + BTN_H,
+        },
     }
 }
 
@@ -243,7 +285,12 @@ mod tests {
     use super::*;
 
     fn sel(left: i32, top: i32, right: i32, bottom: i32) -> LocalSelectionRect {
-        LocalSelectionRect { left, top, right, bottom }
+        LocalSelectionRect {
+            left,
+            top,
+            right,
+            bottom,
+        }
     }
 
     #[test]
@@ -314,15 +361,24 @@ mod tests {
     fn build_handles_returns_8_visuals() {
         let handles = build_handles(sel(100, 100, 400, 300));
         assert_eq!(handles.len(), 8);
-        let corners = handles.iter().filter(|h| matches!(h.kind, HandleVisualKind::CornerBracket { .. })).count();
-        let dots    = handles.iter().filter(|h| matches!(h.kind, HandleVisualKind::EdgeDot { .. })).count();
+        let corners = handles
+            .iter()
+            .filter(|h| matches!(h.kind, HandleVisualKind::CornerBracket { .. }))
+            .count();
+        let dots = handles
+            .iter()
+            .filter(|h| matches!(h.kind, HandleVisualKind::EdgeDot { .. }))
+            .count();
         assert_eq!(corners, 4);
         assert_eq!(dots, 4);
     }
 
     // ── build_overlay_frame guide conversion ──────────────────────────────────
 
-    fn make_adjusting_state_at(vx: i32, vy: i32) -> crate::capture::native_region_state::SelectorState {
+    fn make_adjusting_state_at(
+        vx: i32,
+        vy: i32,
+    ) -> crate::capture::native_region_state::SelectorState {
         use crate::capture::native_region_state::SelectorState;
         let mut s = SelectorState::new(vx, vy);
         s.begin_selection(10, 20);
@@ -335,7 +391,10 @@ mod tests {
     fn build_overlay_frame_converts_horizontal_guide_to_local_y() {
         use crate::capture::native_region_snap::{ActiveSnapGuide, SnapAxis};
         let state = make_adjusting_state_at(0, 100); // virtual_y = 100
-        let guides = [ActiveSnapGuide { axis: SnapAxis::Horizontal, screen_coord: 500 }];
+        let guides = [ActiveSnapGuide {
+            axis: SnapAxis::Horizontal,
+            screen_coord: 500,
+        }];
         let frame = build_overlay_frame(&state, 1920, 1080, &guides);
         assert_eq!(frame.guide_lines.len(), 1);
         assert_eq!(frame.guide_lines[0].coord, 500 - 100); // local Y = 400
@@ -346,7 +405,10 @@ mod tests {
     fn build_overlay_frame_converts_vertical_guide_with_negative_virtual_x() {
         use crate::capture::native_region_snap::{ActiveSnapGuide, SnapAxis};
         let state = make_adjusting_state_at(-1920, 0); // virtual_x = -1920
-        let guides = [ActiveSnapGuide { axis: SnapAxis::Vertical, screen_coord: -1800 }];
+        let guides = [ActiveSnapGuide {
+            axis: SnapAxis::Vertical,
+            screen_coord: -1800,
+        }];
         let frame = build_overlay_frame(&state, 1920, 1080, &guides);
         assert_eq!(frame.guide_lines.len(), 1);
         assert_eq!(frame.guide_lines[0].coord, -1800 - (-1920)); // local X = 120
@@ -360,7 +422,10 @@ mod tests {
         // Simulate selecting phase by creating a fresh state
         let mut s = crate::capture::native_region_state::SelectorState::new(0, 0);
         s.begin_selection(10, 20);
-        let guides = [ActiveSnapGuide { axis: SnapAxis::Horizontal, screen_coord: 100 }];
+        let guides = [ActiveSnapGuide {
+            axis: SnapAxis::Horizontal,
+            screen_coord: 100,
+        }];
         let frame = build_overlay_frame(&s, 1920, 1080, &guides);
         // Selecting phase never shows guides — guide_lines should be empty.
         assert!(frame.guide_lines.is_empty());

@@ -32,7 +32,12 @@ impl LocalSelectionRect {
             return None;
         }
 
-        Some(Self { left, top, right, bottom })
+        Some(Self {
+            left,
+            top,
+            right,
+            bottom,
+        })
     }
 }
 
@@ -199,12 +204,7 @@ impl SelectorState {
     /// Returns the live selection rect in local (window-relative) coords.
     /// Only meaningful in the Selecting phase.
     pub(super) fn current_local_rect(&self) -> Option<LocalSelectionRect> {
-        LocalSelectionRect::from_points(
-            self.start_x,
-            self.start_y,
-            self.current_x,
-            self.current_y,
-        )
+        LocalSelectionRect::from_points(self.start_x, self.start_y, self.current_x, self.current_y)
     }
 
     // ── Phase: Selecting → Adjusting (WM_LBUTTONUP) ──────────────────────────
@@ -273,12 +273,22 @@ impl SelectorState {
         match &self.phase {
             SelectorPhase::Adjusting(s) => match s.drag {
                 AdjustDrag::None => AdjustDragSnapshot::None,
-                AdjustDrag::Handle { which, anchor_local, rect_at_start } => {
-                    AdjustDragSnapshot::Handle { which, anchor_local, rect_at_start }
-                }
-                AdjustDrag::Move { anchor_local, rect_at_start } => {
-                    AdjustDragSnapshot::Move { anchor_local, rect_at_start }
-                }
+                AdjustDrag::Handle {
+                    which,
+                    anchor_local,
+                    rect_at_start,
+                } => AdjustDragSnapshot::Handle {
+                    which,
+                    anchor_local,
+                    rect_at_start,
+                },
+                AdjustDrag::Move {
+                    anchor_local,
+                    rect_at_start,
+                } => AdjustDragSnapshot::Move {
+                    anchor_local,
+                    rect_at_start,
+                },
             },
             _ => AdjustDragSnapshot::None,
         }
@@ -508,12 +518,22 @@ mod tests {
         assert_eq!(first.old_rect, None);
         assert_eq!(
             first.new_rect,
-            Some(LocalSelectionRect { left: 50, top: 70, right: 80, bottom: 100 })
+            Some(LocalSelectionRect {
+                left: 50,
+                top: 70,
+                right: 80,
+                bottom: 100
+            })
         );
         assert_eq!(second.old_rect, first.new_rect);
         assert_eq!(
             second.new_rect,
-            Some(LocalSelectionRect { left: 50, top: 70, right: 120, bottom: 140 })
+            Some(LocalSelectionRect {
+                left: 50,
+                top: 70,
+                right: 120,
+                bottom: 140
+            })
         );
     }
 
@@ -581,7 +601,12 @@ mod tests {
 
         assert_eq!(
             state.outcome(),
-            &SelectionOutcome::Confirmed { gx: 110, gy: 220, gw: 50, gh: 60 }
+            &SelectionOutcome::Confirmed {
+                gx: 110,
+                gy: 220,
+                gw: 50,
+                gh: 60
+            }
         );
     }
 
@@ -703,7 +728,12 @@ mod tests {
 
     #[test]
     fn local_rect_from_global_converts_correctly_with_positive_origin() {
-        let g = GlobalRect { gx: 500, gy: 300, gw: 200, gh: 150 };
+        let g = GlobalRect {
+            gx: 500,
+            gy: 300,
+            gw: 200,
+            gh: 150,
+        };
         let local = local_rect_from_global(g, 400, 200);
         assert_eq!(local.left, 100);
         assert_eq!(local.top, 100);
@@ -713,7 +743,12 @@ mod tests {
 
     #[test]
     fn local_rect_from_global_converts_correctly_with_negative_origin() {
-        let g = GlobalRect { gx: -1800, gy: 50, gw: 100, gh: 80 };
+        let g = GlobalRect {
+            gx: -1800,
+            gy: 50,
+            gw: 100,
+            gh: 80,
+        };
         let local = local_rect_from_global(g, -1920, 0);
         assert_eq!(local.left, 120);
         assert_eq!(local.top, 50);
@@ -744,13 +779,21 @@ mod tests {
     fn current_adjust_drag_returns_move_snapshot_during_move_drag() {
         let mut state = make_adjusting_state(0, 0, 100, 100, 200, 200);
         state.adjust_move_begin(150, 150);
-        assert!(matches!(state.current_adjust_drag(), AdjustDragSnapshot::Move { .. }));
+        assert!(matches!(
+            state.current_adjust_drag(),
+            AdjustDragSnapshot::Move { .. }
+        ));
     }
 
     #[test]
     fn set_adjust_rect_overrides_current_rect() {
         let mut state = make_adjusting_state(0, 0, 100, 100, 200, 200);
-        let new_rect = GlobalRect { gx: 50, gy: 60, gw: 80, gh: 70 };
+        let new_rect = GlobalRect {
+            gx: 50,
+            gy: 60,
+            gw: 80,
+            gh: 70,
+        };
         state.set_adjust_rect(new_rect);
         assert_eq!(state.current_adjust_rect().copied(), Some(new_rect));
     }
@@ -758,7 +801,12 @@ mod tests {
     #[test]
     fn set_adjust_rect_is_noop_when_not_adjusting() {
         let mut state = SelectorState::new(0, 0);
-        state.set_adjust_rect(GlobalRect { gx: 0, gy: 0, gw: 100, gh: 100 });
+        state.set_adjust_rect(GlobalRect {
+            gx: 0,
+            gy: 0,
+            gw: 100,
+            gh: 100,
+        });
         assert!(state.current_adjust_rect().is_none());
     }
 
@@ -767,7 +815,14 @@ mod tests {
     /// Build a `SelectorState` already in the Adjusting phase with the given
     /// global rect. `vx/vy` is the virtual origin; `gx/gy` is the global top-left;
     /// `gx2/gy2` is the global bottom-right.
-    fn make_adjusting_state(vx: i32, vy: i32, gx: i32, gy: i32, gx2: i32, gy2: i32) -> SelectorState {
+    fn make_adjusting_state(
+        vx: i32,
+        vy: i32,
+        gx: i32,
+        gy: i32,
+        gx2: i32,
+        gy2: i32,
+    ) -> SelectorState {
         let lx = gx - vx;
         let ly = gy - vy;
         let lx2 = gx2 - vx;

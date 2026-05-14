@@ -97,7 +97,7 @@ pub(super) fn apply_handle_snap(
     guides: &SnapGuides,
     tracker: &mut DragSnapTracker,
 ) -> (GlobalRect, Vec<ActiveSnapGuide>) {
-    let orig_right  = raw_rect.gx + raw_rect.gw as i32;
+    let orig_right = raw_rect.gx + raw_rect.gw as i32;
     let orig_bottom = raw_rect.gy + raw_rect.gh as i32;
 
     let mut gx = raw_rect.gx;
@@ -107,10 +107,10 @@ pub(super) fn apply_handle_snap(
 
     let mut active: Vec<ActiveSnapGuide> = Vec::new();
 
-    let moves_top    = matches!(which, HandleId::N | HandleId::NW | HandleId::NE);
+    let moves_top = matches!(which, HandleId::N | HandleId::NW | HandleId::NE);
     let moves_bottom = matches!(which, HandleId::S | HandleId::SW | HandleId::SE);
-    let moves_left   = matches!(which, HandleId::W | HandleId::NW | HandleId::SW);
-    let moves_right  = matches!(which, HandleId::E | HandleId::NE | HandleId::SE);
+    let moves_left = matches!(which, HandleId::W | HandleId::NW | HandleId::SW);
+    let moves_right = matches!(which, HandleId::E | HandleId::NE | HandleId::SE);
 
     // ── Horizontal snap (top or bottom edge) ─────────────────────────────────
     if moves_top || moves_bottom {
@@ -122,7 +122,10 @@ pub(super) fn apply_handle_snap(
             &mut tracker.bypassed_h,
         );
         if is_snap {
-            active.push(ActiveSnapGuide { axis: SnapAxis::Horizontal, screen_coord: coord });
+            active.push(ActiveSnapGuide {
+                axis: SnapAxis::Horizontal,
+                screen_coord: coord,
+            });
             if moves_top {
                 gy = coord.min(orig_bottom - MIN_SNAP_EDGE);
                 gh = (orig_bottom - gy).max(MIN_SNAP_EDGE);
@@ -142,7 +145,10 @@ pub(super) fn apply_handle_snap(
             &mut tracker.bypassed_v,
         );
         if is_snap {
-            active.push(ActiveSnapGuide { axis: SnapAxis::Vertical, screen_coord: coord });
+            active.push(ActiveSnapGuide {
+                axis: SnapAxis::Vertical,
+                screen_coord: coord,
+            });
             if moves_left {
                 gx = coord.min(orig_right - MIN_SNAP_EDGE);
                 gw = (orig_right - gx).max(MIN_SNAP_EDGE);
@@ -284,7 +290,10 @@ unsafe fn detect_inner(sel: GlobalRect, margin: i32) -> Result<SnapGuides, Strin
     dedup_candidates(&mut h);
     dedup_candidates(&mut v);
 
-    Ok(SnapGuides { horizontal: h, vertical: v })
+    Ok(SnapGuides {
+        horizontal: h,
+        vertical: v,
+    })
 }
 
 /// Scan a horizontal screen band and find rows with many cross-row luma
@@ -305,7 +314,7 @@ unsafe fn scan_h_band(
         Some(t) => t,
         None => return,
     };
-    use windows::Win32::Graphics::Gdi::{BitBlt, DeleteObject, HGDIOBJ, SelectObject, SRCCOPY};
+    use windows::Win32::Graphics::Gdi::{BitBlt, DeleteObject, SelectObject, HGDIOBJ, SRCCOPY};
 
     let _ = BitBlt(mem_dc, 0, 0, bw, bh, Some(screen_dc), gx, gy, SRCCOPY);
 
@@ -316,8 +325,7 @@ unsafe fn scan_h_band(
         let row_prev = (y - 1) * bw as usize;
         let row_curr = y * bw as usize;
         for x in 0..bw as usize {
-            if luma(pixels[row_prev + x]).abs_diff(luma(pixels[row_curr + x]))
-                > SNAP_LUMA_THRESHOLD
+            if luma(pixels[row_prev + x]).abs_diff(luma(pixels[row_curr + x])) > SNAP_LUMA_THRESHOLD
             {
                 count += 1;
             }
@@ -349,7 +357,7 @@ unsafe fn scan_v_band(
         Some(t) => t,
         None => return,
     };
-    use windows::Win32::Graphics::Gdi::{BitBlt, DeleteObject, HGDIOBJ, SelectObject, SRCCOPY};
+    use windows::Win32::Graphics::Gdi::{BitBlt, DeleteObject, SelectObject, HGDIOBJ, SRCCOPY};
 
     let _ = BitBlt(mem_dc, 0, 0, bw, bh, Some(screen_dc), gx, gy, SRCCOPY);
 
@@ -358,8 +366,7 @@ unsafe fn scan_v_band(
         let mut count = 0u32;
         for y in 0..bh as usize {
             let row = y * bw as usize;
-            if luma(pixels[row + (x - 1)]).abs_diff(luma(pixels[row + x])) > SNAP_LUMA_THRESHOLD
-            {
+            if luma(pixels[row + (x - 1)]).abs_diff(luma(pixels[row + x])) > SNAP_LUMA_THRESHOLD {
                 count += 1;
             }
         }
@@ -385,26 +392,26 @@ unsafe fn alloc_band(
     windows::Win32::Graphics::Gdi::HBITMAP,
     windows::Win32::Graphics::Gdi::HGDIOBJ,
 )> {
+    use std::ffi::c_void;
     use windows::Win32::Foundation::HANDLE;
     use windows::Win32::Graphics::Gdi::{
-        BITMAPINFO, BITMAPINFOHEADER, BI_RGB, CreateDIBSection, DIB_RGB_COLORS, HGDIOBJ,
-        SelectObject,
+        CreateDIBSection, SelectObject, BITMAPINFO, BITMAPINFOHEADER, BI_RGB, DIB_RGB_COLORS,
+        HGDIOBJ,
     };
-    use std::ffi::c_void;
 
     let bmi = BITMAPINFO {
         bmiHeader: BITMAPINFOHEADER {
-            biSize:          std::mem::size_of::<BITMAPINFOHEADER>() as u32,
-            biWidth:         bw,
-            biHeight:        -bh, // top-down: row 0 = top of image
-            biPlanes:        1,
-            biBitCount:      32,
-            biCompression:   BI_RGB.0,
-            biSizeImage:     0,
+            biSize: std::mem::size_of::<BITMAPINFOHEADER>() as u32,
+            biWidth: bw,
+            biHeight: -bh, // top-down: row 0 = top of image
+            biPlanes: 1,
+            biBitCount: 32,
+            biCompression: BI_RGB.0,
+            biSizeImage: 0,
             biXPelsPerMeter: 0,
             biYPelsPerMeter: 0,
-            biClrUsed:       0,
-            biClrImportant:  0,
+            biClrUsed: 0,
+            biClrImportant: 0,
         },
         bmiColors: [Default::default()],
     };
@@ -435,8 +442,8 @@ unsafe fn alloc_band(
 #[inline]
 fn luma(bgra: u32) -> u8 {
     let r = (bgra >> 16) & 0xFF;
-    let g = (bgra >>  8) & 0xFF;
-    let b =  bgra        & 0xFF;
+    let g = (bgra >> 8) & 0xFF;
+    let b = bgra & 0xFF;
     ((77 * r + 150 * g + 29 * b) >> 8).min(255) as u8
 }
 
@@ -465,12 +472,12 @@ unsafe fn append_window_bounds_guides(
     horizontal: &mut Vec<i32>,
     vertical: &mut Vec<i32>,
 ) {
+    use windows::core::BOOL;
     use windows::Win32::Foundation::{HWND, LPARAM, RECT};
     use windows::Win32::Graphics::Dwm::{DwmGetWindowAttribute, DWMWA_EXTENDED_FRAME_BOUNDS};
     use windows::Win32::UI::WindowsAndMessaging::{
         EnumWindows, GetClassNameW, GetWindowRect, IsIconic, IsWindowVisible,
     };
-    use windows::core::BOOL;
 
     struct Collector<'a> {
         sel: GlobalRect,
@@ -577,15 +584,24 @@ mod tests {
     }
 
     fn guides_h(coords: &[i32]) -> SnapGuides {
-        SnapGuides { horizontal: coords.to_vec(), vertical: vec![] }
+        SnapGuides {
+            horizontal: coords.to_vec(),
+            vertical: vec![],
+        }
     }
 
     fn guides_v(coords: &[i32]) -> SnapGuides {
-        SnapGuides { horizontal: vec![], vertical: coords.to_vec() }
+        SnapGuides {
+            horizontal: vec![],
+            vertical: coords.to_vec(),
+        }
     }
 
     fn guides_hv(h: &[i32], v: &[i32]) -> SnapGuides {
-        SnapGuides { horizontal: h.to_vec(), vertical: v.to_vec() }
+        SnapGuides {
+            horizontal: h.to_vec(),
+            vertical: v.to_vec(),
+        }
     }
 
     // ── snap_coord ────────────────────────────────────────────────────────────
@@ -663,7 +679,7 @@ mod tests {
     #[test]
     fn apply_n_handle_snaps_top_edge_horizontal_only() {
         let r = rect(100, 200, 100, 100); // top=200, bottom=300
-        let g = guides_h(&[195]);         // |200-195|=5 ≤ 8
+        let g = guides_h(&[195]); // |200-195|=5 ≤ 8
         let mut t = DragSnapTracker::default();
         let (snapped, active) = apply_handle_snap(r, HandleId::N, &g, &mut t);
         assert_eq!(snapped.gy, 195);
@@ -676,7 +692,7 @@ mod tests {
     #[test]
     fn apply_s_handle_snaps_bottom_edge() {
         let r = rect(100, 200, 100, 100); // bottom=300
-        let g = guides_h(&[305]);         // |300-305|=5 ≤ 8
+        let g = guides_h(&[305]); // |300-305|=5 ≤ 8
         let mut t = DragSnapTracker::default();
         let (snapped, active) = apply_handle_snap(r, HandleId::S, &g, &mut t);
         assert_eq!(snapped.gy, 200);
@@ -687,7 +703,7 @@ mod tests {
     #[test]
     fn apply_w_handle_snaps_left_edge_vertical_only() {
         let r = rect(100, 200, 100, 100); // left=100, right=200
-        let g = guides_v(&[94]);          // |100-94|=6 ≤ 8
+        let g = guides_v(&[94]); // |100-94|=6 ≤ 8
         let mut t = DragSnapTracker::default();
         let (snapped, active) = apply_handle_snap(r, HandleId::W, &g, &mut t);
         assert_eq!(snapped.gx, 94);
@@ -698,7 +714,7 @@ mod tests {
     #[test]
     fn apply_e_handle_snaps_right_edge_vertical_only() {
         let r = rect(100, 200, 100, 100); // right=200
-        let g = guides_v(&[207]);          // |200-207|=7 ≤ 8
+        let g = guides_v(&[207]); // |200-207|=7 ≤ 8
         let mut t = DragSnapTracker::default();
         let (snapped, active) = apply_handle_snap(r, HandleId::E, &g, &mut t);
         assert_eq!(snapped.gx, 100);

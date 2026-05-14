@@ -121,7 +121,12 @@ mod tests {
 
     #[test]
     fn global_to_local_rect_positive_origin() {
-        let g = GlobalRect { gx: 500, gy: 300, gw: 200, gh: 150 };
+        let g = GlobalRect {
+            gx: 500,
+            gy: 300,
+            gw: 200,
+            gh: 150,
+        };
         let local = global_to_local_rect(g, 400, 200);
         assert_eq!(local.left, 100);
         assert_eq!(local.top, 100);
@@ -131,7 +136,12 @@ mod tests {
 
     #[test]
     fn global_to_local_rect_negative_origin() {
-        let g = GlobalRect { gx: -1800, gy: 50, gw: 100, gh: 80 };
+        let g = GlobalRect {
+            gx: -1800,
+            gy: 50,
+            gw: 100,
+            gh: 80,
+        };
         let local = global_to_local_rect(g, -1920, 0);
         assert_eq!(local.left, 120);
         assert_eq!(local.top, 50);
@@ -141,7 +151,12 @@ mod tests {
 
     #[test]
     fn hit_test_handle_returns_correct_handle_at_corners() {
-        let r = LocalSelectionRect { left: 100, top: 100, right: 300, bottom: 200 };
+        let r = LocalSelectionRect {
+            left: 100,
+            top: 100,
+            right: 300,
+            bottom: 200,
+        };
         let rects = handle_hit_rects(r);
         // NW corner center
         assert_eq!(hit_test_handle(&rects, 100, 100), Some(HandleId::NW));
@@ -155,23 +170,38 @@ mod tests {
 
     #[test]
     fn hit_test_handle_returns_none_for_interior() {
-        let r = LocalSelectionRect { left: 100, top: 100, right: 300, bottom: 200 };
+        let r = LocalSelectionRect {
+            left: 100,
+            top: 100,
+            right: 300,
+            bottom: 200,
+        };
         let rects = handle_hit_rects(r);
         assert_eq!(hit_test_handle(&rects, 200, 150), None);
     }
 
     #[test]
     fn hit_test_interior_returns_true_for_inner_point() {
-        let r = LocalSelectionRect { left: 100, top: 100, right: 300, bottom: 200 };
+        let r = LocalSelectionRect {
+            left: 100,
+            top: 100,
+            right: 300,
+            bottom: 200,
+        };
         assert!(hit_test_interior(r, 200, 150));
         assert!(!hit_test_interior(r, 100, 150)); // on left border
-        assert!(!hit_test_interior(r, 50, 150));  // outside
+        assert!(!hit_test_interior(r, 50, 150)); // outside
     }
 
     #[test]
     fn rect_contains_checks_bounds_correctly() {
-        let r = RECT { left: 10, top: 20, right: 50, bottom: 40 };
-        assert!(rect_contains(&r, 10, 20));  // top-left inclusive
+        let r = RECT {
+            left: 10,
+            top: 20,
+            right: 50,
+            bottom: 40,
+        };
+        assert!(rect_contains(&r, 10, 20)); // top-left inclusive
         assert!(!rect_contains(&r, 50, 30)); // right exclusive
         assert!(!rect_contains(&r, 30, 40)); // bottom exclusive
         assert!(rect_contains(&r, 30, 30));

@@ -26,13 +26,13 @@ use windows::Win32::Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, POINT, RECT, 
 use windows::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows::Win32::UI::Input::KeyboardAndMouse::SetFocus;
 use windows::Win32::UI::WindowsAndMessaging::{
-    CreateWindowExW, CS_DBLCLKS, DefWindowProcW, DestroyWindow, DispatchMessageW, GetMessageW,
-    GetCursorPos, GetSystemMetrics, GetWindowRect, LoadCursorW, MSG, PostQuitMessage,
-    RegisterClassW, SetForegroundWindow, ShowWindow, TranslateMessage, CREATESTRUCTW,
-    GWLP_USERDATA, IDC_CROSS, SM_CXVIRTUALSCREEN, SM_CYVIRTUALSCREEN, SM_XVIRTUALSCREEN,
-    SM_YVIRTUALSCREEN, SW_SHOW, WM_DESTROY, WM_ERASEBKGND, WM_KEYDOWN, WM_LBUTTONDOWN,
-    WM_LBUTTONDBLCLK, WM_LBUTTONUP, WM_MOUSEACTIVATE, WM_MOUSEMOVE, WM_NCCREATE, WM_SETCURSOR,
-    WNDCLASSW, WS_EX_LAYERED, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_POPUP, MA_ACTIVATE,
+    CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW, GetCursorPos, GetMessageW,
+    GetSystemMetrics, GetWindowRect, LoadCursorW, PostQuitMessage, RegisterClassW,
+    SetForegroundWindow, ShowWindow, TranslateMessage, CREATESTRUCTW, CS_DBLCLKS, GWLP_USERDATA,
+    IDC_CROSS, MA_ACTIVATE, MSG, SM_CXVIRTUALSCREEN, SM_CYVIRTUALSCREEN, SM_XVIRTUALSCREEN,
+    SM_YVIRTUALSCREEN, SW_SHOW, WM_DESTROY, WM_ERASEBKGND, WM_KEYDOWN, WM_LBUTTONDBLCLK,
+    WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MOUSEACTIVATE, WM_MOUSEMOVE, WM_NCCREATE, WM_SETCURSOR,
+    WNDCLASSW, WS_EX_LAYERED, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_POPUP,
 };
 use xcap::Monitor;
 
@@ -85,11 +85,17 @@ fn register_class() -> Result<(), String> {
     CLASS_REGISTERED.call_once(|| {
         let instance = match unsafe { GetModuleHandleW(None) } {
             Ok(v) => v,
-            Err(e) => { result = Err(format!("GetModuleHandleW: {}", e)); return; }
+            Err(e) => {
+                result = Err(format!("GetModuleHandleW: {}", e));
+                return;
+            }
         };
         let cursor = match unsafe { LoadCursorW(None, IDC_CROSS) } {
             Ok(v) => v,
-            Err(e) => { result = Err(format!("LoadCursorW: {}", e)); return; }
+            Err(e) => {
+                result = Err(format!("LoadCursorW: {}", e));
+                return;
+            }
         };
         let class = WNDCLASSW {
             style: CS_DBLCLKS,
@@ -119,7 +125,10 @@ fn resolve_surface(app: &AppHandle) -> SelectorSurfaceBounds {
         };
     }
     if let Ok(monitors) = Monitor::all() {
-        if let Some(p) = monitors.into_iter().find(|m| m.is_primary().unwrap_or(false)) {
+        if let Some(p) = monitors
+            .into_iter()
+            .find(|m| m.is_primary().unwrap_or(false))
+        {
             return SelectorSurfaceBounds {
                 x: p.x().unwrap_or(0),
                 y: p.y().unwrap_or(0),
@@ -161,8 +170,12 @@ fn run_native_selector(app: AppHandle) -> Result<SelectionOutcome, String> {
             WINDOW_CLASS,
             w!("XenSnip Region Selector"),
             WS_POPUP,
-            surf.x, surf.y, surf.w, surf.h,
-            None, None,
+            surf.x,
+            surf.y,
+            surf.w,
+            surf.h,
+            None,
+            None,
             Some(HINSTANCE(module.0)),
             Some(Box::into_raw(state) as *const _),
         )
@@ -183,7 +196,10 @@ fn run_native_selector(app: AppHandle) -> Result<SelectionOutcome, String> {
         // Initial render: full dim, no selection yet.
         if let Some(ws) = state_mut(hwnd) {
             let frame = build_overlay_frame(
-                &ws.selection, ws.window_w, ws.window_h, &ws.snap.active_guides,
+                &ws.selection,
+                ws.window_w,
+                ws.window_h,
+                &ws.snap.active_guides,
             );
             let _ = render_overlay(hwnd, ws.selection.virtual_x, ws.selection.virtual_y, &frame);
         }
@@ -203,7 +219,10 @@ fn run_native_selector(app: AppHandle) -> Result<SelectionOutcome, String> {
     }
 
     Ok(LAST_OUTCOME.with(|cell| {
-        cell.lock().unwrap().take().unwrap_or(SelectionOutcome::Cancelled)
+        cell.lock()
+            .unwrap()
+            .take()
+            .unwrap_or(SelectionOutcome::Cancelled)
     }))
 }
 
@@ -341,10 +360,9 @@ unsafe extern "system" fn window_proc(
                 *guard = None;
             }
 
-            let ptr = windows::Win32::UI::WindowsAndMessaging::GetWindowLongPtrW(
-                hwnd,
-                GWLP_USERDATA,
-            ) as *mut SelectorWindowState;
+            let ptr =
+                windows::Win32::UI::WindowsAndMessaging::GetWindowLongPtrW(hwnd, GWLP_USERDATA)
+                    as *mut SelectorWindowState;
 
             if !ptr.is_null() {
                 let state = Box::from_raw(ptr);

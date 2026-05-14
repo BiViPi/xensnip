@@ -16,8 +16,8 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
     ReleaseCapture, SetCapture, VK_ESCAPE, VK_RETURN,
 };
 use windows::Win32::UI::WindowsAndMessaging::{
-    IDC_CROSS, IDC_HAND, IDC_SIZEALL, IDC_SIZENESW, IDC_SIZENS, IDC_SIZENWSE,
-    IDC_SIZEWE, LoadCursorW,
+    LoadCursorW, IDC_CROSS, IDC_HAND, IDC_SIZEALL, IDC_SIZENESW, IDC_SIZENS, IDC_SIZENWSE,
+    IDC_SIZEWE,
 };
 
 // ── Window state passed into every handler ────────────────────────────────────
@@ -69,22 +69,29 @@ pub(super) fn on_mouse_down(
 
         // Hit-test resize handles, then interior (move drag).
         if let Some(g) = state.selection.current_adjust_rect().copied() {
-            let local = global_to_local_rect(g, state.selection.virtual_x, state.selection.virtual_y);
+            let local =
+                global_to_local_rect(g, state.selection.virtual_x, state.selection.virtual_y);
             let hit_rects = handle_hit_rects(local);
             if let Some(which) = hit_test_handle(&hit_rects, lx, ly) {
                 state.selection.adjust_handle_begin(which, lx, ly);
                 state.snap.begin_handle_drag(); // reset tracker for this new drag
-                unsafe { let _ = SetCapture(hwnd); }
+                unsafe {
+                    let _ = SetCapture(hwnd);
+                }
             } else if hit_test_interior(local, lx, ly) {
                 state.selection.adjust_move_begin(lx, ly);
                 state.snap.clear_active(); // no snap for move drag
-                unsafe { let _ = SetCapture(hwnd); }
+                unsafe {
+                    let _ = SetCapture(hwnd);
+                }
             }
         }
     } else if !state.selection.is_selecting() {
         // Idle → begin drag.
         let anchor = state.selection.begin_selection(lx, ly);
-        unsafe { let _ = SetCapture(hwnd); }
+        unsafe {
+            let _ = SetCapture(hwnd);
+        }
         log::info!(target: "capture::controller", "anchor {},{}", anchor.gx, anchor.gy);
     }
     // Selecting with mouse captured: second LBUTTONDOWN is unusual, ignore.
@@ -100,7 +107,9 @@ pub(super) fn on_mouse_up(
     ly: i32,
 ) -> ControllerAction {
     if state.selection.is_selecting() {
-        unsafe { let _ = ReleaseCapture(); }
+        unsafe {
+            let _ = ReleaseCapture();
+        }
         let ok = state.selection.try_enter_adjust(lx, ly);
         if ok {
             // Detect edge candidates for the new selection.
@@ -123,7 +132,9 @@ pub(super) fn on_mouse_up(
 
         state.snap.clear_active(); // guide lines disappear on drag end
         state.selection.adjust_drag_end();
-        unsafe { let _ = ReleaseCapture(); }
+        unsafe {
+            let _ = ReleaseCapture();
+        }
 
         if was_move {
             // Refresh guide candidates for the new rect position.
@@ -138,12 +149,7 @@ pub(super) fn on_mouse_up(
     ControllerAction::Continue
 }
 
-pub(super) fn on_mouse_move(
-    hwnd: HWND,
-    state: &mut SelectorWindowState,
-    lx: i32,
-    ly: i32,
-) {
+pub(super) fn on_mouse_move(hwnd: HWND, state: &mut SelectorWindowState, lx: i32, ly: i32) {
     if state.selection.is_selecting() {
         let _ = state.selection.update_selection(lx, ly);
         repaint(hwnd, state);
@@ -153,7 +159,8 @@ pub(super) fn on_mouse_move(
             let _ = state.selection.adjust_drag_update(lx, ly);
 
             // Apply snap only for handle drags; move drags are snap-free.
-            if let AdjustDragSnapshot::Handle { which, .. } = state.selection.current_adjust_drag() {
+            if let AdjustDragSnapshot::Handle { which, .. } = state.selection.current_adjust_drag()
+            {
                 if let Some(raw_rect) = state.selection.current_adjust_rect().copied() {
                     let (snapped, active) = apply_handle_snap(
                         raw_rect,
@@ -181,12 +188,15 @@ pub(super) fn on_double_click(
 ) -> ControllerAction {
     if state.selection.is_adjusting() {
         if let Some(g) = state.selection.current_adjust_rect().copied() {
-            let local = global_to_local_rect(g, state.selection.virtual_x, state.selection.virtual_y);
+            let local =
+                global_to_local_rect(g, state.selection.virtual_x, state.selection.virtual_y);
             if hit_test_interior(local, lx, ly) {
                 if state.selection.is_drag_active() {
                     state.snap.clear_active();
                     state.selection.adjust_drag_end();
-                    unsafe { let _ = ReleaseCapture(); }
+                    unsafe {
+                        let _ = ReleaseCapture();
+                    }
                 }
                 log::info!(target: "capture::controller", "double-click confirm");
                 state.selection.confirm_adjust();
@@ -197,10 +207,7 @@ pub(super) fn on_double_click(
     ControllerAction::Continue
 }
 
-pub(super) fn on_key_down(
-    state: &mut SelectorWindowState,
-    vk: u16,
-) -> ControllerAction {
+pub(super) fn on_key_down(state: &mut SelectorWindowState, vk: u16) -> ControllerAction {
     if vk == VK_ESCAPE.0 {
         release_capture_if_needed(state);
         state.snap.clear_active();
@@ -212,7 +219,9 @@ pub(super) fn on_key_down(
         if state.selection.is_drag_active() {
             state.snap.clear_active();
             state.selection.adjust_drag_end();
-            unsafe { let _ = ReleaseCapture(); }
+            unsafe {
+                let _ = ReleaseCapture();
+            }
         }
         log::info!(target: "capture::controller", "Enter confirm");
         state.selection.confirm_adjust();
@@ -229,9 +238,13 @@ pub(super) fn on_set_cursor(state: &SelectorWindowState, lx: i32, ly: i32) {
     }
 }
 
-pub(super) fn on_destroy(state: Box<SelectorWindowState>) -> crate::capture::native_region_state::SelectionOutcome {
+pub(super) fn on_destroy(
+    state: Box<SelectorWindowState>,
+) -> crate::capture::native_region_state::SelectionOutcome {
     if state.selection.is_selecting() || state.selection.is_drag_active() {
-        unsafe { let _ = ReleaseCapture(); }
+        unsafe {
+            let _ = ReleaseCapture();
+        }
     }
     state.selection.outcome().clone()
 }
@@ -255,11 +268,7 @@ fn repaint(hwnd: HWND, state: &SelectorWindowState) {
 
 fn rebuild_button_cache(state: &mut SelectorWindowState) {
     if let Some(g) = state.selection.current_adjust_rect() {
-        let local = global_to_local_rect(
-            *g,
-            state.selection.virtual_x,
-            state.selection.virtual_y,
-        );
+        let local = global_to_local_rect(*g, state.selection.virtual_x, state.selection.virtual_y);
         let layout = crate::capture::native_region_overlay_layout::compute_button_layout(
             local,
             state.window_w,
@@ -272,7 +281,9 @@ fn rebuild_button_cache(state: &mut SelectorWindowState) {
 
 fn release_capture_if_needed(state: &SelectorWindowState) {
     if state.selection.is_selecting() || state.selection.is_drag_active() {
-        unsafe { let _ = ReleaseCapture(); }
+        unsafe {
+            let _ = ReleaseCapture();
+        }
     }
 }
 
@@ -288,8 +299,8 @@ fn update_cursor(state: &SelectorWindowState, lx: i32, ly: i32) {
             let id = match which {
                 HandleId::NW | HandleId::SE => IDC_SIZENWSE,
                 HandleId::NE | HandleId::SW => IDC_SIZENESW,
-                HandleId::N  | HandleId::S  => IDC_SIZENS,
-                HandleId::W  | HandleId::E  => IDC_SIZEWE,
+                HandleId::N | HandleId::S => IDC_SIZENS,
+                HandleId::W | HandleId::E => IDC_SIZEWE,
             };
             set_cursor(id);
             return;

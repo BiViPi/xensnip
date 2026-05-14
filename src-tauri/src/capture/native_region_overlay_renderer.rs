@@ -27,21 +27,19 @@
 ///
 /// DIM_MARKER  = COLORREF(0x00_00_00_01) → GDI stores R=1, G=0, B=0
 /// CLEAR_MARKER = COLORREF(0x00_00_01_00) → GDI stores R=0, G=1, B=0
-use crate::capture::native_region_overlay_layout::{
-    HandleVisualKind, OverlayFrame, OverlayPhase,
-};
+use crate::capture::native_region_overlay_layout::{HandleVisualKind, OverlayFrame, OverlayPhase};
 use crate::capture::native_region_state::LocalSelectionRect;
+use windows::core::w;
 use windows::Win32::Foundation::{COLORREF, HANDLE, HWND, POINT, RECT, SIZE};
 use windows::Win32::Graphics::Gdi::{
-    BITMAPINFO, BITMAPINFOHEADER, BLENDFUNCTION, BI_RGB, CreateCompatibleDC, CreateDIBSection,
-    CreatePen, CreateSolidBrush, DIB_RGB_COLORS, DeleteDC, DeleteObject, FillRect,
-    GetDC, GetStockObject, GetTextExtentPoint32W, HDC, HGDIOBJ, NULL_BRUSH, PS_DASH, PS_SOLID,
-    Rectangle, ReleaseDC, RoundRect, SelectObject, SetBkMode, SetTextColor, TextOutW,
-    TRANSPARENT, CreateFontW, FW_NORMAL, OUT_DEFAULT_PRECIS,
-    CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH, DEFAULT_CHARSET, FF_DONTCARE,
-    CreateRectRgn, CombineRgn, SelectClipRgn, RGN_OR,
+    CombineRgn, CreateCompatibleDC, CreateDIBSection, CreateFontW, CreatePen, CreateRectRgn,
+    CreateSolidBrush, DeleteDC, DeleteObject, FillRect, GetDC, GetStockObject,
+    GetTextExtentPoint32W, Rectangle, ReleaseDC, RoundRect, SelectClipRgn, SelectObject, SetBkMode,
+    SetTextColor, TextOutW, BITMAPINFO, BITMAPINFOHEADER, BI_RGB, BLENDFUNCTION,
+    CLIP_DEFAULT_PRECIS, DEFAULT_CHARSET, DEFAULT_PITCH, DEFAULT_QUALITY, DIB_RGB_COLORS,
+    FF_DONTCARE, FW_NORMAL, HDC, HGDIOBJ, NULL_BRUSH, OUT_DEFAULT_PRECIS, PS_DASH, PS_SOLID,
+    RGN_OR, TRANSPARENT,
 };
-use windows::core::w;
 use windows::Win32::UI::WindowsAndMessaging::{UpdateLayeredWindow, ULW_ALPHA};
 
 // ── Alpha constants ───────────────────────────────────────────────────────────
@@ -56,31 +54,31 @@ const INPUT_ALPHA_FLOOR: u8 = 1;
 // ── Win32 COLORREF helpers ────────────────────────────────────────────────────
 
 /// COLORREF(0x00BBGGRR) marker for dim pixels. RGB(1, 0, 0).
-const DIM_MARKER_CR:   COLORREF = COLORREF(0x00_00_00_01);
+const DIM_MARKER_CR: COLORREF = COLORREF(0x00_00_00_01);
 /// COLORREF(0x00BBGGRR) marker for clear pixels. RGB(0, 1, 0).
 const CLEAR_MARKER_CR: COLORREF = COLORREF(0x00_00_01_00);
 
 /// GDI DWORD for dim marker after `FillRect` (alpha byte = 0 from GDI):
 /// memory BGRA = [0, 0, 1, 0] → DWORD 0x00_01_00_00
-const DIM_MARKER_DWORD:   u32 = 0x00_01_00_00;
+const DIM_MARKER_DWORD: u32 = 0x00_01_00_00;
 /// GDI DWORD for clear marker: BGRA = [0, 1, 0, 0] → 0x00_00_01_00
 const CLEAR_MARKER_DWORD: u32 = 0x00_00_01_00;
 
 // ── Chrome colour constants (COLORREF = 0x00BBGGRR) ──────────────────────────
 // Selection border — medium blue. RGB(100, 140, 255)
-const C_BORDER:         COLORREF = COLORREF(0x00FF8C64);
+const C_BORDER: COLORREF = COLORREF(0x00FF8C64);
 // Corner brackets and edge dots — indigo accent. RGB(130, 150, 255)
-const C_BRIGHT:         COLORREF = COLORREF(0x00_FF_96_82);
+const C_BRIGHT: COLORREF = COLORREF(0x00_FF_96_82);
 // Size badge background. RGB(24, 30, 50)
-const C_BADGE_BG:       COLORREF = COLORREF(0x00_32_1E_18);
+const C_BADGE_BG: COLORREF = COLORREF(0x00_32_1E_18);
 // "Capture" button fill — vivid blue. RGB(75, 105, 245)
-const C_BTN_CONFIRM:    COLORREF = COLORREF(0x00_F5_69_4B);
+const C_BTN_CONFIRM: COLORREF = COLORREF(0x00_F5_69_4B);
 // "Cancel" button fill — dark. RGB(30, 35, 52)
-const C_BTN_CANCEL_BG:  COLORREF = COLORREF(0x00_34_23_1E);
+const C_BTN_CANCEL_BG: COLORREF = COLORREF(0x00_34_23_1E);
 // "Cancel" button border. RGB(65, 75, 100)
-const C_BTN_CANCEL_BD:  COLORREF = COLORREF(0x00_64_4B_41);
+const C_BTN_CANCEL_BD: COLORREF = COLORREF(0x00_64_4B_41);
 // White text / labels
-const C_WHITE:          COLORREF = COLORREF(0x00_FF_FF_FF);
+const C_WHITE: COLORREF = COLORREF(0x00_FF_FF_FF);
 
 // ── Public entry point ────────────────────────────────────────────────────────
 
@@ -113,17 +111,17 @@ pub(super) fn render_overlay(
         // ── Create 32-bit DIBSection ─────────────────────────────────────────
         let bmi = BITMAPINFO {
             bmiHeader: BITMAPINFOHEADER {
-                biSize:          std::mem::size_of::<BITMAPINFOHEADER>() as u32,
-                biWidth:         w,
-                biHeight:        -h, // top-down
-                biPlanes:        1,
-                biBitCount:      32,
-                biCompression:   BI_RGB.0,
-                biSizeImage:     0,
+                biSize: std::mem::size_of::<BITMAPINFOHEADER>() as u32,
+                biWidth: w,
+                biHeight: -h, // top-down
+                biPlanes: 1,
+                biBitCount: 32,
+                biCompression: BI_RGB.0,
+                biSizeImage: 0,
                 biXPelsPerMeter: 0,
                 biYPelsPerMeter: 0,
-                biClrUsed:       0,
-                biClrImportant:  0,
+                biClrUsed: 0,
+                biClrImportant: 0,
             },
             bmiColors: [Default::default()],
         };
@@ -150,16 +148,21 @@ pub(super) fn render_overlay(
 
         // ── Step 1: Fill entire surface with dim marker ──────────────────────
         let dim_brush = CreateSolidBrush(DIM_MARKER_CR);
-        let full_rect = RECT { left: 0, top: 0, right: w, bottom: h };
+        let full_rect = RECT {
+            left: 0,
+            top: 0,
+            right: w,
+            bottom: h,
+        };
         let _ = FillRect(mem_dc, &full_rect, dim_brush);
         let _ = DeleteObject(HGDIOBJ(dim_brush.0));
 
         // ── Step 2: Fill selection interior with clear marker ────────────────
         if let Some(sel) = frame.selection {
             let interior = RECT {
-                left:   sel.left,
-                top:    sel.top,
-                right:  sel.right,
+                left: sel.left,
+                top: sel.top,
+                right: sel.right,
                 bottom: sel.bottom,
             };
             let clear_brush = CreateSolidBrush(CLEAR_MARKER_CR);
@@ -171,10 +174,7 @@ pub(super) fn render_overlay(
         draw_chrome(mem_dc, frame);
 
         // ── Step 4: Scan pixels → assign premultiplied alpha ─────────────────
-        let pixels = std::slice::from_raw_parts_mut(
-            pixel_ptr as *mut u32,
-            (w * h) as usize,
-        );
+        let pixels = std::slice::from_raw_parts_mut(pixel_ptr as *mut u32, (w * h) as usize);
         for px in pixels.iter_mut() {
             let raw = *px & 0x00_FF_FF_FF; // low 24 bits = R<<16|G<<8|B (from GDI)
             if raw == DIM_MARKER_DWORD {
@@ -190,14 +190,17 @@ pub(super) fn render_overlay(
         }
 
         // ── Step 5: UpdateLayeredWindow ──────────────────────────────────────
-        let window_pos = POINT { x: virtual_x, y: virtual_y };
+        let window_pos = POINT {
+            x: virtual_x,
+            y: virtual_y,
+        };
         let window_size = SIZE { cx: w, cy: h };
         let src_point = POINT { x: 0, y: 0 };
         let blend = BLENDFUNCTION {
-            BlendOp:             0,   // AC_SRC_OVER
-            BlendFlags:          0,
+            BlendOp: 0, // AC_SRC_OVER
+            BlendFlags: 0,
             SourceConstantAlpha: 255,
-            AlphaFormat:         1,   // AC_SRC_ALPHA
+            AlphaFormat: 1, // AC_SRC_ALPHA
         };
 
         let ok = UpdateLayeredWindow(
@@ -214,7 +217,7 @@ pub(super) fn render_overlay(
 
         // ── Cleanup ──────────────────────────────────────────────────────────
         let _ = SelectObject(mem_dc, old_bm);
-        let _ = DeleteObject(HGDIOBJ(hbm.0));  // hbm already verified non-null above
+        let _ = DeleteObject(HGDIOBJ(hbm.0)); // hbm already verified non-null above
         let _ = DeleteDC(mem_dc);
         ReleaseDC(None, hdc_screen);
 
@@ -265,7 +268,7 @@ unsafe fn draw_chrome(mem_dc: HDC, frame: &OverlayFrame) {
         use crate::capture::native_region_overlay_layout::GuideAxis;
         let pen = CreatePen(PS_SOLID, 1, C_BRIGHT);
         let old_pen = SelectObject(mem_dc, HGDIOBJ(pen.0));
-        let old_br  = SelectObject(mem_dc, GetStockObject(NULL_BRUSH));
+        let old_br = SelectObject(mem_dc, GetStockObject(NULL_BRUSH));
         match guide.axis {
             GuideAxis::Horizontal => {
                 let _ = Rectangle(mem_dc, 0, guide.coord - 1, frame.window_w, guide.coord + 1);
@@ -284,8 +287,8 @@ unsafe fn draw_chrome(mem_dc: HDC, frame: &OverlayFrame) {
 unsafe fn draw_selection_border(mem_dc: HDC, sel: LocalSelectionRect) {
     let pen = CreatePen(PS_DASH, 1, C_BORDER);
     let old_pen = SelectObject(mem_dc, HGDIOBJ(pen.0));
-    let old_br  = SelectObject(mem_dc, GetStockObject(NULL_BRUSH));
-    
+    let old_br = SelectObject(mem_dc, GetStockObject(NULL_BRUSH));
+
     // Draw full rounded rectangle. During Adjusting phase, the solid 3px corner
     // brackets will perfectly overdraw and hide the corners of this 1px dashed line.
     let _ = RoundRect(mem_dc, sel.left, sel.top, sel.right, sel.bottom, 16, 16);
@@ -297,45 +300,39 @@ unsafe fn draw_selection_border(mem_dc: HDC, sel: LocalSelectionRect) {
 
 /// L-shaped corner bracket at `(cx, cy)` relative to `sel`.
 /// Uses a clip region so it properly curves using RoundRect.
-unsafe fn draw_corner_bracket(
-    mem_dc: HDC,
-    cx: i32,
-    cy: i32,
-    sel: LocalSelectionRect,
-    arm: i32,
-) {
+unsafe fn draw_corner_bracket(mem_dc: HDC, cx: i32, cy: i32, sel: LocalSelectionRect, arm: i32) {
     const C_THK: i32 = 4;
     let on_left = cx <= sel.left;
-    let on_top  = cy <= sel.top;
+    let on_top = cy <= sel.top;
 
     let h = RECT {
-        left:   if on_left { cx - C_THK } else { cx - arm },
-        top:    cy - C_THK,
-        right:  if on_left { cx + arm } else { cx + C_THK },
+        left: if on_left { cx - C_THK } else { cx - arm },
+        top: cy - C_THK,
+        right: if on_left { cx + arm } else { cx + C_THK },
         bottom: cy + C_THK,
     };
     let v = RECT {
-        left:   cx - C_THK,
-        top:    if on_top  { cy - C_THK } else { cy - arm },
-        right:  cx + C_THK,
-        bottom: if on_top  { cy + arm } else { cy + C_THK },
+        left: cx - C_THK,
+        top: if on_top { cy - C_THK } else { cy - arm },
+        right: cx + C_THK,
+        bottom: if on_top { cy + arm } else { cy + C_THK },
     };
 
     let rgn1 = CreateRectRgn(h.left, h.top, h.right, h.bottom);
     let rgn2 = CreateRectRgn(v.left, v.top, v.right, v.bottom);
     let _ = CombineRgn(Some(rgn1), Some(rgn1), Some(rgn2), RGN_OR);
-    
+
     let _ = SelectClipRgn(mem_dc, Some(rgn1));
-    
+
     let pen = CreatePen(PS_SOLID, 3, C_BRIGHT);
     let old_pen = SelectObject(mem_dc, HGDIOBJ(pen.0));
     let old_br = SelectObject(mem_dc, GetStockObject(NULL_BRUSH));
     let _ = RoundRect(mem_dc, sel.left, sel.top, sel.right, sel.bottom, 16, 16);
-    
+
     let _ = SelectObject(mem_dc, old_pen);
     let _ = SelectObject(mem_dc, old_br);
     let _ = DeleteObject(HGDIOBJ(pen.0));
-    
+
     let _ = SelectClipRgn(mem_dc, None);
     let _ = DeleteObject(HGDIOBJ(rgn1.0));
     let _ = DeleteObject(HGDIOBJ(rgn2.0));
@@ -347,7 +344,7 @@ unsafe fn draw_edge_dot(mem_dc: HDC, cx: i32, cy: i32, _radius: i32, sel: LocalS
     const MID_LEN: i32 = 24;
     const MID_THK: i32 = 3;
     let mut rect = RECT::default();
-    
+
     let is_horizontal = cy == sel.top || cy == sel.bottom;
     if is_horizontal {
         rect.left = cx - MID_LEN / 2;
@@ -360,7 +357,7 @@ unsafe fn draw_edge_dot(mem_dc: HDC, cx: i32, cy: i32, _radius: i32, sel: LocalS
         rect.left = if cx == sel.left { cx } else { cx - MID_THK };
         rect.right = if cx == sel.left { cx + MID_THK } else { cx };
     }
-    
+
     let _ = FillRect(mem_dc, &rect, brush);
     let _ = DeleteObject(HGDIOBJ(brush.0));
 }
@@ -368,7 +365,14 @@ unsafe fn draw_edge_dot(mem_dc: HDC, cx: i32, cy: i32, _radius: i32, sel: LocalS
 /// Create a standard Segoe UI font of the given height.
 unsafe fn create_ui_font(height: i32) -> windows::Win32::Graphics::Gdi::HFONT {
     CreateFontW(
-        height, 0, 0, 0, FW_NORMAL.0 as i32, 0, 0, 0,
+        height,
+        0,
+        0,
+        0,
+        FW_NORMAL.0 as i32,
+        0,
+        0,
+        0,
         DEFAULT_CHARSET,
         OUT_DEFAULT_PRECIS,
         CLIP_DEFAULT_PRECIS,
@@ -381,7 +385,7 @@ unsafe fn create_ui_font(height: i32) -> windows::Win32::Graphics::Gdi::HFONT {
 /// Floating size badge pill above the top-left of the selection.
 unsafe fn draw_badge(mem_dc: HDC, sel_left: i32, sel_top: i32, text: &str) {
     let text_u16: Vec<u16> = text.encode_utf16().collect();
-    
+
     let hfont = create_ui_font(14);
     let old_font = SelectObject(mem_dc, HGDIOBJ(hfont.0));
 
@@ -399,7 +403,7 @@ unsafe fn draw_badge(mem_dc: HDC, sel_left: i32, sel_top: i32, text: &str) {
     let bg_brush = CreateSolidBrush(C_BADGE_BG);
     let bp = CreatePen(PS_SOLID, 1, C_BORDER);
     let old_pen = SelectObject(mem_dc, HGDIOBJ(bp.0));
-    let old_br  = SelectObject(mem_dc, HGDIOBJ(bg_brush.0));
+    let old_br = SelectObject(mem_dc, HGDIOBJ(bg_brush.0));
     let _ = RoundRect(mem_dc, bx, by, bx + badge_w, by + badge_h, corner, corner);
     let _ = SelectObject(mem_dc, old_pen);
     let _ = SelectObject(mem_dc, old_br);
@@ -411,7 +415,7 @@ unsafe fn draw_badge(mem_dc: HDC, sel_left: i32, sel_top: i32, text: &str) {
     let _ = SetBkMode(mem_dc, TRANSPARENT);
     let _ = SetTextColor(mem_dc, C_WHITE);
     let _ = TextOutW(mem_dc, tx, ty, &text_u16);
-    
+
     let _ = SelectObject(mem_dc, old_font);
     let _ = DeleteObject(HGDIOBJ(hfont.0));
 }
@@ -425,12 +429,7 @@ unsafe fn text_extent(mem_dc: HDC, text: &[u16]) -> (i32, i32) {
 }
 
 /// Draw `text` centered inside `rect` on top of a filled background.
-unsafe fn draw_centered_text(
-    mem_dc: HDC,
-    text: &[u16],
-    rect: &RECT,
-    text_color: COLORREF,
-) {
+unsafe fn draw_centered_text(mem_dc: HDC, text: &[u16], rect: &RECT, text_color: COLORREF) {
     let hfont = create_ui_font(17); // Tăng font size cho CTA
     let old_font = SelectObject(mem_dc, HGDIOBJ(hfont.0));
 
@@ -438,12 +437,12 @@ unsafe fn draw_centered_text(
     let rw = rect.right - rect.left;
     let rh = rect.bottom - rect.top;
     let x = rect.left + (rw - tw) / 2;
-    let y = rect.top  + (rh - th) / 2;
+    let y = rect.top + (rh - th) / 2;
 
     let _ = SetBkMode(mem_dc, TRANSPARENT);
     let _ = SetTextColor(mem_dc, text_color);
     let _ = TextOutW(mem_dc, x, y, text);
-    
+
     let _ = SelectObject(mem_dc, old_font);
     let _ = DeleteObject(HGDIOBJ(hfont.0));
 }
@@ -453,9 +452,14 @@ unsafe fn draw_confirm_button(mem_dc: HDC, btn: &RECT) {
     let radius = btn.bottom - btn.top;
     let bg_brush = CreateSolidBrush(C_BTN_CONFIRM);
     // Dùng NULL_PEN thay vì Solid Pen cùng màu để giảm bớt hiện tượng răng cưa của GDI
-    let old_pen = SelectObject(mem_dc, GetStockObject(windows::Win32::Graphics::Gdi::NULL_PEN));
-    let old_br  = SelectObject(mem_dc, HGDIOBJ(bg_brush.0));
-    let _ = RoundRect(mem_dc, btn.left, btn.top, btn.right, btn.bottom, radius, radius);
+    let old_pen = SelectObject(
+        mem_dc,
+        GetStockObject(windows::Win32::Graphics::Gdi::NULL_PEN),
+    );
+    let old_br = SelectObject(mem_dc, HGDIOBJ(bg_brush.0));
+    let _ = RoundRect(
+        mem_dc, btn.left, btn.top, btn.right, btn.bottom, radius, radius,
+    );
     let _ = SelectObject(mem_dc, old_pen);
     let _ = SelectObject(mem_dc, old_br);
     let _ = DeleteObject(HGDIOBJ(bg_brush.0));
@@ -470,8 +474,10 @@ unsafe fn draw_cancel_button(mem_dc: HDC, btn: &RECT) {
     let bg_brush = CreateSolidBrush(C_BTN_CANCEL_BG);
     let bp = CreatePen(PS_SOLID, 1, C_BTN_CANCEL_BD);
     let old_pen = SelectObject(mem_dc, HGDIOBJ(bp.0));
-    let old_br  = SelectObject(mem_dc, HGDIOBJ(bg_brush.0));
-    let _ = RoundRect(mem_dc, btn.left, btn.top, btn.right, btn.bottom, radius, radius);
+    let old_br = SelectObject(mem_dc, HGDIOBJ(bg_brush.0));
+    let _ = RoundRect(
+        mem_dc, btn.left, btn.top, btn.right, btn.bottom, radius, radius,
+    );
     let _ = SelectObject(mem_dc, old_pen);
     let _ = SelectObject(mem_dc, old_br);
     let _ = DeleteObject(HGDIOBJ(bp.0));
