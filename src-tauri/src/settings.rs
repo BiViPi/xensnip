@@ -212,9 +212,10 @@ mod tests {
     use super::*;
 
     fn settings_at_version(version: u32) -> Settings {
-        let mut s = Settings::default();
-        s.version = version;
-        s
+        Settings {
+            version,
+            ..Settings::default()
+        }
     }
 
     #[test]
