@@ -1,6 +1,7 @@
 import { Pen, X } from 'lucide-react';
 import { ScreenshotDocument } from '../editor/useScreenshotDocuments';
 import { Tooltip } from '../editor/Tooltip';
+import { LeftPanelFilenameBadge } from './LeftPanelFilenameBadge';
 
 interface Props {
   doc: ScreenshotDocument;
@@ -8,6 +9,7 @@ interface Props {
   onSelect: () => void;
   onToggleCheck: () => void;
   onDelete: () => void;
+  onRename: (name: string | undefined) => void;
 }
 
 export function LeftPanelItem({
@@ -16,6 +18,7 @@ export function LeftPanelItem({
   onSelect,
   onToggleCheck,
   onDelete,
+  onRename,
 }: Props) {
   // Determine if edited: has annotations or cropBounds
   const isEdited = doc.annotation.objects.length > 0 || doc.cropBounds !== null;
@@ -37,6 +40,13 @@ export function LeftPanelItem({
       <div className="xs-left-item-card" onClick={onSelect}>
         <div className="xs-left-thumb-container">
           <img src={doc.thumbnailSrc} alt="Capture" className="xs-left-thumb" />
+        </div>
+
+        <div className="xs-left-card-footer">
+          <LeftPanelFilenameBadge
+            filename={doc.filename}
+            onCommit={onRename}
+          />
         </div>
 
         {isEdited && (

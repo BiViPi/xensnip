@@ -13,6 +13,7 @@ interface Props {
   onSelect: (id: string) => void;
   onCheckboxToggle: (id: string) => void;
   onDelete: (id: string) => void;
+  onRename: (id: string, name: string | undefined) => void;
 }
 
 export function LeftPanel({
@@ -24,6 +25,7 @@ export function LeftPanel({
   onSelect,
   onCheckboxToggle,
   onDelete,
+  onRename,
 }: Props) {
 
   return (
@@ -84,6 +86,7 @@ export function LeftPanel({
               onSelect={() => onSelect(doc.id)}
               onToggleCheck={() => onCheckboxToggle(doc.id)}
               onDelete={() => onDelete(doc.id)}
+              onRename={(name) => onRename(doc.id, name)}
             />
           ))
         )}

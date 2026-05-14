@@ -4,7 +4,11 @@ use tauri::{AppHandle, Manager};
 use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_dialog::DialogExt;
 
-fn build_sequential_export_path(folder_path: &str, filename: &str) -> std::path::PathBuf {
+fn build_sequential_export_path(
+    folder_path: &str,
+    filename: &str,
+    prefer_exact_filename: bool,
+) -> std::path::PathBuf {
     let folder = std::path::PathBuf::from(folder_path);
     let requested = std::path::Path::new(filename);
     let stem = requested
@@ -17,6 +21,11 @@ fn build_sequential_export_path(folder_path: &str, filename: &str) -> std::path:
         .unwrap_or_default()
         .to_string_lossy()
         .into_owned();
+
+    let exact_candidate = folder.join(filename);
+    if prefer_exact_filename && !exact_candidate.exists() {
+        return exact_candidate;
+    }
 
     let mut index = 1;
     loop {
@@ -83,9 +92,11 @@ pub async fn export_save_media(
     bytes: Vec<u8>,
     folder_path: String,
     filename: String,
+    prefer_exact_filename: bool,
 ) -> Result<bool, String> {
     tauri::async_runtime::spawn_blocking(move || {
-        let final_path = build_sequential_export_path(&folder_path, &filename);
+        let final_path =
+            build_sequential_export_path(&folder_path, &filename, prefer_exact_filename);
         std::fs::write(final_path, bytes).map_err(|e| e.to_string())?;
         Ok(true)
     })
@@ -131,7 +142,7 @@ mod tests {
     #[test]
     fn starts_at_capture_01() {
         let dir = make_temp_dir("starts_at_capture_01");
-        let path = build_sequential_export_path(dir.to_str().unwrap(), "capture.png");
+        let path = build_sequential_export_path(dir.to_str().unwrap(), "capture.png", false);
         assert_eq!(
             path.file_name().unwrap().to_string_lossy(),
             "capture_01.png"
@@ -145,7 +156,7 @@ mod tests {
         fs::write(dir.join("capture_01.png"), b"a").unwrap();
         fs::write(dir.join("capture_02.png"), b"b").unwrap();
 
-        let path = build_sequential_export_path(dir.to_str().unwrap(), "capture.png");
+        let path = build_sequential_export_path(dir.to_str().unwrap(), "capture.png", false);
         assert_eq!(
             path.file_name().unwrap().to_string_lossy(),
             "capture_03.png"
@@ -159,11 +170,37 @@ mod tests {
         fs::write(dir.join("capture_01.png"), b"a").unwrap();
         fs::write(dir.join("capture_03.png"), b"b").unwrap();
 
-        let path = build_sequential_export_path(dir.to_str().unwrap(), "capture.png");
+        let path = build_sequential_export_path(dir.to_str().unwrap(), "capture.png", false);
         assert_eq!(
             path.file_name().unwrap().to_string_lossy(),
             "capture_02.png"
         );
+        let _ = fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn custom_filename_uses_exact_name_first() {
+        let dir = make_temp_dir("custom_filename_uses_exact_name_first");
+        let path = build_sequential_export_path(dir.to_str().unwrap(), "hello.png", true);
+        assert_eq!(path.file_name().unwrap().to_string_lossy(), "hello.png");
+        let _ = fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn custom_filename_falls_back_to_numbered_name_on_collision() {
+        let dir = make_temp_dir("custom_filename_falls_back_to_numbered_name_on_collision");
+        fs::write(dir.join("hello.png"), b"a").unwrap();
+
+        let path = build_sequential_export_path(dir.to_str().unwrap(), "hello.png", true);
+        assert_eq!(path.file_name().unwrap().to_string_lossy(), "hello_01.png");
+        let _ = fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn explicit_capture_name_uses_exact_name_when_requested() {
+        let dir = make_temp_dir("explicit_capture_name_uses_exact_name_when_requested");
+        let path = build_sequential_export_path(dir.to_str().unwrap(), "capture.png", true);
+        assert_eq!(path.file_name().unwrap().to_string_lossy(), "capture.png");
         let _ = fs::remove_dir_all(dir);
     }
 }

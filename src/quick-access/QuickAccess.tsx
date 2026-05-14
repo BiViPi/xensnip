@@ -132,6 +132,10 @@ export function QuickAccess() {
       releaseDocument,
     });
 
+  const handleRenameDocument = useCallback((id: string, name: string | undefined) => {
+    patchDocument(id, { filename: name });
+  }, [patchDocument]);
+
   // ── 5. Asset bootstrap ──────────────────────────────────────────────────
   const { bootstrapAssetRef, isLoading } = useAssetBootstrap({
     docsRef,
@@ -362,6 +366,7 @@ export function QuickAccess() {
           if (doc) updateCheckbox(id, !doc.isExportChecked);
         }}
         onDeleteDocument={handleDeleteDocument}
+        onRenameDocument={handleRenameDocument}
         onPresetChange={setPreset}
         onCropBoundsChange={setCropBounds}
         onCommitCrop={commitCrop}

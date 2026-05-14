@@ -228,36 +228,37 @@
 
 .xs-left-item-card {
   flex: 1;
-  background: var(--xs-left-item-bg);
-  border: var(--xs-left-item-border);
+  background: var(--canvas-bg);
+  border: 1px solid var(--canvas-border);
   border-radius: var(--xs-left-item-radius);
-  padding: 8px;
+  padding: 6px;
   cursor: pointer;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
 }
 
 .xs-left-item-wrapper.is-active .xs-left-item-card {
-  border: var(--xs-left-active-border);
-  box-shadow: var(--xs-left-active-shadow);
-  background: transparent;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 1px var(--accent-primary), var(--shadow-md);
+  background: var(--canvas-bg);
 }
 
 .xs-left-thumb-container {
   width: 100%;
   aspect-ratio: 16 / 9;
-  background: var(--canvas-bg);
+  background: var(--surface-overlay);
   border-radius: var(--xs-left-thumb-radius);
   overflow: hidden;
-  border: 1px solid var(--canvas-border);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  border: none;
+  box-shadow: none;
+  transition: opacity 0.2s ease;
 }
 
 .xs-left-item-wrapper.is-active .xs-left-thumb-container {
-  border-color: var(--accent-primary);
-  box-shadow: 0 0 0 2px var(--accent-primary), var(--shadow-md);
+  opacity: 1;
 }
 
 .xs-left-thumb {
@@ -438,4 +439,66 @@
 .xs-left-panel.is-collapsed .xs-left-export-dot {
   pointer-events: none;
   opacity: 0;
+}
+
+/* Filename Badge */
+.xs-left-card-footer {
+  margin-top: 6px;
+  min-height: 32px;
+  border-radius: 8px;
+  background: var(--surface-overlay);
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+}
+
+.xs-left-card-footer .xs-tooltip-container {
+  width: 100%;
+}
+
+.xs-left-filename-badge {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.xs-left-filename-badge:hover {
+  background: var(--surface-raised);
+}
+
+.xs-left-filename-icon {
+  color: var(--text-tertiary);
+}
+
+.xs-left-filename-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.xs-left-filename-placeholder {
+  color: var(--text-secondary);
+}
+
+.xs-left-filename-input {
+  width: 100%;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: inherit;
+  padding: 0;
+  margin: 0;
 }

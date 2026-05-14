@@ -72,11 +72,13 @@ export async function exportSaveMedia(
   bytes: Uint8Array,
   folderPath: string,
   filename: string,
+  preferExactFilename = false,
 ): Promise<boolean> {
   return await invoke<boolean>("export_save_media", {
     bytes,
     folderPath,
     filename,
+    preferExactFilename,
   });
 }
 

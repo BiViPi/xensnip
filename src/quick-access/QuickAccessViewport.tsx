@@ -47,6 +47,7 @@ interface QuickAccessViewportProps {
   onSelectDocument: (id: string) => void;
   onToggleCheckbox: (id: string) => void;
   onDeleteDocument: (id: string) => void;
+  onRenameDocument: (id: string, name: string | undefined) => void;
   onPresetChange: (preset: EditorPreset) => void;
   onCropBoundsChange: (bounds: CropBounds | null) => void;
   onCommitCrop: () => void;
@@ -82,6 +83,7 @@ export function QuickAccessViewport({
   onSelectDocument,
   onToggleCheckbox,
   onDeleteDocument,
+  onRenameDocument,
   onPresetChange,
   onCropBoundsChange,
   onCommitCrop,
@@ -98,6 +100,7 @@ export function QuickAccessViewport({
         onSelect={onSelectDocument}
         onCheckboxToggle={onToggleCheckbox}
         onDelete={onDeleteDocument}
+        onRename={onRenameDocument}
       />
 
       {activeDoc && image ? (

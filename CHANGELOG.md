@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.0] - 2026-05-14
+
+### Added
+- Region Capture Confirmation: Region capture now enters a pre-confirm adjustment phase after the initial drag, with move, resize, confirm, and cancel actions before the editor opens.
+- Overlay Renderer Refactor: Replaced the old global-alpha selector overlay with a per-pixel layered renderer, keeping the selected area visually clear while preserving interactive chrome, keyboard confirm/cancel behavior, and safe CTA placement near viewport edges.
+- Smart Alignment Assist: Resize-handle drags can now snap toward nearby window edges, window bounds, and divider-like visual boundaries while keeping a manual-first pass-through feel.
+- Per-capture Filename Flow: Each capture can now be named from its thumbnail card in Quick Access, and explicit custom names prefer the exact target filename before falling back to numbered suffixes on collision.
+
 ## [0.2.1] - 2026-05-12
 
 ### Added

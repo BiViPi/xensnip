@@ -18,12 +18,15 @@ It lives in the system tray, captures regions or the active window with global h
 
 ## Version
 
-Current release: `0.2.1`
+Current release: `0.3.0`
 
 ## What XenSnip Does
 
 - Capture a screen region or the active window
+- Refine a region capture before commit with resize handles, move drag, and confirm or cancel actions
+- Snap region adjustments toward nearby window edges and visual dividers during resize
 - Open a quick-access editor immediately after capture
+- Name each capture directly from its thumbnail card before export
 - Annotate screenshots with arrows, rectangles, text, callouts, steps, and freehand arrows
 - Hide sensitive information with blur, pixelate, or opaque redact tools
 - Style screenshots with gradients, wallpaper backgrounds, padding, borders, and shadows
@@ -38,7 +41,7 @@ For normal use, download the latest Windows installer from GitHub Releases:
 - Release page: [GitHub Releases](https://github.com/BiViPi/xensnip/releases)
 - Landing page: [XenSnip landing page](https://xensnip-landing-page.vercel.app/)
 
-The `0.2.1` release is intended to be distributed as installer packages rather than as a source-only package.
+The `0.3.0` release is intended to be distributed as installer packages rather than as a source-only package.
 
 Release package formats:
 
@@ -65,9 +68,10 @@ Both shortcuts can be changed in the Settings window.
 
 1. Launch XenSnip and leave it running in the system tray.
 2. Trigger a capture with a hotkey or from the tray menu.
-3. Review the capture in the quick-access editor.
-4. Annotate, redact, and style the screenshot as needed.
-5. Copy or export the final image.
+3. For region capture, drag a rough selection, then refine it before commit with move, resize, confirm, or cancel.
+4. Review the accepted capture in the quick-access editor.
+5. Annotate, redact, style, and optionally rename the capture from the left thumbnail card.
+6. Copy or export the final image.
 
 ## OCR
 
@@ -131,6 +135,7 @@ pnpm tauri build -b nsis msi --ci --no-sign
 
 - Some protected or hardware-accelerated windows may capture as black or empty due to Windows restrictions
 - OCR is best-effort and should not be treated as a guaranteed extraction layer
+- Smart alignment assist is intentionally conservative in this release and may still need threshold polish on some desktop layouts
 - XenSnip is currently Windows-only
 
 ## Reset Or Uninstall

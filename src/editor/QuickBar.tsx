@@ -8,6 +8,7 @@ import { composeToBlob, composeDocumentToBytes } from "../compose/compose";
 import { ScreenshotDocument } from "./useScreenshotDocuments";
 import { composeWithAnnotations } from "../compose/composeWithAnnotations";
 import { useAnnotationStore, useHasAnnotations } from "../annotate/state/store";
+import { normalizeFilenameStem } from "./normalizeFilenameStem";
 import copySound from "../assets/sounds/copy.ogg";
 import exportSound from "../assets/sounds/export.ogg";
 import { clipboardWriteImage, exportSaveMedia, openSettingsWindow } from "../ipc/index";
@@ -77,7 +78,17 @@ export function QuickBar({
 
   const objects = useAnnotationStore(s => s.objects);
 
-  const buildExportBaseName = (extension: string) => `capture.${extension}`;
+  const buildExportBaseName = (
+    doc: ScreenshotDocument | null,
+    extension: string
+  ): string => {
+    const stem = normalizeFilenameStem(doc?.filename ?? "");
+    return `${stem || "capture"}.${extension}`;
+  };
+
+  const shouldPreferExactFilename = (doc: ScreenshotDocument | null): boolean => {
+    return normalizeFilenameStem(doc?.filename ?? "") !== "";
+  };
 
   const handleCopy = async () => {
     if (isActionInFlight) return;
@@ -117,7 +128,12 @@ export function QuickBar({
           ? await composeWithAnnotations(image, preset, objects, format, 1.0)
           : await composeToBlob(image, preset, format, 1.0);
         
-        await exportSaveMedia(bytes, settings.export_folder, buildExportBaseName(ext));
+        await exportSaveMedia(
+          bytes,
+          settings.export_folder,
+          buildExportBaseName(activeDocument, ext),
+          shouldPreferExactFilename(activeDocument),
+        );
         showToast("Saved", "success");
       } else {
         // Batch export
@@ -134,7 +150,12 @@ export function QuickBar({
             } else {
               bytes = await composeDocumentToBytes(doc, preset, format, 1.0);
             }
-            await exportSaveMedia(bytes, settings.export_folder, buildExportBaseName(ext));
+            await exportSaveMedia(
+              bytes,
+              settings.export_folder,
+              buildExportBaseName(doc, ext),
+              shouldPreferExactFilename(doc),
+            );
             successCount++;
           } catch (e) {
             console.error(`Failed to export ${doc.id}`, e);

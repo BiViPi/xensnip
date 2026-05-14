@@ -21,6 +21,7 @@ export interface ScreenshotDocument {
   blobUrl: string;
   assetId?: string;
   thumbnailSrc: string;
+  filename?: string;
   annotation: AnnotationSnapshot;
   cropBounds: CropBounds | null;
   isExportChecked: boolean;
