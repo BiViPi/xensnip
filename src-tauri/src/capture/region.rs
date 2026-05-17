@@ -1,5 +1,4 @@
 use crate::capture::errors::CaptureError;
-use crate::capture::gdi_pixels::normalize_bgra_to_rgba_opaque;
 use std::sync::Arc;
 use tauri::{AppHandle, Emitter, Manager};
 use windows::Win32::Foundation::POINT;
@@ -98,7 +97,7 @@ pub fn finish_region_capture(
         let mut dpi_y = 0;
         let _ = GetDpiForMonitor(hmon, MDT_EFFECTIVE_DPI, &mut dpi_x, &mut dpi_y);
         let raw_dpi = if dpi_x == 0 { 96 } else { dpi_x };
-        let dpi_pct = crate::capture::dpi::dpi_percent_from_raw(raw_dpi);
+        let dpi_pct = ((raw_dpi as f64 / 96.0) * 100.0).round() as u32;
 
         let mut mi = MONITORINFO {
             cbSize: std::mem::size_of::<MONITORINFO>() as u32,
@@ -172,23 +171,17 @@ pub fn finish_region_capture(
         if GetMonitorInfoW(hmonitor, &mut mi).as_bool() {
             let work = mi.rcWork;
             crate::quick_access::MonitorWorkAreaLogical {
-                x: crate::capture::dpi::physical_to_logical_i32(work.left, dpi_pct),
-                y: crate::capture::dpi::physical_to_logical_i32(work.top, dpi_pct),
-                w: crate::capture::dpi::physical_to_logical_u32(
-                    (work.right - work.left) as u32,
-                    dpi_pct,
-                ),
-                h: crate::capture::dpi::physical_to_logical_u32(
-                    (work.bottom - work.top) as u32,
-                    dpi_pct,
-                ),
+                x: logical_i32(work.left, dpi_pct),
+                y: logical_i32(work.top, dpi_pct),
+                w: logical_u32((work.right - work.left) as u32, dpi_pct),
+                h: logical_u32((work.bottom - work.top) as u32, dpi_pct),
             }
         } else {
             crate::quick_access::MonitorWorkAreaLogical {
-                x: crate::capture::dpi::physical_to_logical_i32(gx, dpi_pct),
-                y: crate::capture::dpi::physical_to_logical_i32(gy, dpi_pct),
-                w: crate::capture::dpi::physical_to_logical_u32(1920, dpi_pct),
-                h: crate::capture::dpi::physical_to_logical_u32(1080, dpi_pct),
+                x: logical_i32(gx, dpi_pct),
+                y: logical_i32(gy, dpi_pct),
+                w: logical_u32(1920, dpi_pct),
+                h: logical_u32(1080, dpi_pct),
             }
         }
     };
@@ -198,10 +191,10 @@ pub fn finish_region_capture(
         monitor_dpi: dpi_pct,
         capture_kind: "region".to_string(),
         capture_rect_logical: Some(crate::quick_access::CaptureRectLogical {
-            x: crate::capture::dpi::physical_to_logical_i32(gx, dpi_pct),
-            y: crate::capture::dpi::physical_to_logical_i32(gy, dpi_pct),
-            w: crate::capture::dpi::physical_to_logical_u32(final_w, dpi_pct),
-            h: crate::capture::dpi::physical_to_logical_u32(final_h, dpi_pct),
+            x: logical_i32(gx, dpi_pct),
+            y: logical_i32(gy, dpi_pct),
+            w: logical_u32(final_w, dpi_pct),
+            h: logical_u32(final_h, dpi_pct),
         }),
     };
 
@@ -316,7 +309,13 @@ fn capture_region_gdi(gx: i32, gy: i32, gw: u32, gh: u32) -> Result<image::RgbaI
             return Err("GetDIBits failed".into());
         }
 
-        normalize_bgra_to_rgba_opaque(&mut buf);
+        // Swap BGR to RGB
+        for i in (0..buf.len()).step_by(4) {
+            let b = buf[i];
+            let r = buf[i + 2];
+            buf[i] = r;
+            buf[i + 2] = b;
+        }
 
         image::RgbaImage::from_raw(gw, gh, buf)
             .ok_or_else(|| "Failed to create image from GDI buffer".into())
@@ -350,4 +349,18 @@ fn emit_failure(
     };
     crate::diagnostics::log_capture_event(app, &meta);
     app.emit("capture.failure", err).ok();
+}
+
+fn logical_i32(value: i32, dpi_pct: u32) -> i32 {
+    if dpi_pct <= 100 {
+        return value;
+    }
+    ((value as f64) / (dpi_pct as f64 / 100.0)).round() as i32
+}
+
+fn logical_u32(value: u32, dpi_pct: u32) -> u32 {
+    if dpi_pct <= 100 {
+        return value;
+    }
+    ((value as f64) / (dpi_pct as f64 / 100.0)).round() as u32
 }

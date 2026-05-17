@@ -7,12 +7,6 @@ pub fn quick_access_dismiss(app_handle: AppHandle, asset_id: String) -> Result<(
 }
 
 #[tauri::command]
-pub fn quick_access_dismiss_current(app_handle: AppHandle) -> Result<(), String> {
-    crate::quick_access::dismiss_current(&app_handle);
-    Ok(())
-}
-
-#[tauri::command]
 pub fn quick_access_set_busy(
     app_handle: AppHandle,
     asset_id: String,

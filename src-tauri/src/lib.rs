@@ -97,7 +97,6 @@ pub fn run() {
             commands::asset_release,
             commands::asset_read_png,
             commands::quick_access_dismiss,
-            commands::quick_access_dismiss_current,
             commands::quick_access_set_busy,
             commands::quick_access_mark_ready,
             commands::clipboard_write_image,

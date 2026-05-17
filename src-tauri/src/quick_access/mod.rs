@@ -104,8 +104,6 @@ pub struct CaptureRectLogical {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CapturePositionMeta {
     pub monitor_work_area_logical: MonitorWorkAreaLogical,
-    /// DPI as a percentage of 96 DPI (e.g. 150 for 150% scaling).
-    /// Always produced by [`crate::capture::dpi::dpi_percent_from_raw`]; never raw DPI.
     pub monitor_dpi: u32,
     pub capture_kind: String,
     pub capture_rect_logical: Option<CaptureRectLogical>,
@@ -235,21 +233,6 @@ pub fn dismiss(app: &AppHandle, asset_id: &str) {
     }
 }
 
-pub fn dismiss_current(app: &AppHandle) {
-    if let Some(active_asset) = app.try_state::<ActiveAsset>() {
-        if let Some(asset_id) = active_asset.0.lock().unwrap().take() {
-            if let Some(registry) = app.try_state::<crate::asset::AssetRegistry>() {
-                let _ = registry.release(&asset_id, "quick_access_ui");
-                let _ = registry.release(&asset_id, "quick_access_orchestrator");
-            }
-        }
-    }
-
-    if let Some(window) = app.get_webview_window(QA_LABEL) {
-        let _ = window.hide();
-    }
-}
-
 pub fn focus_window(app: &AppHandle) {
     if let Some(window) = app.get_webview_window(QA_LABEL) {
         let _ = window.unminimize();
@@ -289,11 +272,7 @@ fn spawn_window(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let (x, y) = compute_position(meta);
 
-    let url = format!(
-        "quick-access.html?asset_id={}&capture_kind={}",
-        url_encode(asset_id),
-        url_encode(&meta.capture_kind)
-    );
+    let url = format!("quick-access.html?asset_id={}", url_encode(asset_id));
 
     let window = WebviewWindowBuilder::new(app, QA_LABEL, WebviewUrl::App(url.into()))
         .title("XenSnip Editor")
