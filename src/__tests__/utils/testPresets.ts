@@ -26,6 +26,7 @@ export const V1_PLAIN: EditorPreset = {
   shadow_offset: 0,
   border_width: 0,
   border_color: 'transparent',
+  presentation_mode: 'flat',
 };
 
 /** V2. Background — solid color background, default padding. */
@@ -47,6 +48,7 @@ export const V2_BACKGROUND: EditorPreset = {
   shadow_offset: 0,
   border_width: 0,
   border_color: 'transparent',
+  presentation_mode: 'flat',
 };
 
 /** V3. Padded shadow — solid background, padding 48px, shadow blur 24px / offset 8px. */
@@ -68,6 +70,7 @@ export const V3_PADDED_SHADOW: EditorPreset = {
   shadow_offset: 8,
   border_width: 0,
   border_color: 'transparent',
+  presentation_mode: 'flat',
 };
 
 /**
@@ -93,6 +96,7 @@ export const V4_FULL_PRESET: EditorPreset = {
   shadow_offset: 20,
   border_width: 12,
   border_color: 'rgba(15, 23, 42, 0.8)',
+  presentation_mode: 'flat',
 };
 
 export const VARIANTS = [V1_PLAIN, V2_BACKGROUND, V3_PADDED_SHADOW, V4_FULL_PRESET] as const;

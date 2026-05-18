@@ -26,6 +26,7 @@
     "react-dom": "^19.1.0",
     "react-konva": "^19.2.3",
     "tesseract.js": "^7.0.0",
+    "three": "^0.184.0",
     "zustand": "^5.0.12"
   },
   "devDependencies": {
@@ -38,6 +39,7 @@
     "@types/pngjs": "^6.0.5",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
+    "@types/three": "^0.184.1",
     "@vitejs/plugin-react": "^4.6.0",
     "@vitest/coverage-v8": "^4.1.5",
     "canvas": "^3.2.3",
@@ -50,6 +52,9 @@
     "vitest": "^4.1.5"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["canvas", "sharp"]
+    "onlyBuiltDependencies": [
+      "canvas",
+      "sharp"
+    ]
   }
 }

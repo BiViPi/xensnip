@@ -1,0 +1,43 @@
+.xs-dock-center {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.xs-dock-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  transition:
+    opacity 200ms ease,
+    transform 200ms ease;
+}
+
+/* Flat group: visible by default */
+.xs-dock-group--flat {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* Studio group: hidden by default */
+.xs-dock-group--studio {
+  opacity: 0;
+  transform: translateY(6px);
+  pointer-events: none;
+  position: absolute;
+}
+
+/* When studio mode is active */
+.xs-dock-center[data-mode="studio"] .xs-dock-group--flat {
+  opacity: 0;
+  transform: translateY(-6px);
+  pointer-events: none;
+}
+
+.xs-dock-center[data-mode="studio"] .xs-dock-group--studio {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+  position: static;
+}

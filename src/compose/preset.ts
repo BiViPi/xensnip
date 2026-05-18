@@ -1,3 +1,16 @@
+import type { PresentationMode, StudioPreset } from '../studio/types';
+export type { PresentationMode, StudioPreset };
+
+// Re-export studio types used in preset so callers import from one place
+export type { FrameFamily, ViewMode, FrameStyle } from '../studio/types';
+
+export const DEFAULT_STUDIO_PRESET: StudioPreset = {
+  frame_family:  'browser',
+  view_mode:     'Front',
+  background_id: 'desk-light',
+  frame_style:   'gloss-black',
+};
+
 // Static imports for wallpapers ensure Vite bundles them correctly
 import wp1 from "../assets/wallpapers/wp-1.webp";
 import wp2 from "../assets/wallpapers/wp-2.webp";
@@ -13,8 +26,8 @@ export type GradientType = "Linear" | "Radial";
 
 export type RatioOption = "Auto" | "16:9" | "4:3" | "1:1" | "3:4" | "9:16";
 export interface EditorPreset {
-  background: string; 
-  
+  background: string;
+
   bg_mode: BackgroundMode;
   bg_value: string;
   bg_colors: string[];
@@ -25,7 +38,7 @@ export interface EditorPreset {
   ratio: RatioOption;
   padding: number;
   radius: number;
-  
+
   // New Dynamic Shadow System
   shadow_enabled: boolean;
   shadow_blur: number;
@@ -35,6 +48,10 @@ export interface EditorPreset {
 
   border_width: number;
   border_color: string;
+
+  // Presentation mode
+  presentation_mode: PresentationMode;
+  studio?: StudioPreset;
 }
 
 export const WALLPAPER_MAP: Record<string, string> = {
@@ -76,7 +93,7 @@ export const SOLID_PRESETS = [
 
 export const DEFAULT_PRESET: EditorPreset = {
   background: "XenSnip Blue",
-  
+
   bg_mode: "Gradient",
   bg_value: "wp-1",
   bg_colors: ["#4158D0", "#C850C0", "#FFCC70"],
@@ -95,4 +112,16 @@ export const DEFAULT_PRESET: EditorPreset = {
   shadow_offset: 20,
   border_width: 12,
   border_color: "rgba(15, 23, 42, 0.8)",
+
+  presentation_mode: 'flat',
+  studio: undefined,
 };
+
+/**
+ * Merges persisted JSON with DEFAULT_PRESET so old saves without
+ * presentation_mode (or any future new field) default gracefully.
+ */
+export function normalizeEditorPreset(raw: unknown): EditorPreset {
+  if (typeof raw !== 'object' || raw === null) return { ...DEFAULT_PRESET };
+  return { ...DEFAULT_PRESET, ...(raw as Partial<EditorPreset>) };
+}

@@ -1,14 +1,30 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { resolve } from "path";
+import fs from "fs";
 
 // @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
+
+// Resolve to private submodule when present, fall back to public stubs.
+// private/ is gitignored in the public repo and contains the real Three.js
+// implementation. stubs/ always compiles cleanly without the submodule.
+const studioImplPath = (() => {
+  const privatePath = resolve(__dirname, "./src/studio/private");
+  const stubsPath   = resolve(__dirname, "./src/studio/stubs");
+  const privateRenderer = resolve(privatePath, "renderer/useStudioRenderer.ts");
+  return fs.existsSync(privateRenderer) ? privatePath : stubsPath;
+})();
 
 export default defineConfig(async () => ({
   base: "./",
   plugins: [react()],
   clearScreen: false,
+  resolve: {
+    alias: {
+      "@studio-impl": studioImplPath,
+    },
+  },
   server: {
     port: 1420,
     strictPort: true,

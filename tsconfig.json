@@ -18,7 +18,14 @@
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+
+    /* Studio module alias — matches Vite alias in vite.config.ts.
+       TypeScript prefers private/ when the submodule is present, stubs/ otherwise. */
+    "baseUrl": ".",
+    "paths": {
+      "@studio-impl/*": ["./src/studio/private/*", "./src/studio/stubs/*"]
+    }
   },
   "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]

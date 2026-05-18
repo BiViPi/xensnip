@@ -1,4 +1,5 @@
 import { EditorPreset } from "../compose/preset";
+import type { PresentationMode } from "../compose/preset";
 import { ScreenshotDocument } from "../editor/useScreenshotDocuments";
 import { QuickBar } from "../editor/QuickBar";
 import { Settings } from "../ipc/types";
@@ -12,6 +13,7 @@ interface QuickAccessDockProps {
   activePop: string | null;
   isActionInFlight: boolean;
   previewViewportCenterOffsetX: number;
+  presentationMode: PresentationMode;
   onPresetChange: (preset: EditorPreset | ((prev: EditorPreset) => EditorPreset)) => void;
   onActionInFlightChange: (value: boolean) => void;
   onShowToast: (message: string, type?: "success" | "error") => void;
@@ -20,6 +22,7 @@ interface QuickAccessDockProps {
   onOpenPresetManager: () => void;
   onClearAllSession: () => void;
   onFlush: () => void;
+  onPresentationModeChange: (m: PresentationMode) => void;
 }
 
 export function QuickAccessDock({
@@ -31,6 +34,7 @@ export function QuickAccessDock({
   activePop,
   isActionInFlight,
   previewViewportCenterOffsetX,
+  presentationMode,
   onPresetChange,
   onActionInFlightChange,
   onShowToast,
@@ -39,6 +43,7 @@ export function QuickAccessDock({
   onOpenPresetManager,
   onClearAllSession,
   onFlush,
+  onPresentationModeChange,
 }: QuickAccessDockProps) {
   if (!activeDoc || !image) return null;
 
@@ -63,6 +68,8 @@ export function QuickAccessDock({
         activeDocument={activeDoc}
         onClearAllSession={onClearAllSession}
         onFlush={onFlush}
+        presentationMode={presentationMode}
+        onPresentationModeChange={onPresentationModeChange}
       />
     </div>
   );

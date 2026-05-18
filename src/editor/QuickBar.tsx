@@ -1,8 +1,9 @@
 import React from "react";
 import { EditorPreset } from "../compose/preset";
-import { 
-  RatioIcon, BackgroundIcon, PaddingIcon, RadiusIcon, 
-  ShadowIcon, PresetIcon, ChevronIcon, CopyIcon, ExportIcon, SettingsIcon 
+import type { PresentationMode } from "../compose/preset";
+import {
+  RatioIcon, BackgroundIcon, PaddingIcon, RadiusIcon,
+  ShadowIcon, PresetIcon, ChevronIcon, CopyIcon, ExportIcon, SettingsIcon
 } from "../components/icons";
 import { composeToBlob, composeDocumentToBytes } from "../compose/compose";
 import { ScreenshotDocument } from "./useScreenshotDocuments";
@@ -19,6 +20,9 @@ import { ShadowControl } from "./controls/Shadow";
 import { BackgroundControl } from "./controls/Background";
 import { PresetsControl } from "./controls/Presets";
 import { Tooltip } from "./Tooltip";
+import { QuickBarModeToggle } from "../studio/ui/QuickBarModeToggle";
+import { StudioQuickBar } from "../studio/ui/StudioQuickBar";
+import "../studio/ui/StudioQuickBar.css";
 
 interface Props {
   preset: EditorPreset;
@@ -36,12 +40,15 @@ interface Props {
   activeDocument: ScreenshotDocument | null;
   onClearAllSession: () => void;
   onFlush: () => void;
+  presentationMode: PresentationMode;
+  onPresentationModeChange: (m: PresentationMode) => void;
 }
 
 export function QuickBar({
   preset, setPreset, image, isActionInFlight, setIsActionInFlight, showToast,
   activePop, onActivePopChange, settings, onRefreshSettings, onOpenPresetManager,
-  documents, activeDocument, onClearAllSession, onFlush
+  documents, activeDocument, onClearAllSession, onFlush,
+  presentationMode, onPresentationModeChange,
 }: Props) {
   const dockRef = React.useRef<HTMLDivElement>(null);
   const hasAnnotations = useHasAnnotations();
@@ -63,7 +70,6 @@ export function QuickBar({
       }
     };
 
-    // Use capture for Escape to ensure we catch it before annotation shortcuts
     window.addEventListener('keydown', handleKeyDown, true);
     window.addEventListener('pointerdown', handleClickOutside);
 
@@ -95,10 +101,10 @@ export function QuickBar({
     setIsActionInFlight(true);
     onFlush();
     try {
-      const bytes = objects.length > 0 
+      const bytes = objects.length > 0
         ? await composeWithAnnotations(image, preset, objects)
         : await composeToBlob(image, preset);
-      
+
       await clipboardWriteImage(bytes);
       if (settings?.play_copy_sound) {
         new Audio(copySound).play().catch(() => {});
@@ -113,21 +119,20 @@ export function QuickBar({
       showToast("Please select a save folder in Settings first", "error");
       return;
     }
-    
+
     setIsActionInFlight(true);
     try {
       const format = settings.export_format === "JPEG" ? "image/jpeg" : "image/png";
       const ext = settings.export_format === "JPEG" ? "jpg" : "png";
-      
+
       const docsToExport = documents.filter(d => d.isExportChecked);
-      
+
       if (docsToExport.length === 0 && activeDocument) {
-        // Single export (active doc) - use live state
         onFlush();
         const bytes = objects.length > 0
           ? await composeWithAnnotations(image, preset, objects, format, 1.0)
           : await composeToBlob(image, preset, format, 1.0);
-        
+
         await exportSaveMedia(
           bytes,
           settings.export_folder,
@@ -136,14 +141,12 @@ export function QuickBar({
         );
         showToast("Saved", "success");
       } else {
-        // Batch export
         onFlush();
         let successCount = 0;
         for (const doc of docsToExport) {
           try {
             let bytes;
             if (doc.id === activeDocument?.id) {
-              // Use live state for active doc
               bytes = objects.length > 0
                 ? await composeWithAnnotations(image, preset, objects, format, 1.0)
                 : await composeToBlob(image, preset, format, 1.0);
@@ -192,12 +195,17 @@ export function QuickBar({
     }
   };
 
+  const handleModeToggle = () => {
+    onPresentationModeChange(presentationMode === 'flat' ? 'studio' : 'flat');
+  };
+
   return (
     <div className="xs-dock" ref={dockRef}>
+      {/* Ratio — always visible */}
       <div style={{ display: 'flex', gap: '8px' }}>
         <div style={{ position: "relative", display: 'flex', width: 'fit-content' }}>
           <Tooltip text="Aspect Ratio">
-            <button 
+            <button
               className={`xs-btn xs-pill-btn xs-pill-btn-ratio ${activePop === 'ratio' ? 'active' : ''}`}
               onClick={() => toggle('ratio')}
               aria-label="Aspect Ratio"
@@ -242,108 +250,137 @@ export function QuickBar({
             </div>
           )}
         </div>
-
-        <div style={{ position: "relative", display: 'flex', width: 'fit-content' }}>
-          <Tooltip text="Background">
-            <button className={`xs-btn xs-icon-btn ${activePop === 'background' ? 'active' : ''}`} onClick={() => toggle('background')} aria-label="Background">
-              <BackgroundIcon />
-            </button>
-          </Tooltip>
-          {activePop === 'background' && (
-            <div className="xs-pop background-pop">
-              <BackgroundControl
-                preset={preset}
-                onChange={(updates) => setPreset(p => ({ ...p, ...updates }))}
-              />
-            </div>
-          )}
-        </div>
       </div>
 
       <div className="xs-divider" />
 
-      <div style={{ display: 'flex', gap: '8px' }}>
-        <div style={{ position: 'relative', display: 'flex', width: 'fit-content' }}>
-          <Tooltip text="Padding">
-            <button className={`xs-btn xs-icon-btn ${activePop === 'padding' ? 'active' : ''}`} onClick={() => toggle('padding')} aria-label="Padding"><PaddingIcon /></button>
-          </Tooltip>
-          {activePop === 'padding' && <div className="xs-pop"><SliderControl label="Padding" min={0} max={96} value={preset.padding} onChange={v => setPreset(p => ({ ...p, padding: v }))} /></div>}
-        </div>
+      {/* Center section — switches between flat and studio controls */}
+      <div className="xs-dock-center" data-mode={presentationMode}>
+        <div
+          className="xs-dock-group xs-dock-group--flat"
+          inert={presentationMode === 'studio'}
+          aria-hidden={presentationMode === 'studio'}
+        >
+          <div style={{ position: "relative", display: 'flex', width: 'fit-content' }}>
+            <Tooltip text="Background">
+              <button className={`xs-btn xs-icon-btn ${activePop === 'background' ? 'active' : ''}`} onClick={() => toggle('background')} aria-label="Background">
+                <BackgroundIcon />
+              </button>
+            </Tooltip>
+            {activePop === 'background' && (
+              <div className="xs-pop background-pop">
+                <BackgroundControl
+                  preset={preset}
+                  onChange={(updates) => setPreset(p => ({ ...p, ...updates }))}
+                />
+              </div>
+            )}
+          </div>
 
-        <div style={{ position: 'relative', display: 'flex', width: 'fit-content' }}>
-          <Tooltip text="Radius & Border">
-            <button className={`xs-btn xs-icon-btn ${activePop === 'radius' ? 'active' : ''}`} onClick={() => toggle('radius')} aria-label="Radius and Border"><RadiusIcon /></button>
-          </Tooltip>
-          {activePop === 'radius' && (
-            <div className="xs-pop" style={{ minWidth: '240px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <SliderControl label="Radius" min={0} max={48} value={preset.radius} onChange={v => setPreset(p => ({ ...p, radius: v }))} />
-                <div className="xs-pop-divider" />
-                <SliderControl label="Border" min={0} max={12} value={preset.border_width} onChange={v => setPreset(p => ({ ...p, border_width: v }))} />
-                <div style={{ display: 'flex', gap: '8px', marginTop: '4px', padding: '4px 2px' }}>
-                  {[
-                    { label: 'Dark', color: 'rgba(10, 15, 30, 0.85)' },
-                    { label: 'White', color: 'rgba(255, 255, 255, 0.95)' },
-                    { label: 'Glass', color: 'rgba(186, 230, 253, 0.4)' }
-                  ].map(c => (
-                    <Tooltip key={c.color} text={c.label} position="top">
-                      <button
-                        className={`xs-color-swatch ${preset.border_color === c.color ? 'active' : ''}`}
-                        style={{ background: c.color }}
-                        onClick={() => setPreset(p => ({ ...p, border_color: c.color }))}
-                        aria-label={`${c.label} border color`}
-                      />
-                    </Tooltip>
-                  ))}
+          <div style={{ position: 'relative', display: 'flex', width: 'fit-content' }}>
+            <Tooltip text="Padding">
+              <button className={`xs-btn xs-icon-btn ${activePop === 'padding' ? 'active' : ''}`} onClick={() => toggle('padding')} aria-label="Padding"><PaddingIcon /></button>
+            </Tooltip>
+            {activePop === 'padding' && <div className="xs-pop"><SliderControl label="Padding" min={0} max={96} value={preset.padding} onChange={v => setPreset(p => ({ ...p, padding: v }))} /></div>}
+          </div>
+
+          <div style={{ position: 'relative', display: 'flex', width: 'fit-content' }}>
+            <Tooltip text="Radius & Border">
+              <button className={`xs-btn xs-icon-btn ${activePop === 'radius' ? 'active' : ''}`} onClick={() => toggle('radius')} aria-label="Radius and Border"><RadiusIcon /></button>
+            </Tooltip>
+            {activePop === 'radius' && (
+              <div className="xs-pop" style={{ minWidth: '240px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <SliderControl label="Radius" min={0} max={48} value={preset.radius} onChange={v => setPreset(p => ({ ...p, radius: v }))} />
+                  <div className="xs-pop-divider" />
+                  <SliderControl label="Border" min={0} max={12} value={preset.border_width} onChange={v => setPreset(p => ({ ...p, border_width: v }))} />
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '4px', padding: '4px 2px' }}>
+                    {[
+                      { label: 'Dark', color: 'rgba(10, 15, 30, 0.85)' },
+                      { label: 'White', color: 'rgba(255, 255, 255, 0.95)' },
+                      { label: 'Glass', color: 'rgba(186, 230, 253, 0.4)' }
+                    ].map(c => (
+                      <Tooltip key={c.color} text={c.label} position="top">
+                        <button
+                          className={`xs-color-swatch ${preset.border_color === c.color ? 'active' : ''}`}
+                          style={{ background: c.color }}
+                          onClick={() => setPreset(p => ({ ...p, border_color: c.color }))}
+                          aria-label={`${c.label} border color`}
+                        />
+                      </Tooltip>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
+
+          <div style={{ position: 'relative', display: 'flex', width: 'fit-content' }}>
+            <Tooltip text="Shadow">
+              <button className={`xs-btn xs-icon-btn ${activePop === 'shadow' ? 'active' : ''}`} onClick={() => toggle('shadow')} aria-label="Shadow"><ShadowIcon /></button>
+            </Tooltip>
+            {activePop === 'shadow' && (
+              <div className="xs-pop light">
+                <ShadowControl
+                  preset={preset}
+                  onChange={(updates) => setPreset(p => ({ ...p, ...updates }))}
+                />
+              </div>
+            )}
+          </div>
+
+          <div style={{ position: 'relative', display: 'flex', width: 'fit-content' }}>
+            <Tooltip text="Presets">
+              <button className={`xs-btn xs-icon-btn ${activePop === 'presets' ? 'active' : ''}`} onClick={() => toggle('presets')} aria-label="Presets"><PresetIcon /></button>
+            </Tooltip>
+            {activePop === 'presets' && (
+              <div className="xs-pop">
+                <PresetsControl
+                  preset={preset}
+                  settings={settings}
+                  onApply={(p) => { setPreset(p); onActivePopChange(null); }}
+                  onRefresh={onRefreshSettings}
+                  showToast={showToast}
+                  onOpenManager={() => { onOpenPresetManager(); onActivePopChange(null); }}
+                />
+              </div>
+            )}
+          </div>
         </div>
 
-        <div style={{ position: 'relative', display: 'flex', width: 'fit-content' }}>
-          <Tooltip text="Shadow">
-            <button className={`xs-btn xs-icon-btn ${activePop === 'shadow' ? 'active' : ''}`} onClick={() => toggle('shadow')} aria-label="Shadow"><ShadowIcon /></button>
-          </Tooltip>
-          {activePop === 'shadow' && (
-            <div className="xs-pop light">
-              <ShadowControl
-                preset={preset}
-                onChange={(updates) => setPreset(p => ({ ...p, ...updates }))}
-              />
-            </div>
-          )}
-        </div>
-
-        <div style={{ position: 'relative', display: 'flex', width: 'fit-content' }}>
-          <Tooltip text="Presets">
-            <button className={`xs-btn xs-icon-btn ${activePop === 'presets' ? 'active' : ''}`} onClick={() => toggle('presets')} aria-label="Presets"><PresetIcon /></button>
-          </Tooltip>
-          {activePop === 'presets' && (
-            <div className="xs-pop">
-              <PresetsControl
-                preset={preset}
-                settings={settings}
-                onApply={(p) => { setPreset(p); onActivePopChange(null); }}
-                onRefresh={onRefreshSettings}
-                showToast={showToast}
-                onOpenManager={() => { onOpenPresetManager(); onActivePopChange(null); }}
-              />
-            </div>
-          )}
+        <div
+          className="xs-dock-group xs-dock-group--studio"
+          inert={presentationMode === 'flat'}
+          aria-hidden={presentationMode === 'flat'}
+        >
+          <StudioQuickBar
+            preset={preset}
+            setPreset={setPreset}
+            activePop={activePop}
+            onActivePopChange={onActivePopChange}
+          />
         </div>
       </div>
 
       <div className="xs-divider" />
 
+      {/* Mode toggle */}
+      <QuickBarModeToggle
+        active={presentationMode === 'studio'}
+        onToggle={handleModeToggle}
+      />
+
+      <div className="xs-divider" />
+
+      {/* Actions */}
       <div style={{ display: 'flex', gap: '12px' }}>
         <button className="xs-btn xs-action-primary" onClick={handleCopy} disabled={isActionInFlight}><CopyIcon /> Copy</button>
         <button className="xs-btn xs-action-secondary" onClick={handleExport} disabled={isActionInFlight}><ExportIcon /> Export</button>
         <div className="xs-divider" />
         <Tooltip text="Settings">
-          <button 
-            className="xs-btn xs-icon-btn" 
-            onClick={() => void handleOpenSettings()} 
+          <button
+            className="xs-btn xs-icon-btn"
+            onClick={() => void handleOpenSettings()}
             aria-label="Settings"
           >
             <SettingsIcon />

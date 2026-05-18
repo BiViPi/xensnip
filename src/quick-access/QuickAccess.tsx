@@ -382,6 +382,7 @@ export function QuickAccess() {
         activePop={activePop}
         isActionInFlight={isActionInFlight}
         previewViewportCenterOffsetX={previewViewportCenterOffsetX}
+        presentationMode={preset.presentation_mode}
         onPresetChange={setPreset}
         onActionInFlightChange={setIsActionInFlight}
         onShowToast={showToast}
@@ -390,6 +391,7 @@ export function QuickAccess() {
         onOpenPresetManager={() => setIsPresetManagerOpen(true)}
         onClearAllSession={handleClearAllInSession}
         onFlush={flushActiveDocument}
+        onPresentationModeChange={(m) => setPreset(p => ({ ...p, presentation_mode: m }))}
       />
 
       {isPresetManagerOpen && (

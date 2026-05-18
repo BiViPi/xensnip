@@ -1,4 +1,4 @@
-import type { EditorPreset } from "../compose/preset";
+import type { EditorPreset, PresentationMode } from "../compose/preset";
 
 export interface Hotkeys {
   region: string;
@@ -20,6 +20,7 @@ export interface Settings {
   saved_presets: SavedPreset[];
   last_preset: EditorPreset | null;
   default_preset_id: string | null;
+  default_presentation_mode: PresentationMode;
 }
 
 export interface SavedPreset {
