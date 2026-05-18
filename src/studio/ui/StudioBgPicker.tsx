@@ -24,7 +24,6 @@ export function StudioBgPicker({ value, onChange, activePop, onActivePopChange }
           onClick={toggle}
           aria-label="Background"
           aria-expanded={isOpen}
-          title="Background"
         >
           <span className="studio-bg-trigger" aria-hidden="true">
             <ImageIcon size={14} strokeWidth={2} />

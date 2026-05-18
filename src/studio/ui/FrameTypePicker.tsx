@@ -22,7 +22,6 @@ export function FrameTypePicker({ value, onChange }: Props) {
             onClick={() => onChange(o.value)}
             aria-label={o.label}
             aria-pressed={value === o.value}
-            title={o.label}
           >
             {o.icon}
           </button>

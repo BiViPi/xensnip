@@ -14,7 +14,6 @@ export function QuickBarModeToggle({ active, onToggle }: Props) {
         onClick={onToggle}
         aria-label={active ? '2D' : 'Studio'}
         aria-pressed={active}
-        title={active ? '2D' : 'Studio'}
       >
         <Box size={16} />
       </button>

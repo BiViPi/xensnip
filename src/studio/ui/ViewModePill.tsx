@@ -23,7 +23,6 @@ export function ViewModePill({ value, onChange }: Props) {
             onClick={() => onChange(mode)}
             aria-label={label}
             aria-pressed={value === mode}
-            title={label}
           >
             <span className="studio-view-pill__icon" aria-hidden="true">{icon}</span>
           </button>
