@@ -1,3 +1,4 @@
+import { Image as ImageIcon } from 'lucide-react';
 import { STUDIO_BACKGROUNDS } from '@studio-impl/backgrounds';
 import { Tooltip } from '../../editor/Tooltip';
 
@@ -16,22 +17,26 @@ export function StudioBgPicker({ value, onChange, activePop, onActivePopChange }
   const current = STUDIO_BACKGROUNDS.find(b => b.id === value);
 
   return (
-    <div style={{ position: 'relative', display: 'flex' }}>
-      <Tooltip text="Studio background">
+    <div className="studio-bg-picker">
+      <Tooltip text="Background" position="top">
         <button
           className={`xs-btn xs-icon-btn${isOpen ? ' active' : ''}`}
           onClick={toggle}
-          aria-label="Studio background"
+          aria-label="Background"
           aria-expanded={isOpen}
+          title="Background"
         >
-          <span
-            className="studio-bg-dot"
-            style={{ background: current?.tone === 'light' ? '#d4d4d4' : '#1a1a2e' }}
-          />
+          <span className="studio-bg-trigger" aria-hidden="true">
+            <ImageIcon size={14} strokeWidth={2} />
+            <span
+              className={`studio-bg-trigger__tone studio-bg-trigger__tone--${current?.tone ?? 'light'}`}
+            />
+          </span>
         </button>
       </Tooltip>
       {isOpen && (
-        <div className="xs-pop studio-bg-pop">
+        <div className="xs-pop studio-bg-pop" role="menu" aria-label="Studio background options">
+          <div className="studio-bg-pop__header">Studio background</div>
           {STUDIO_BACKGROUNDS.map(bg => (
             <button
               key={bg.id}

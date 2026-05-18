@@ -58,16 +58,16 @@ pub struct Settings {
     pub last_preset: Option<serde_json::Value>,
     #[serde(default)]
     pub default_preset_id: Option<String>,
-    #[serde(default = "default_presentation_mode")]
-    pub default_presentation_mode: String,
     #[serde(default = "default_theme")]
     pub theme: String,
+    #[serde(default = "default_presentation_mode")]
+    pub default_presentation_mode: String,
 }
 
 impl Default for Settings {
     fn default() -> Self {
         Self {
-            version: 8,
+            version: 9,
             hotkeys: Hotkeys {
                 region: "Ctrl+Shift+S".to_string(),
                 active_window: "Ctrl+Alt+W".to_string(),
@@ -81,8 +81,8 @@ impl Default for Settings {
             saved_presets: Vec::new(),
             last_preset: None,
             default_preset_id: None,
-            default_presentation_mode: "flat".to_string(),
             theme: "dark".to_string(),
+            default_presentation_mode: "flat".to_string(),
         }
     }
 }
@@ -130,7 +130,14 @@ fn migrate_settings_if_needed(settings: &mut Settings) -> bool {
 
     if settings.version < 8 {
         settings.version = 8;
-        // v8: default_presentation_mode is populated by serde defaults.
+        // v8: frame_style and view_angle added to EditorPreset on the TS side;
+        // serde_json::Value storage means no Rust schema change is required
+        changed = true;
+    }
+
+    if settings.version < 9 {
+        settings.version = 9;
+        // v9: default_presentation_mode added; serde default covers new field
         changed = true;
     }
 
@@ -224,17 +231,18 @@ mod tests {
     use super::*;
 
     fn settings_at_version(version: u32) -> Settings {
-        let mut s = Settings::default();
-        s.version = version;
-        s
+        Settings {
+            version,
+            ..Default::default()
+        }
     }
 
     #[test]
     fn already_current_version_reports_no_change() {
-        let mut s = settings_at_version(8);
+        let mut s = settings_at_version(9);
         let changed = migrate_settings_if_needed(&mut s);
         assert!(!changed);
-        assert_eq!(s.version, 8);
+        assert_eq!(s.version, 9);
     }
 
     #[test]
@@ -244,7 +252,7 @@ mod tests {
         let changed = migrate_settings_if_needed(&mut s);
         assert!(changed);
         assert_eq!(s.hotkeys.active_window, "Ctrl+Alt+W");
-        assert_eq!(s.version, 8);
+        assert_eq!(s.version, 9);
     }
 
     #[test]
@@ -254,7 +262,15 @@ mod tests {
         let changed = migrate_settings_if_needed(&mut s);
         assert!(changed);
         assert_eq!(s.hotkeys.active_window, "Ctrl+Alt+W");
-        assert_eq!(s.version, 8);
+        assert_eq!(s.version, 9);
+    }
+
+    #[test]
+    fn migrates_v6_to_v7() {
+        let mut s = settings_at_version(6);
+        let changed = migrate_settings_if_needed(&mut s);
+        assert!(changed);
+        assert_eq!(s.version, 9);
     }
 
     #[test]
@@ -262,14 +278,22 @@ mod tests {
         let mut s = settings_at_version(7);
         let changed = migrate_settings_if_needed(&mut s);
         assert!(changed);
-        assert_eq!(s.version, 8);
+        assert_eq!(s.version, 9);
+    }
+
+    #[test]
+    fn migrates_v8_to_v9() {
+        let mut s = settings_at_version(8);
+        let changed = migrate_settings_if_needed(&mut s);
+        assert!(changed);
+        assert_eq!(s.version, 9);
         assert_eq!(s.default_presentation_mode, "flat");
     }
 
     #[test]
     fn default_settings_are_at_current_version() {
         let s = Settings::default();
-        assert_eq!(s.version, 8);
+        assert_eq!(s.version, 9);
         assert_eq!(s.default_presentation_mode, "flat");
     }
 }

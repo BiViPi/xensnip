@@ -2,12 +2,14 @@
   position: relative;
   display: flex;
   align-items: center;
+  min-width: 0;
 }
 
 .xs-dock-group {
   display: flex;
   gap: 8px;
   align-items: center;
+  min-width: 0;
   transition:
     opacity 200ms ease,
     transform 200ms ease;
@@ -33,6 +35,9 @@
   opacity: 0;
   transform: translateY(-6px);
   pointer-events: none;
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: max-content;
 }
 
 .xs-dock-center[data-mode="studio"] .xs-dock-group--studio {
@@ -55,13 +60,19 @@
 .studio-view-pill__btn {
   all: unset;
   cursor: pointer;
-  padding: 4px 10px;
-  font-size: 11px;
-  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 28px;
   color: var(--text-muted, rgba(255 255 255 / 0.5));
   transition: background 120ms, color 120ms;
-  line-height: 1.4;
-  white-space: nowrap;
+}
+
+.studio-view-pill__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .studio-view-pill__btn + .studio-view-pill__btn {
@@ -76,6 +87,22 @@
 .studio-view-pill__btn.active {
   background: var(--accent, #6366f1);
   color: #fff;
+}
+
+[data-theme='light'] .studio-view-pill__btn {
+  color: #475569;
+}
+
+[data-theme='light'] .studio-view-pill__btn:hover {
+  color: #0f172a;
+}
+
+[data-theme='light'] .studio-view-pill__btn.active {
+  background: rgba(99, 102, 241, 0.14);
+  color: #334155;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.86),
+    0 0 0 1px rgba(99, 102, 241, 0.12);
 }
 
 /* ── Frame type segmented control ────────────────────────────────────────── */
@@ -114,6 +141,22 @@
   color: #fff;
 }
 
+[data-theme='light'] .studio-seg__btn {
+  color: #475569;
+}
+
+[data-theme='light'] .studio-seg__btn:hover {
+  color: #0f172a;
+}
+
+[data-theme='light'] .studio-seg__btn.active {
+  background: rgba(99, 102, 241, 0.14);
+  color: #334155;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.86),
+    0 0 0 1px rgba(99, 102, 241, 0.12);
+}
+
 /* ── Frame style swatches ────────────────────────────────────────────────── */
 
 .studio-style-row {
@@ -123,11 +166,11 @@
 }
 
 .studio-style-swatch {
-  width: 16px !important;
-  height: 16px !important;
+  width: 18px !important;
+  height: 18px !important;
   border-radius: 50% !important;
   border: 2px solid transparent !important;
-  transition: border-color 120ms, transform 120ms !important;
+  transition: border-color 120ms, transform 120ms, box-shadow 120ms !important;
 }
 
 .studio-style-swatch:hover {
@@ -139,23 +182,76 @@
   transform: scale(1.1);
 }
 
+.studio-style-swatch--light {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    0 0 0 1px rgba(148, 163, 184, 0.28),
+    0 4px 10px rgba(15, 23, 42, 0.12) !important;
+}
+
+[data-theme='light'] .studio-style-swatch--light {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.96),
+    0 0 0 1px rgba(100, 116, 139, 0.5),
+    0 6px 12px rgba(15, 23, 42, 0.14) !important;
+}
+
 /* ── Studio background picker ────────────────────────────────────────────── */
 
-.studio-bg-dot {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  border: 1.5px solid var(--border, rgba(255 255 255 / 0.2));
-  flex-shrink: 0;
+.studio-bg-picker {
+  position: relative;
+  display: flex;
+}
+
+.studio-bg-trigger {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: currentColor;
+}
+
+.studio-bg-trigger__tone {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.18);
+}
+
+.studio-bg-trigger__tone--light {
+  background: #e2e8f0;
+}
+
+.studio-bg-trigger__tone--dark {
+  background: #1e293b;
+}
+
+[data-theme='light'] .studio-bg-trigger__tone {
+  border-color: rgba(255, 255, 255, 0.96);
 }
 
 .studio-bg-pop {
-  min-width: 148px;
-  padding: 6px;
+  left: 0;
+  bottom: calc(100% + 12px);
+  transform: none;
+  min-width: 196px;
+  padding: 8px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 6px;
+}
+
+.studio-bg-pop__header {
+  padding: 2px 4px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary, rgba(255 255 255 / 0.62));
 }
 
 .studio-bg-item {
@@ -164,29 +260,68 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 8px;
-  border-radius: 6px;
-  transition: background 120ms;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  transition: background 120ms, border-color 120ms, box-shadow 120ms;
 }
 
 .studio-bg-item:hover {
   background: var(--surface-hover, rgba(255 255 255 / 0.06));
+  border-color: var(--border, rgba(255 255 255 / 0.08));
 }
 
 .studio-bg-item.active {
   background: var(--accent-subtle, rgba(99 102 241 / 0.18));
+  border-color: rgba(99, 102, 241, 0.28);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .studio-bg-item__swatch {
-  width: 18px;
+  width: 28px;
   height: 18px;
-  border-radius: 50%;
+  border-radius: 7px;
   border: 1.5px solid var(--border, rgba(255 255 255 / 0.15));
   flex-shrink: 0;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 2px 6px rgba(15, 23, 42, 0.14);
 }
 
 .studio-bg-item__label {
   font-size: 12px;
   color: var(--text, rgba(255 255 255 / 0.85));
   white-space: nowrap;
+}
+
+[data-theme='light'] .studio-bg-pop {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.88),
+    0 0 0 1px rgba(226, 232, 240, 0.9),
+    0 10px 24px rgba(15, 23, 42, 0.1);
+}
+
+[data-theme='light'] .studio-bg-pop__header {
+  color: #64748b;
+}
+
+[data-theme='light'] .studio-bg-item {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+[data-theme='light'] .studio-bg-item:hover {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(148, 163, 184, 0.22);
+}
+
+[data-theme='light'] .studio-bg-item.active {
+  background: rgba(238, 242, 255, 0.96);
+  border-color: rgba(99, 102, 241, 0.26);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.96),
+    0 6px 14px rgba(99, 102, 241, 0.1);
+}
+
+[data-theme='light'] .studio-bg-item__label {
+  color: #0f172a;
 }

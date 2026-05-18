@@ -10,8 +10,9 @@ import { TitleBar } from "../editor/TitleBar";
 import "./Settings.css";
 
 import {
-  LaunchOnStartupIcon, IconSoundIcon, ExportSoundIcon, SavedToIcon, 
-  OutputFormatIcon, MediaQualityIcon, MultipleMonitorsIcon, ThemeIcon 
+  LaunchOnStartupIcon, IconSoundIcon, ExportSoundIcon, SavedToIcon,
+  OutputFormatIcon, MediaQualityIcon, MultipleMonitorsIcon, ThemeIcon,
+  PresentationModeIcon,
 } from "../components/icons";
 
 export function Settings() {
@@ -314,6 +315,29 @@ export function Settings() {
                     />
                     <span className="xs-slider"></span>
                   </label>
+                </div>
+              </div>
+            </section>
+
+            <section className="xs-settings-section">
+              <div className="xs-section-title">EDITOR</div>
+              <div className="xs-card">
+                <div className="xs-settings-row">
+                  <div className="xs-icon-circle"><PresentationModeIcon /></div>
+                  <div className="xs-field-label">
+                    <span className="xs-label-text">Default capture mode</span>
+                    <span className="xs-label-desc">Presentation mode applied to new captures</span>
+                  </div>
+                  <div className="xs-segmented-control">
+                    <div
+                      className={`xs-segment ${draft.default_presentation_mode === 'flat' ? 'active' : ''}`}
+                      onClick={() => setDraft({ ...draft, default_presentation_mode: 'flat' })}
+                    >2D Flat</div>
+                    <div
+                      className={`xs-segment ${draft.default_presentation_mode === 'studio' ? 'active' : ''}`}
+                      onClick={() => setDraft({ ...draft, default_presentation_mode: 'studio' })}
+                    >2.5D Studio</div>
+                  </div>
                 </div>
               </div>
             </section>

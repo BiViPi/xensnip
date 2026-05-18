@@ -26,6 +26,7 @@ export * from './settings/OutputFormatIcon';
 export * from './settings/MediaQualityIcon';
 export * from './settings/MultipleMonitorsIcon';
 export * from './settings/ThemeIcon';
+export * from './settings/PresentationModeIcon';
 
 // Sidebar Icons
 export * from './sidebar/AnnotateIcon';

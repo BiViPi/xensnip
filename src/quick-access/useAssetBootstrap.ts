@@ -32,6 +32,38 @@ interface BootstrapCaptureContext {
   captureKind?: string;
 }
 
+/**
+ * Pure function — resolves the EditorPreset to apply on editor open.
+ * Implements bootstrap precedence (plan section 17):
+ *   1. last_preset exists → use it (preserves saved presentation_mode)
+ *   2. default_preset_id set + found → use that saved preset
+ *   3. No preset → apply settings.default_presentation_mode + auto-balanced padding
+ *   4. settings absent → fall back to DEFAULT_PRESET with auto-balanced padding
+ */
+export function resolveBootstrapPreset(
+  settings: Settings | null,
+  imgWidth: number,
+  imgHeight: number,
+): EditorPreset {
+  const settingsDefaultMode: import('../compose/preset').PresentationMode =
+    settings?.default_presentation_mode === 'studio' ? 'studio' : 'flat';
+
+  if (settings?.last_preset) {
+    return { ...DEFAULT_PRESET, ...settings.last_preset };
+  }
+
+  if (settings?.default_preset_id) {
+    const def = settings.saved_presets.find((p) => p.id === settings.default_preset_id);
+    if (def) return { ...DEFAULT_PRESET, ...def.preset };
+  }
+
+  return {
+    ...DEFAULT_PRESET,
+    presentation_mode: settingsDefaultMode,
+    padding: autoBalance(imgWidth, imgHeight, DEFAULT_PRESET.ratio),
+  };
+}
+
 export function useAssetBootstrap(deps: UseAssetBootstrapDeps): {
   bootstrapAsset: (assetId: string, captureContext?: BootstrapCaptureContext) => Promise<void>;
   bootstrapAssetRef: React.MutableRefObject<(assetId: string, captureContext?: BootstrapCaptureContext) => Promise<void>>;
@@ -155,25 +187,7 @@ export function useAssetBootstrap(deps: UseAssetBootstrapDeps): {
       const currentSettings = await settingsLoad();
       setSettings(currentSettings);
 
-      // Shared preset logic (applies to all captures in session)
-      if (currentSettings?.last_preset) {
-        setPreset({ ...DEFAULT_PRESET, ...currentSettings.last_preset });
-      } else if (currentSettings?.default_preset_id) {
-        const def = currentSettings.saved_presets.find(
-          (p) => p.id === currentSettings.default_preset_id
-        );
-        if (def) setPreset({ ...DEFAULT_PRESET, ...def.preset });
-        else
-          setPreset({
-            ...DEFAULT_PRESET,
-            padding: autoBalance(img.width, img.height, DEFAULT_PRESET.ratio),
-          });
-      } else {
-        setPreset({
-          ...DEFAULT_PRESET,
-          padding: autoBalance(img.width, img.height, DEFAULT_PRESET.ratio),
-        });
-      }
+      setPreset(resolveBootstrapPreset(currentSettings, img.width, img.height));
 
       // Defer thumbnail generation
       setTimeout(async () => {

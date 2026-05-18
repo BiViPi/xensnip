@@ -8,12 +8,13 @@ interface Props {
 
 export function QuickBarModeToggle({ active, onToggle }: Props) {
   return (
-    <Tooltip text={active ? 'Switch to 2D mode' : 'Switch to 2.5D Studio'}>
+    <Tooltip text={active ? '2D' : 'Studio'} position="top">
       <button
         className={`xs-btn xs-icon-btn${active ? ' active' : ''}`}
         onClick={onToggle}
-        aria-label={active ? 'Switch to 2D mode' : 'Switch to 2.5D Studio'}
+        aria-label={active ? '2D' : 'Studio'}
         aria-pressed={active}
+        title={active ? '2D' : 'Studio'}
       >
         <Box size={16} />
       </button>
