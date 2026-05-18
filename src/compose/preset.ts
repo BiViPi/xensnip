@@ -9,6 +9,21 @@ export const DEFAULT_STUDIO_PRESET: StudioPreset = {
   view_mode:     'Front',
   background_id: 'desk-light',
   frame_style:   'gloss-black',
+
+  // Geometry Defaults
+  corner_radius: 0.12,
+  depth:         0.05,
+  bevel:         0.012,
+  frame_scale:   1.0,
+
+  // Screenshot Content Defaults
+  content_scale: 1.0,
+
+  // Shadow Defaults
+  shadow_intensity: 0.38,
+  shadow_angle:     26,
+  shadow_blur:      32,
+  shadow_opacity:   0.38,
 };
 
 // Static imports for wallpapers ensure Vite bundles them correctly
@@ -123,5 +138,9 @@ export const DEFAULT_PRESET: EditorPreset = {
  */
 export function normalizeEditorPreset(raw: unknown): EditorPreset {
   if (typeof raw !== 'object' || raw === null) return { ...DEFAULT_PRESET };
-  return { ...DEFAULT_PRESET, ...(raw as Partial<EditorPreset>) };
+  const base = { ...DEFAULT_PRESET, ...(raw as Partial<EditorPreset>) };
+  if (base.studio) {
+    base.studio = { ...DEFAULT_STUDIO_PRESET, ...base.studio };
+  }
+  return base;
 }

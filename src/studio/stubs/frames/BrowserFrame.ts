@@ -10,4 +10,8 @@ export class BrowserFrame implements FrameRenderer {
   buildMaterial(_style: FrameStyle): never {
     throw new Error('Studio frame renderer not available');
   }
+
+  getActualDepth(params: StudioGeometryParams): number {
+    return params.depth;
+  }
 }

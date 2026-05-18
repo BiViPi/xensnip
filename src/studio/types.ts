@@ -38,6 +38,21 @@ export interface StudioPreset {
   view_mode:     ViewMode;
   background_id: string;
   frame_style:   FrameStyle;
+
+  // Geometry Controls
+  corner_radius: number;
+  depth:         number;
+  bevel:         number;
+  frame_scale:   number;
+
+  // Screenshot content
+  content_scale: number;
+
+  // Shadow Controls
+  shadow_intensity: number;
+  shadow_angle:     number;
+  shadow_blur:      number;
+  shadow_opacity:   number;
 }
 
 export interface StudioGeometryParams {
@@ -52,6 +67,7 @@ export interface StudioGeometryParams {
 export interface FrameRenderer {
   buildGeometry(params: StudioGeometryParams): THREE.BufferGeometry;
   buildMaterial(style: FrameStyle): THREE.Material;
+  getActualDepth(params: StudioGeometryParams): number;
   /** True if this family draws a macOS browser title bar on the screen texture */
   hasTitleBar: boolean;
 }
@@ -62,6 +78,19 @@ export interface StudioRenderConfig {
   viewMode:        ViewMode;
   background:      StudioBackground;
   screenshotImage: HTMLImageElement;
+
+  // New geometry & scale fields
+  cornerRadius:    number;
+  depth:           number;
+  bevel:           number;
+  frameScale:      number;
+  contentScale:    number;
+
+  // New shadow fields
+  shadowIntensity: number;
+  shadowAngle:     number;
+  shadowBlur:      number;
+  shadowOpacity:   number;
 }
 
 /** Handle passed to QuickBar so it can trigger export without owning the renderer */

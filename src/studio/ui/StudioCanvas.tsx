@@ -22,6 +22,19 @@ export function StudioCanvas({ preset, image, onExportHandleChange }: Props) {
       viewMode:        studioPreset.view_mode,
       background,
       screenshotImage: image,
+
+      // Geometry and scales
+      cornerRadius:    studioPreset.corner_radius,
+      depth:           studioPreset.depth,
+      bevel:           studioPreset.bevel,
+      frameScale:      studioPreset.frame_scale,
+      contentScale:    studioPreset.content_scale,
+
+      // Shadows
+      shadowIntensity: studioPreset.shadow_intensity,
+      shadowAngle:     studioPreset.shadow_angle,
+      shadowBlur:      studioPreset.shadow_blur,
+      shadowOpacity:   studioPreset.shadow_opacity,
     };
   }, [image, preset]);
 

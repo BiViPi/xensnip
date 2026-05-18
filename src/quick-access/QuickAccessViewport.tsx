@@ -111,11 +111,31 @@ export function QuickAccessViewport({
 
       {activeDoc && image ? (
         isStudio ? (
-          <StudioCanvas
-            preset={preset}
-            image={image}
-            onExportHandleChange={onExportHandleChange}
-          />
+          <div
+            className="xs-canvas-area"
+            style={{
+              position: "relative",
+              paddingTop: `${layout.topInset}px`,
+              paddingRight: `${layout.rightRailReserve}px`,
+              paddingBottom: `${layout.bottomInset}px`,
+              paddingLeft: `${layout.leftPanelReserve}px`,
+            }}
+          >
+            <div
+              style={{
+                position: "relative",
+                width: `${previewW}px`,
+                height: `${previewH}px`,
+                transform: `translateX(${previewCenterOffsetX}px)`,
+              }}
+            >
+              <StudioCanvas
+                preset={preset}
+                image={image}
+                onExportHandleChange={onExportHandleChange}
+              />
+            </div>
+          </div>
         ) : (
           <QuickAccessCanvasArea
             image={image}
