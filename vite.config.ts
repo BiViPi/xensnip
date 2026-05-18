@@ -6,9 +6,9 @@ import fs from "fs";
 // @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
 
-// Resolve to private submodule when present, fall back to public stubs.
-// private/ is gitignored in the public repo and contains the real Three.js
-// implementation. stubs/ always compiles cleanly without the submodule.
+// Resolve to the private studio submodule when present, fall back to public
+// stubs. This keeps CI and public checkouts buildable even when the submodule
+// is absent or not initialized.
 const studioImplPath = (() => {
   const privatePath = resolve(__dirname, "./src/studio/private");
   const stubsPath   = resolve(__dirname, "./src/studio/stubs");

@@ -3,6 +3,7 @@ import type { PresentationMode } from "../compose/preset";
 import { ScreenshotDocument } from "../editor/useScreenshotDocuments";
 import { QuickBar } from "../editor/QuickBar";
 import { Settings } from "../ipc/types";
+import type { StudioExportHandle } from "../studio/types";
 
 interface QuickAccessDockProps {
   activeDoc: ScreenshotDocument | null;
@@ -23,6 +24,7 @@ interface QuickAccessDockProps {
   onClearAllSession: () => void;
   onFlush: () => void;
   onPresentationModeChange: (m: PresentationMode) => void;
+  studioExportHandle: StudioExportHandle | null;
 }
 
 export function QuickAccessDock({
@@ -44,6 +46,7 @@ export function QuickAccessDock({
   onClearAllSession,
   onFlush,
   onPresentationModeChange,
+  studioExportHandle,
 }: QuickAccessDockProps) {
   if (!activeDoc || !image) return null;
 
@@ -70,6 +73,7 @@ export function QuickAccessDock({
         onFlush={onFlush}
         presentationMode={presentationMode}
         onPresentationModeChange={onPresentationModeChange}
+        studioExportHandle={studioExportHandle}
       />
     </div>
   );

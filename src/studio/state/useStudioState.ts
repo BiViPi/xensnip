@@ -9,8 +9,8 @@ export function resolveStudioPreset(preset: EditorPreset): StudioPreset {
 }
 
 export function useStudioState(
-  _preset: EditorPreset,
-  _setPreset: (p: EditorPreset | ((prev: EditorPreset) => EditorPreset)) => void,
+  preset: EditorPreset,
+  setPreset: (p: EditorPreset | ((prev: EditorPreset) => EditorPreset)) => void,
 ): {
   studioPreset:    StudioPreset;
   setFrameFamily:  (f: FrameFamily) => void;
@@ -18,12 +18,17 @@ export function useStudioState(
   setBackgroundId: (id: string) => void;
   setFrameStyle:   (s: FrameStyle) => void;
 } {
-  // TODO WS5
+  const studioPreset = resolveStudioPreset(preset);
+
+  const patch = (update: Partial<StudioPreset>) => {
+    setPreset(p => ({ ...p, studio: { ...resolveStudioPreset(p), ...update } }));
+  };
+
   return {
-    studioPreset:    DEFAULT_STUDIO_PRESET,
-    setFrameFamily:  () => {},
-    setViewMode:     () => {},
-    setBackgroundId: () => {},
-    setFrameStyle:   () => {},
+    studioPreset,
+    setFrameFamily:  (f)  => patch({ frame_family: f }),
+    setViewMode:     (v)  => patch({ view_mode: v }),
+    setBackgroundId: (id) => patch({ background_id: id }),
+    setFrameStyle:   (s)  => patch({ frame_style: s }),
   };
 }

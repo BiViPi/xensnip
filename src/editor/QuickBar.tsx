@@ -14,6 +14,8 @@ import copySound from "../assets/sounds/copy.ogg";
 import exportSound from "../assets/sounds/export.ogg";
 import { clipboardWriteImage, exportSaveMedia, openSettingsWindow } from "../ipc/index";
 import { Settings } from "../ipc/types";
+import type { StudioExportHandle } from "../studio/types";
+import { exportStudioPng } from "@studio-impl/export/exportStudio";
 import { RatioControl } from "./controls/Ratio";
 import { SliderControl } from "./controls/Slider";
 import { ShadowControl } from "./controls/Shadow";
@@ -42,13 +44,14 @@ interface Props {
   onFlush: () => void;
   presentationMode: PresentationMode;
   onPresentationModeChange: (m: PresentationMode) => void;
+  studioExportHandle: StudioExportHandle | null;
 }
 
 export function QuickBar({
   preset, setPreset, image, isActionInFlight, setIsActionInFlight, showToast,
   activePop, onActivePopChange, settings, onRefreshSettings, onOpenPresetManager,
   documents, activeDocument, onClearAllSession, onFlush,
-  presentationMode, onPresentationModeChange,
+  presentationMode, onPresentationModeChange, studioExportHandle,
 }: Props) {
   const dockRef = React.useRef<HTMLDivElement>(null);
   const hasAnnotations = useHasAnnotations();
@@ -98,13 +101,24 @@ export function QuickBar({
 
   const handleCopy = async () => {
     if (isActionInFlight) return;
+    const readyStudioHandle = presentationMode === "studio" ? studioExportHandle : null;
+    if (presentationMode === "studio") {
+      if (!readyStudioHandle?.isReady) {
+        showToast("Studio is still loading", "error");
+        return;
+      }
+    }
     setIsActionInFlight(true);
-    onFlush();
     try {
-      const bytes = objects.length > 0
-        ? await composeWithAnnotations(image, preset, objects)
-        : await composeToBlob(image, preset);
-
+      let bytes: Uint8Array;
+      if (presentationMode === 'studio') {
+        bytes = await exportStudioPng(readyStudioHandle!, preset.ratio);
+      } else {
+        onFlush();
+        bytes = objects.length > 0
+          ? await composeWithAnnotations(image, preset, objects)
+          : await composeToBlob(image, preset);
+      }
       await clipboardWriteImage(bytes);
       if (settings?.play_copy_sound) {
         new Audio(copySound).play().catch(() => {});
@@ -119,52 +133,73 @@ export function QuickBar({
       showToast("Please select a save folder in Settings first", "error");
       return;
     }
+    const readyStudioHandle = presentationMode === "studio" ? studioExportHandle : null;
+    if (presentationMode === "studio") {
+      if (!readyStudioHandle?.isReady) {
+        showToast("Studio is still loading", "error");
+        return;
+      }
+    }
 
     setIsActionInFlight(true);
     try {
-      const format = settings.export_format === "JPEG" ? "image/jpeg" : "image/png";
-      const ext = settings.export_format === "JPEG" ? "jpg" : "png";
-
-      const docsToExport = documents.filter(d => d.isExportChecked);
-
-      if (docsToExport.length === 0 && activeDocument) {
-        onFlush();
-        const bytes = objects.length > 0
-          ? await composeWithAnnotations(image, preset, objects, format, 1.0)
-          : await composeToBlob(image, preset, format, 1.0);
-
+      if (presentationMode === 'studio') {
+        const docsToExport = documents.filter((d) => d.isExportChecked);
+        const batchRequested = docsToExport.some((doc) => doc.id !== activeDocument?.id);
+        if (batchRequested) {
+          showToast("Batch export is not supported in Studio mode - exporting active capture.", "error");
+        }
+        const bytes = await exportStudioPng(readyStudioHandle!, preset.ratio);
         await exportSaveMedia(
           bytes,
           settings.export_folder,
-          buildExportBaseName(activeDocument, ext),
+          buildExportBaseName(activeDocument, 'png'),
           shouldPreferExactFilename(activeDocument),
         );
         showToast("Saved", "success");
       } else {
-        onFlush();
-        let successCount = 0;
-        for (const doc of docsToExport) {
-          try {
-            let bytes;
-            if (doc.id === activeDocument?.id) {
-              bytes = objects.length > 0
-                ? await composeWithAnnotations(image, preset, objects, format, 1.0)
-                : await composeToBlob(image, preset, format, 1.0);
-            } else {
-              bytes = await composeDocumentToBytes(doc, preset, format, 1.0);
+        const format = settings.export_format === "JPEG" ? "image/jpeg" : "image/png";
+        const ext = settings.export_format === "JPEG" ? "jpg" : "png";
+        const docsToExport = documents.filter(d => d.isExportChecked);
+
+        if (docsToExport.length === 0 && activeDocument) {
+          onFlush();
+          const bytes = objects.length > 0
+            ? await composeWithAnnotations(image, preset, objects, format, 1.0)
+            : await composeToBlob(image, preset, format, 1.0);
+          await exportSaveMedia(
+            bytes,
+            settings.export_folder,
+            buildExportBaseName(activeDocument, ext),
+            shouldPreferExactFilename(activeDocument),
+          );
+          showToast("Saved", "success");
+        } else {
+          onFlush();
+          let successCount = 0;
+          for (const doc of docsToExport) {
+            try {
+              let bytes;
+              if (doc.id === activeDocument?.id) {
+                bytes = objects.length > 0
+                  ? await composeWithAnnotations(image, preset, objects, format, 1.0)
+                  : await composeToBlob(image, preset, format, 1.0);
+              } else {
+                bytes = await composeDocumentToBytes(doc, preset, format, 1.0);
+              }
+              await exportSaveMedia(
+                bytes,
+                settings.export_folder,
+                buildExportBaseName(doc, ext),
+                shouldPreferExactFilename(doc),
+              );
+              successCount++;
+            } catch (e) {
+              console.error(`Failed to export ${doc.id}`, e);
             }
-            await exportSaveMedia(
-              bytes,
-              settings.export_folder,
-              buildExportBaseName(doc, ext),
-              shouldPreferExactFilename(doc),
-            );
-            successCount++;
-          } catch (e) {
-            console.error(`Failed to export ${doc.id}`, e);
           }
+          showToast(`Exported ${successCount} items`, "success");
         }
-        showToast(`Exported ${successCount} items`, "success");
       }
 
       if (settings.play_save_sound) {

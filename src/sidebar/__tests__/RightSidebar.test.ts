@@ -37,4 +37,13 @@ describe('RightSidebar', () => {
     expect(useSidebarStore.getState().activeFeatureId).toBeNull();
     expect(screen.queryByLabelText('Arrow - drag on canvas')).toBeNull();
   });
+
+  it('hides edit-only feature groups in studio mode and closes incompatible popovers', () => {
+    render(React.createElement(RightSidebar, { presentationMode: 'studio' }));
+
+    expect(screen.queryByLabelText('Annotate')).toBeNull();
+    expect(screen.queryByLabelText('Privacy')).toBeNull();
+    expect(screen.queryByLabelText('Crop & Canvas')).toBeNull();
+    expect(useSidebarStore.getState().activeFeatureId).toBeNull();
+  });
 });

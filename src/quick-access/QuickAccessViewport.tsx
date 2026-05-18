@@ -4,6 +4,8 @@ import { ScreenshotDocument } from "../editor/useScreenshotDocuments";
 import { CropBounds } from "../editor/useCropTool";
 import { LeftPanel } from "../left-panel/LeftPanel";
 import { QuickAccessCanvasArea } from "./QuickAccessCanvasArea";
+import { StudioCanvas } from "../studio/ui/StudioCanvas";
+import type { StudioExportHandle } from "../studio/types";
 
 interface ViewportLayout {
   topInset: number;
@@ -52,6 +54,7 @@ interface QuickAccessViewportProps {
   onCropBoundsChange: (bounds: CropBounds | null) => void;
   onCommitCrop: () => void;
   onCancelCrop: () => void;
+  onExportHandleChange: (h: StudioExportHandle | null) => void;
 }
 
 export function QuickAccessViewport({
@@ -88,7 +91,10 @@ export function QuickAccessViewport({
   onCropBoundsChange,
   onCommitCrop,
   onCancelCrop,
+  onExportHandleChange,
 }: QuickAccessViewportProps) {
+  const isStudio = preset.presentation_mode === 'studio';
+
   return (
     <div className="xs-viewport">
       <LeftPanel
@@ -104,30 +110,38 @@ export function QuickAccessViewport({
       />
 
       {activeDoc && image ? (
-        <QuickAccessCanvasArea
-          image={image}
-          preset={preset}
-          dims={dims}
-          previewW={previewW}
-          previewH={previewH}
-          previewScale={previewScale}
-          previewRenderScale={previewRenderScale}
-          previewCenterOffsetX={previewCenterOffsetX}
-          centerX={centerX}
-          centerY={centerY}
-          layout={layout}
-          activeTool={activeTool}
-          activePop={activePop}
-          cropBounds={cropBounds}
-          hasAnnotations={hasAnnotations}
-          wallpaperFlip={wallpaperFlip}
-          canvasRef={canvasRef}
-          stageRef={stageRef}
-          onPresetChange={onPresetChange}
-          onCropBoundsChange={onCropBoundsChange}
-          onCommitCrop={onCommitCrop}
-          onCancelCrop={onCancelCrop}
-        />
+        isStudio ? (
+          <StudioCanvas
+            preset={preset}
+            image={image}
+            onExportHandleChange={onExportHandleChange}
+          />
+        ) : (
+          <QuickAccessCanvasArea
+            image={image}
+            preset={preset}
+            dims={dims}
+            previewW={previewW}
+            previewH={previewH}
+            previewScale={previewScale}
+            previewRenderScale={previewRenderScale}
+            previewCenterOffsetX={previewCenterOffsetX}
+            centerX={centerX}
+            centerY={centerY}
+            layout={layout}
+            activeTool={activeTool}
+            activePop={activePop}
+            cropBounds={cropBounds}
+            hasAnnotations={hasAnnotations}
+            wallpaperFlip={wallpaperFlip}
+            canvasRef={canvasRef}
+            stageRef={stageRef}
+            onPresetChange={onPresetChange}
+            onCropBoundsChange={onCropBoundsChange}
+            onCommitCrop={onCommitCrop}
+            onCancelCrop={onCancelCrop}
+          />
+        )
       ) : (
         <div className="xs-loading">
           {isLoading

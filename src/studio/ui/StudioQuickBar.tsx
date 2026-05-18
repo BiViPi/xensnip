@@ -1,4 +1,9 @@
 import type { EditorPreset } from '../../compose/preset';
+import { useStudioState } from '../state/useStudioState';
+import { FrameTypePicker } from './FrameTypePicker';
+import { ViewModePill } from './ViewModePill';
+import { StudioBgPicker } from './StudioBgPicker';
+import { FrameStylePicker } from './FrameStylePicker';
 
 interface Props {
   preset: EditorPreset;
@@ -7,11 +12,23 @@ interface Props {
   onActivePopChange: (n: string | null) => void;
 }
 
-export function StudioQuickBar(_props: Props) {
-  // TODO WS5: implement FrameTypePicker, ViewModePill, StudioBgPicker, FrameStylePicker
+export function StudioQuickBar({ preset, setPreset, activePop, onActivePopChange }: Props) {
+  const { studioPreset, setFrameFamily, setViewMode, setBackgroundId, setFrameStyle } =
+    useStudioState(preset, setPreset);
+
   return (
-    <span style={{ fontSize: '12px', opacity: 0.5, padding: '0 8px' }}>
-      2.5D Studio
-    </span>
+    <>
+      <FrameTypePicker value={studioPreset.frame_family} onChange={setFrameFamily} />
+      <div className="xs-divider" />
+      <FrameStylePicker value={studioPreset.frame_style} onChange={setFrameStyle} />
+      <StudioBgPicker
+        value={studioPreset.background_id}
+        onChange={setBackgroundId}
+        activePop={activePop}
+        onActivePopChange={onActivePopChange}
+      />
+      <div className="xs-divider" />
+      <ViewModePill value={studioPreset.view_mode} onChange={setViewMode} />
+    </>
   );
 }

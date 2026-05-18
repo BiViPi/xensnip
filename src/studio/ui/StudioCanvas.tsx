@@ -1,6 +1,9 @@
-import { useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import type { EditorPreset } from '../../compose/preset';
-import type { StudioExportHandle } from '../types';
+import type { StudioExportHandle, StudioRenderConfig } from '../types';
+import { resolveStudioPreset } from '../state/useStudioState';
+import { useStudioRenderer } from '@studio-impl/renderer/useStudioRenderer';
+import { getBackground } from '@studio-impl/backgrounds';
 
 interface Props {
   preset: EditorPreset;
@@ -8,11 +11,27 @@ interface Props {
   onExportHandleChange: (h: StudioExportHandle | null) => void;
 }
 
-export function StudioCanvas({ preset: _preset, image: _image, onExportHandleChange: _onExportHandleChange }: Props) {
+export function StudioCanvas({ preset, image, onExportHandleChange }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  // TODO WS4: wire useStudioRenderer
+  const config = useMemo<StudioRenderConfig>(() => {
+    const studioPreset = resolveStudioPreset(preset);
+    const background = getBackground(studioPreset.background_id);
+    return {
+      frameFamily:     studioPreset.frame_family,
+      frameStyle:      studioPreset.frame_style,
+      viewMode:        studioPreset.view_mode,
+      background,
+      screenshotImage: image,
+    };
+  }, [image, preset]);
+
+  useStudioRenderer(canvasRef, config, onExportHandleChange);
+
   return (
-    <canvas ref={canvasRef} id="studio-canvas"
-      style={{ width: '100%', height: '100%' }} />
+    <canvas
+      ref={canvasRef}
+      id="studio-canvas"
+      style={{ display: 'block', width: '100%', height: '100%' }}
+    />
   );
 }

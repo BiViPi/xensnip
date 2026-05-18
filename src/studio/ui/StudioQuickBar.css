@@ -41,3 +41,152 @@
   pointer-events: auto;
   position: static;
 }
+
+/* ── View mode pill ──────────────────────────────────────────────────────── */
+
+.studio-view-pill {
+  display: flex;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border, rgba(255 255 255 / 0.1));
+  background: var(--surface-2, rgba(255 255 255 / 0.05));
+}
+
+.studio-view-pill__btn {
+  all: unset;
+  cursor: pointer;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted, rgba(255 255 255 / 0.5));
+  transition: background 120ms, color 120ms;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.studio-view-pill__btn + .studio-view-pill__btn {
+  border-left: 1px solid var(--border, rgba(255 255 255 / 0.1));
+}
+
+.studio-view-pill__btn:hover {
+  background: var(--surface-hover, rgba(255 255 255 / 0.08));
+  color: var(--text, rgba(255 255 255 / 0.9));
+}
+
+.studio-view-pill__btn.active {
+  background: var(--accent, #6366f1);
+  color: #fff;
+}
+
+/* ── Frame type segmented control ────────────────────────────────────────── */
+
+.studio-seg {
+  display: flex;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border, rgba(255 255 255 / 0.1));
+  background: var(--surface-2, rgba(255 255 255 / 0.05));
+}
+
+.studio-seg__btn {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  color: var(--text-muted, rgba(255 255 255 / 0.5));
+  transition: background 120ms, color 120ms;
+}
+
+.studio-seg__btn + .studio-seg__btn {
+  border-left: 1px solid var(--border, rgba(255 255 255 / 0.1));
+}
+
+.studio-seg__btn:hover {
+  background: var(--surface-hover, rgba(255 255 255 / 0.08));
+  color: var(--text, rgba(255 255 255 / 0.9));
+}
+
+.studio-seg__btn.active {
+  background: var(--accent, #6366f1);
+  color: #fff;
+}
+
+/* ── Frame style swatches ────────────────────────────────────────────────── */
+
+.studio-style-row {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.studio-style-swatch {
+  width: 16px !important;
+  height: 16px !important;
+  border-radius: 50% !important;
+  border: 2px solid transparent !important;
+  transition: border-color 120ms, transform 120ms !important;
+}
+
+.studio-style-swatch:hover {
+  transform: scale(1.15);
+}
+
+.studio-style-swatch.active {
+  border-color: var(--accent, #6366f1) !important;
+  transform: scale(1.1);
+}
+
+/* ── Studio background picker ────────────────────────────────────────────── */
+
+.studio-bg-dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border, rgba(255 255 255 / 0.2));
+  flex-shrink: 0;
+}
+
+.studio-bg-pop {
+  min-width: 148px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.studio-bg-item {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  transition: background 120ms;
+}
+
+.studio-bg-item:hover {
+  background: var(--surface-hover, rgba(255 255 255 / 0.06));
+}
+
+.studio-bg-item.active {
+  background: var(--accent-subtle, rgba(99 102 241 / 0.18));
+}
+
+.studio-bg-item__swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border, rgba(255 255 255 / 0.15));
+  flex-shrink: 0;
+}
+
+.studio-bg-item__label {
+  font-size: 12px;
+  color: var(--text, rgba(255 255 255 / 0.85));
+  white-space: nowrap;
+}

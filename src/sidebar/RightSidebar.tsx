@@ -28,9 +28,17 @@ import type { ToolId } from '../annotate/state/types';
 import { useMeasureStore, type MeasureUtilityToolId } from '../measure/store';
 import { FEATURES } from './features.config';
 import { Tooltip } from '../editor/Tooltip';
+import type { PresentationMode } from '../compose/preset';
 import './Sidebar.css';
 
 const SHOW_SMART_REDACT_TOOL = false;
+const STUDIO_HIDDEN_FEATURES: FeatureId[] = [
+  'annotate',
+  'privacy',
+  'crop_canvas',
+  'steps_callouts',
+  'focus_polish',
+];
 
 interface BaseFeatureToolItem {
   label: string;
@@ -51,12 +59,21 @@ interface UtilityFeatureToolItem extends BaseFeatureToolItem {
 
 type FeatureToolItem = AnnotationFeatureToolItem | UtilityFeatureToolItem;
 
-export function RightSidebar() {
+export function RightSidebar({ presentationMode = 'flat' }: { presentationMode?: PresentationMode }) {
   const { activeFeatureId, collapsed, toggle, openFeature, closeFeature } = useSidebarStore();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const railRef = useRef<HTMLDivElement | null>(null);
   const featureRefs = useRef<Partial<Record<FeatureId, HTMLButtonElement | null>>>({});
   const [popoverAnchorTop, setPopoverAnchorTop] = useState(0);
+  const visibleFeatures = presentationMode === 'studio'
+    ? FEATURES.filter((feature) => !STUDIO_HIDDEN_FEATURES.includes(feature.id))
+    : FEATURES;
+
+  useEffect(() => {
+    if (presentationMode === 'studio' && activeFeatureId && STUDIO_HIDDEN_FEATURES.includes(activeFeatureId)) {
+      closeFeature();
+    }
+  }, [activeFeatureId, closeFeature, presentationMode]);
 
   const handleFeatureClick = (id: FeatureId, locked?: boolean) => {
     if (locked) {
@@ -140,7 +157,7 @@ export function RightSidebar() {
         {!collapsed && (
           <>
             <div className="xs-rail-divider" />
-            {FEATURES.map((feature) => {
+            {visibleFeatures.map((feature) => {
               const title = feature.tier === 'beta'
                 ? `${feature.label} (beta)`
                 : feature.label;

@@ -1,6 +1,7 @@
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { StudioExportHandle } from "../studio/types";
 import Konva from "konva";
 import {
   assetRelease,
@@ -10,7 +11,7 @@ import {
 } from "../ipc/index";
 import { QuickAccessShowPayload, Settings, ThemeMode } from "../ipc/types";
 import { applyTheme } from "../styles/applyTheme";
-import { DEFAULT_PRESET, EditorPreset } from "../compose/preset";
+import { DEFAULT_PRESET, EditorPreset, type PresentationMode } from "../compose/preset";
 import { preloadWallpaper, getOrLoadWallpaper } from "../compose/core";
 import { Toast } from "../editor/Toast";
 import { TitleBar } from "../editor/TitleBar";
@@ -18,6 +19,8 @@ import { PresetManager } from "../editor/controls/PresetManager";
 import { RightSidebar } from "../sidebar/RightSidebar";
 import { usePreviewMetrics } from "../editor/usePreviewMetrics";
 import { useAnnotationStore } from "../annotate/state/store";
+import { useMeasureStore } from "../measure/store";
+import { useSidebarStore } from "../sidebar/store";
 import { useKeyboardShortcuts } from "../editor/useKeyboardShortcuts";
 import { useCropTool } from "../editor/useCropTool";
 import { registerHistoryRecorder } from "../editor/historyBridge";
@@ -57,6 +60,12 @@ export function QuickAccess() {
   const stageRef = useRef<Konva.Stage | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const initialAssetHandledRef = useRef(false);
+  const [studioExportHandle, setStudioExportHandle] = useState<StudioExportHandle | null>(null);
+  const studioExportHandleRef = useRef<StudioExportHandle | null>(null);
+  const onExportHandleChange = useCallback((h: StudioExportHandle | null) => {
+    studioExportHandleRef.current = h;
+    setStudioExportHandle(h);
+  }, []);
 
   const applyLoadedSettings = useCallback((nextSettings: Settings) => {
     setSettings(nextSettings);
@@ -90,6 +99,8 @@ export function QuickAccess() {
 
   // ── 2. Crop tool ────────────────────────────────────────────────────────
   const { activeTool, setActiveTool, objects } = useAnnotationStore();
+  const setActiveUtility = useMeasureStore((s) => s.setActiveUtility);
+  const closeSidebarFeature = useSidebarStore((s) => s.closeFeature);
   const {
     cropBounds,
     setCropBounds,
@@ -288,6 +299,32 @@ export function QuickAccess() {
     await closeWindow();
   }, [closeWindow]);
 
+  const handlePresentationModeChange = useCallback((nextMode: PresentationMode) => {
+    setActivePop(null);
+    setActiveTool("select");
+    setActiveUtility(null);
+    closeSidebarFeature();
+    if (activeTool === "crop" || cropBounds) {
+      cancelCrop();
+    }
+    if (nextMode === "flat") {
+      studioExportHandleRef.current = null;
+      setStudioExportHandle(null);
+    }
+    setPreset((prev) => (
+      prev.presentation_mode === nextMode
+        ? prev
+        : { ...prev, presentation_mode: nextMode }
+    ));
+  }, [
+    activeTool,
+    cancelCrop,
+    closeSidebarFeature,
+    cropBounds,
+    setActiveTool,
+    setActiveUtility,
+  ]);
+
   useEffect(() => {
     const unlisten = getCurrentWindow().onCloseRequested(async (event) => {
       event.preventDefault();
@@ -371,6 +408,7 @@ export function QuickAccess() {
         onCropBoundsChange={setCropBounds}
         onCommitCrop={commitCrop}
         onCancelCrop={cancelCrop}
+        onExportHandleChange={onExportHandleChange}
       />
 
       <QuickAccessDock
@@ -391,7 +429,8 @@ export function QuickAccess() {
         onOpenPresetManager={() => setIsPresetManagerOpen(true)}
         onClearAllSession={handleClearAllInSession}
         onFlush={flushActiveDocument}
-        onPresentationModeChange={(m) => setPreset(p => ({ ...p, presentation_mode: m }))}
+        onPresentationModeChange={handlePresentationModeChange}
+        studioExportHandle={studioExportHandle}
       />
 
       {isPresetManagerOpen && (
@@ -404,7 +443,7 @@ export function QuickAccess() {
       )}
 
       {toast && <Toast message={toast.message} type={toast.type} />}
-      <RightSidebar />
+      <RightSidebar presentationMode={preset.presentation_mode} />
 
       {showCloseGuard && (
         <CloseGuardModal 
