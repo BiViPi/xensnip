@@ -1,0 +1,3 @@
+[submodule "src/studio/private"]
+	path = src/studio/private
+	url = https://github.com/BiViPi/xensnip-studio-private.git

@@ -39,3 +39,5 @@ CLAUDE.md
 .codex/
 graphify-out/
 src/__tests__/__fixtures__/export-fidelity/**/*.diff.png
+
+# Studio private submodule — Three.js implementation (separate private repo)
