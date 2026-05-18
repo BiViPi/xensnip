@@ -1,13 +1,13 @@
 use crate::capture::errors::CaptureError;
+use crate::capture::gdi_pixels::normalize_bgra_to_rgba_opaque;
 use std::sync::Arc;
 use tauri::{AppHandle, Emitter, Manager};
 use windows::Win32::Foundation::{HWND, RECT};
 use windows::Win32::Graphics::Dwm::{DwmGetWindowAttribute, DWMWA_EXTENDED_FRAME_BOUNDS};
 use windows::Win32::Graphics::Gdi::{
-    BitBlt, CreateCompatibleBitmap, CreateCompatibleDC, DeleteDC, DeleteObject, GetDIBits,
-    GetMonitorInfoW, GetWindowDC, MonitorFromWindow, ReleaseDC, SelectObject, BITMAPINFOHEADER,
-    BI_RGB, CAPTUREBLT, DIB_RGB_COLORS, HDC, HGDIOBJ, MONITORINFO, MONITOR_DEFAULTTONEAREST,
-    SRCCOPY,
+    BitBlt, CreateCompatibleBitmap, CreateCompatibleDC, DeleteDC, DeleteObject, GetDC, GetDIBits,
+    GetMonitorInfoW, MonitorFromWindow, ReleaseDC, SelectObject, BITMAPINFOHEADER, BI_RGB,
+    DIB_RGB_COLORS, HDC, HGDIOBJ, MONITORINFO, MONITOR_DEFAULTTONEAREST, SRCCOPY,
 };
 use windows::Win32::UI::HiDpi::GetDpiForWindow;
 use windows::Win32::UI::WindowsAndMessaging::{
@@ -89,8 +89,8 @@ pub fn capture_active_window(app: &AppHandle) -> Result<(), CaptureError> {
         })?;
 
     let (actual_dpi, actual_monitor_id, monitor_work_area_logical) = unsafe {
-        let dpi = GetDpiForWindow(foreground_hwnd);
-        let dpi_pct = if dpi == 0 { 100 } else { dpi };
+        let raw_dpi = GetDpiForWindow(foreground_hwnd);
+        let dpi_pct = crate::capture::dpi::dpi_percent_from_raw(raw_dpi);
 
         let hmonitor = MonitorFromWindow(foreground_hwnd, MONITOR_DEFAULTTONEAREST);
         let mut monitor_info = MONITORINFO {
@@ -108,10 +108,16 @@ pub fn capture_active_window(app: &AppHandle) -> Result<(), CaptureError> {
 
         let work = monitor_info.rcWork;
         let work_area = crate::quick_access::MonitorWorkAreaLogical {
-            x: logical_i32(work.left, dpi_pct),
-            y: logical_i32(work.top, dpi_pct),
-            w: logical_u32((work.right - work.left) as u32, dpi_pct),
-            h: logical_u32((work.bottom - work.top) as u32, dpi_pct),
+            x: crate::capture::dpi::physical_to_logical_i32(work.left, dpi_pct),
+            y: crate::capture::dpi::physical_to_logical_i32(work.top, dpi_pct),
+            w: crate::capture::dpi::physical_to_logical_u32(
+                (work.right - work.left) as u32,
+                dpi_pct,
+            ),
+            h: crate::capture::dpi::physical_to_logical_u32(
+                (work.bottom - work.top) as u32,
+                dpi_pct,
+            ),
         };
         (dpi_pct, monitor_name, work_area)
     };
@@ -249,10 +255,10 @@ pub fn capture_active_window(app: &AppHandle) -> Result<(), CaptureError> {
             monitor_dpi: actual_dpi,
             capture_kind: "window".to_string(),
             capture_rect_logical: Some(crate::quick_access::CaptureRectLogical {
-                x: logical_i32(win_x, actual_dpi),
-                y: logical_i32(win_y, actual_dpi),
-                w: logical_u32(width, actual_dpi),
-                h: logical_u32(height, actual_dpi),
+                x: crate::capture::dpi::physical_to_logical_i32(win_x, actual_dpi),
+                y: crate::capture::dpi::physical_to_logical_i32(win_y, actual_dpi),
+                w: crate::capture::dpi::physical_to_logical_u32(width, actual_dpi),
+                h: crate::capture::dpi::physical_to_logical_u32(height, actual_dpi),
             }),
         },
     );
@@ -297,31 +303,32 @@ fn capture_active_window_gdi(
     hwnd: HWND,
     bounds: (i32, i32, u32, u32),
 ) -> Result<image::RgbaImage, String> {
-    let (_, _, w, h) = bounds;
+    let (x, y, w, h) = bounds;
 
     unsafe {
-        let hdc_window = GetWindowDC(Some(hwnd));
-        if hdc_window.0.is_null() {
-            return Err("GetWindowDC failed".into());
+        // Capture the composited screen pixels for the active window bounds.
+        // This is more reliable for GPU/compositor-backed apps such as Chrome and Settings,
+        // which can return blank client content through GetWindowDC even when BitBlt succeeds.
+        let hdc_screen = GetDC(None);
+        if hdc_screen.0.is_null() {
+            return Err("GetDC failed".into());
         }
 
-        let hdc_mem = CreateCompatibleDC(Some(hdc_window));
+        let hdc_mem = CreateCompatibleDC(Some(hdc_screen));
         if hdc_mem.0.is_null() {
-            let _ = ReleaseDC(Some(hwnd), hdc_window);
+            let _ = ReleaseDC(None, hdc_screen);
             return Err("CreateCompatibleDC failed".into());
         }
 
-        let hbm = CreateCompatibleBitmap(hdc_window, w as i32, h as i32);
+        let hbm = CreateCompatibleBitmap(hdc_screen, w as i32, h as i32);
         if hbm.0.is_null() {
             let _ = DeleteDC(hdc_mem);
-            let _ = ReleaseDC(Some(hwnd), hdc_window);
+            let _ = ReleaseDC(None, hdc_screen);
             return Err("CreateCompatibleBitmap failed".into());
         }
 
         let hgdiobj = HGDIOBJ(hbm.0);
         let old_obj = SelectObject(hdc_mem, hgdiobj);
-
-        let mut capture_result: Result<(), String> = Err("BitBlt failed".into());
 
         if BitBlt(
             hdc_mem,
@@ -329,29 +336,22 @@ fn capture_active_window_gdi(
             0,
             w as i32,
             h as i32,
-            Some(hdc_window),
-            0,
-            0,
-            SRCCOPY | CAPTUREBLT,
+            Some(hdc_screen),
+            x,
+            y,
+            SRCCOPY,
         )
         .is_ok()
         {
-            capture_result = Ok(());
-            log::info!(target: "capture", "GDI BitBlt successful");
+            log::info!(target: "capture", "GDI screen-copy BitBlt successful");
+        } else if PrintWindow(hwnd, hdc_mem, PW_RENDERFULLCONTENT).as_bool() {
+            log::info!(target: "capture", "PrintWindow fallback successful");
         } else {
-            log::warn!(target: "capture", "BitBlt failed; trying PrintWindow fallback");
-            if PrintWindow(hwnd, hdc_mem, PW_RENDERFULLCONTENT).as_bool() {
-                capture_result = Ok(());
-                log::info!(target: "capture", "PrintWindow fallback successful");
-            }
-        }
-
-        if let Err(err) = capture_result {
             let _ = SelectObject(hdc_mem, old_obj);
             let _ = DeleteObject(hgdiobj);
             let _ = DeleteDC(hdc_mem);
-            let _ = ReleaseDC(Some(hwnd), hdc_window);
-            return Err(err);
+            let _ = ReleaseDC(None, hdc_screen);
+            return Err("BitBlt failed".into());
         }
 
         let bmi = BITMAPINFOHEADER {
@@ -379,19 +379,13 @@ fn capture_active_window_gdi(
         let _ = SelectObject(hdc_mem, old_obj);
         let _ = DeleteObject(hgdiobj);
         let _ = DeleteDC(hdc_mem);
-        let _ = ReleaseDC(Some(hwnd), hdc_window);
+        let _ = ReleaseDC(None, hdc_screen);
 
         if copied == 0 {
             return Err("GetDIBits failed".into());
         }
 
-        // Swap BGR to RGB
-        for i in (0..buf.len()).step_by(4) {
-            let b = buf[i];
-            let r = buf[i + 2];
-            buf[i] = r;
-            buf[i + 2] = b;
-        }
+        normalize_bgra_to_rgba_opaque(&mut buf);
 
         image::RgbaImage::from_raw(w, h, buf)
             .ok_or_else(|| "Failed to create image from GDI buffer".into())
@@ -425,18 +419,4 @@ fn emit_failure(
     };
     crate::diagnostics::log_capture_event(app, &meta);
     app.emit("capture.failure", err).ok();
-}
-
-fn logical_i32(value: i32, dpi_pct: u32) -> i32 {
-    if dpi_pct <= 100 {
-        return value;
-    }
-    ((value as f64) / (dpi_pct as f64 / 100.0)).round() as i32
-}
-
-fn logical_u32(value: u32, dpi_pct: u32) -> u32 {
-    if dpi_pct <= 100 {
-        return value;
-    }
-    ((value as f64) / (dpi_pct as f64 / 100.0)).round() as u32
 }

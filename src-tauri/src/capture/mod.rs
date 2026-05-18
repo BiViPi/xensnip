@@ -1,11 +1,16 @@
 use crate::capture::errors::CaptureError;
 use std::sync::Mutex;
 
+pub(crate) mod dpi;
 pub mod errors;
+mod gdi_pixels;
 pub(crate) mod native_region_active;
 mod native_region_geometry;
-mod native_region_paint;
+mod native_region_overlay_layout;
+mod native_region_overlay_renderer;
 pub mod native_region_selector;
+mod native_region_selector_controller;
+mod native_region_snap;
 mod native_region_state;
 pub mod region;
 pub mod window;
