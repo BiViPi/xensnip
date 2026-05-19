@@ -29,6 +29,10 @@ export interface StudioBackground {
   label:    string;
   imageSrc: string;
   tone:     'light' | 'dark';
+  focusX?:  number;
+  focusY?:  number;
+  alignX?:  'left' | 'center' | 'right';
+  alignY?:  'top' | 'center' | 'bottom';
   light:    StudioLightConfig;
   shadow:   StudioShadowConfig;
 }

@@ -1,7 +1,6 @@
 import React from 'react';
 import type { StudioPreset } from '../types';
-import { RadiusIcon, PaddingIcon, OffsetIcon } from '../../components/icons';
-import { SlidersHorizontal, ZoomIn, RotateCw } from 'lucide-react';
+import { SlidersHorizontal, ZoomIn, RotateCw, CornerUpRight, Box, Layers } from 'lucide-react';
 
 interface Props {
   studioPreset: StudioPreset;
@@ -20,7 +19,7 @@ export function StudioGeometryControl({ studioPreset, onChange }: Props) {
       step: 0.01,
       unit: '',
       displayVal: studioPreset.corner_radius.toFixed(2),
-      Icon: RadiusIcon,
+      Icon: () => <CornerUpRight size={14} style={{ color: 'var(--xs-text-dim)' }} />,
     },
     {
       id: 'depth' as const,
@@ -32,7 +31,7 @@ export function StudioGeometryControl({ studioPreset, onChange }: Props) {
       step: 0.005,
       unit: '',
       displayVal: studioPreset.depth.toFixed(3),
-      Icon: PaddingIcon,
+      Icon: () => <Box size={14} style={{ color: 'var(--xs-text-dim)' }} />,
     },
     {
       id: 'bevel' as const,
@@ -44,7 +43,7 @@ export function StudioGeometryControl({ studioPreset, onChange }: Props) {
       step: 0.001,
       unit: '',
       displayVal: studioPreset.bevel.toFixed(3),
-      Icon: OffsetIcon,
+      Icon: () => <Layers size={14} style={{ color: 'var(--xs-text-dim)' }} />,
     },
     {
       id: 'scale' as const,

@@ -3,15 +3,18 @@ import type { FrameFamily, FrameStyle } from '../types';
 import { Tooltip } from '../../editor/Tooltip';
 
 const STYLES: { value: FrameStyle; label: string; bg: string; outline: string }[] = [
-  { value: 'gloss-black', label: 'Gloss Black', bg: '#1c1c1e', outline: '#333' },
-  { value: 'matte-black', label: 'Matte Black', bg: '#28282b', outline: '#444' },
+  {
+    value: 'gloss-black',
+    label: 'Gloss Black',
+    bg: 'linear-gradient(135deg, #273453 0%, #141a2e 34%, #0f131f 62%, #35406a 100%)',
+    outline: '#3b4568',
+  },
   {
     value: 'gloss-white',
     label: 'Gloss White',
     bg: 'linear-gradient(180deg, #ffffff 0%, #f3f6fb 44%, #dde5f0 100%)',
     outline: '#cbd5e1',
   },
-  { value: 'matte-white', label: 'Matte White', bg: '#f3f4f6', outline: '#cbd5e1' },
 ];
 
 interface Props {
