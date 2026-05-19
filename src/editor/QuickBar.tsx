@@ -393,6 +393,10 @@ export function QuickBar({
             setPreset={setPreset}
             activePop={activePop}
             onActivePopChange={onActivePopChange}
+            settings={settings}
+            onRefreshSettings={onRefreshSettings}
+            showToast={showToast}
+            onOpenPresetManager={onOpenPresetManager}
           />
         </div>
       </div>

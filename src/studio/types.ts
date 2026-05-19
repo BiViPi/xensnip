@@ -44,11 +44,10 @@ export interface StudioPreset {
   depth:         number;
   bevel:         number;
   frame_scale:   number;
-
-  // Screenshot content
-  content_scale: number;
+  frame_rotation: number;
 
   // Shadow Controls
+  shadow_enabled:   boolean;
   shadow_intensity: number;
   shadow_angle:     number;
   shadow_blur:      number;
@@ -66,7 +65,7 @@ export interface StudioGeometryParams {
 /** Implemented by each frame family. Add new families without touching this interface. */
 export interface FrameRenderer {
   buildGeometry(params: StudioGeometryParams): THREE.BufferGeometry;
-  buildMaterial(style: FrameStyle): THREE.Material;
+  buildMaterial(style: FrameStyle): THREE.Material | THREE.Material[];
   getActualDepth(params: StudioGeometryParams): number;
   /** True if this family draws a macOS browser title bar on the screen texture */
   hasTitleBar: boolean;
@@ -84,9 +83,10 @@ export interface StudioRenderConfig {
   depth:           number;
   bevel:           number;
   frameScale:      number;
-  contentScale:    number;
+  frameRotation:   number;
 
   // New shadow fields
+  shadowEnabled:   boolean;
   shadowIntensity: number;
   shadowAngle:     number;
   shadowBlur:      number;

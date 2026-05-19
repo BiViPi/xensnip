@@ -3,36 +3,57 @@ import { useStudioState } from '../state/useStudioState';
 import { FrameTypePicker } from './FrameTypePicker';
 import { ViewModePill } from './ViewModePill';
 import { StudioBgPicker } from './StudioBgPicker';
-import { FrameStylePicker } from './FrameStylePicker';
-import { StudioSlider } from './StudioSlider';
+import { StudioShadowControl } from './StudioShadowControl';
+import { StudioGeometryControl } from './StudioGeometryControl';
+import { PresetsControl } from '../../editor/controls/Presets';
 import { Tooltip } from '../../editor/Tooltip';
-import { ShadowIcon } from '../../components/icons';
-import { SlidersHorizontal, ZoomIn } from 'lucide-react';
+import { ShadowIcon, PresetIcon } from '../../components/icons';
+import { SlidersHorizontal } from 'lucide-react';
+import type { Settings } from '../../ipc/types';
 
 interface Props {
   preset: EditorPreset;
   setPreset: (p: EditorPreset | ((prev: EditorPreset) => EditorPreset)) => void;
   activePop: string | null;
   onActivePopChange: (n: string | null) => void;
+  settings: Settings | null;
+  onRefreshSettings: () => void;
+  showToast: (m: string, t?: 'success' | 'error') => void;
+  onOpenPresetManager: () => void;
 }
 
-export function StudioQuickBar({ preset, setPreset, activePop, onActivePopChange }: Props) {
+export function StudioQuickBar({
+  preset,
+  setPreset,
+  activePop,
+  onActivePopChange,
+  settings,
+  onRefreshSettings,
+  showToast,
+  onOpenPresetManager,
+}: Props) {
   const {
     studioPreset,
     setFrameFamily,
     setViewMode,
     setBackgroundId,
     setFrameStyle,
-    setStudioParam
+    setStudioParam,
   } = useStudioState(preset, setPreset);
 
   const toggle = (n: string) => onActivePopChange(activePop === n ? null : n);
 
   return (
     <>
-      <FrameTypePicker value={studioPreset.frame_family} onChange={setFrameFamily} />
+      <FrameTypePicker
+        value={studioPreset.frame_family}
+        onChange={setFrameFamily}
+        activePop={activePop}
+        onActivePopChange={onActivePopChange}
+        frameStyle={studioPreset.frame_style}
+        onFrameStyleChange={setFrameStyle}
+      />
       <div className="xs-divider" />
-      <FrameStylePicker value={studioPreset.frame_style} onChange={setFrameStyle} />
 
       <StudioBgPicker
         value={studioPreset.background_id}
@@ -54,69 +75,8 @@ export function StudioQuickBar({ preset, setPreset, activePop, onActivePopChange
           </button>
         </Tooltip>
         {activePop === 'studio-geometry' && (
-          <div className="xs-pop" style={{ minWidth: '240px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <StudioSlider
-                label="Corner Radius"
-                min={0}
-                max={0.24}
-                step={0.01}
-                value={studioPreset.corner_radius}
-                onChange={(v) => setStudioParam('corner_radius', v)}
-              />
-              <div className="xs-pop-divider" />
-              <StudioSlider
-                label="Frame Depth"
-                min={0.02}
-                max={0.12}
-                step={0.005}
-                value={studioPreset.depth}
-                onChange={(v) => setStudioParam('depth', v)}
-              />
-              <div className="xs-pop-divider" />
-              <StudioSlider
-                label="Bevel"
-                min={0}
-                max={0.03}
-                step={0.001}
-                value={studioPreset.bevel}
-                onChange={(v) => setStudioParam('bevel', v)}
-              />
-              <div className="xs-pop-divider" />
-              <StudioSlider
-                label="Frame Scale"
-                min={0.7}
-                max={1.35}
-                step={0.05}
-                value={studioPreset.frame_scale}
-                onChange={(v) => setStudioParam('frame_scale', v)}
-              />
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div style={{ position: 'relative', display: 'flex', width: 'fit-content' }}>
-        <Tooltip text="Zoom" position="top">
-          <button
-            className={`xs-btn xs-icon-btn ${activePop === 'studio-zoom' ? 'active' : ''}`}
-            onClick={() => toggle('studio-zoom')}
-            aria-label="Zoom"
-            title="Zoom"
-          >
-            <ZoomIn size={14} strokeWidth={2} />
-          </button>
-        </Tooltip>
-        {activePop === 'studio-zoom' && (
-          <div className="xs-pop" style={{ minWidth: '240px' }}>
-            <StudioSlider
-              label="Content Zoom"
-              min={0.75}
-              max={1.5}
-              step={0.05}
-              value={studioPreset.content_scale}
-              onChange={(v) => setStudioParam('content_scale', v)}
-            />
+          <div className="xs-pop light">
+            <StudioGeometryControl studioPreset={studioPreset} onChange={setStudioParam} />
           </div>
         )}
       </div>
@@ -133,45 +93,38 @@ export function StudioQuickBar({ preset, setPreset, activePop, onActivePopChange
           </button>
         </Tooltip>
         {activePop === 'studio-shadow' && (
-          <div className="xs-pop" style={{ minWidth: '240px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <StudioSlider
-                label="Shadow Intensity"
-                min={0}
-                max={1}
-                step={0.05}
-                value={studioPreset.shadow_intensity}
-                onChange={(v) => setStudioParam('shadow_intensity', v)}
-              />
-              <div className="xs-pop-divider" />
-              <StudioSlider
-                label="Shadow Angle"
-                min={-180}
-                max={180}
-                step={1}
-                unit="°"
-                value={studioPreset.shadow_angle}
-                onChange={(v) => setStudioParam('shadow_angle', v)}
-              />
-              <div className="xs-pop-divider" />
-              <StudioSlider
-                label="Shadow Blur"
-                min={0}
-                max={96}
-                step={2}
-                value={studioPreset.shadow_blur}
-                onChange={(v) => setStudioParam('shadow_blur', v)}
-              />
-              <div className="xs-pop-divider" />
-              <StudioSlider
-                label="Shadow Opacity"
-                min={0}
-                max={0.85}
-                step={0.05}
-                value={studioPreset.shadow_opacity}
-                onChange={(v) => setStudioParam('shadow_opacity', v)}
-              />
-            </div>
+          <div className="xs-pop light">
+            <StudioShadowControl studioPreset={studioPreset} onChange={setStudioParam} />
+          </div>
+        )}
+      </div>
+
+      <div style={{ position: 'relative', display: 'flex', width: 'fit-content' }}>
+        <Tooltip text="Presets" position="top">
+          <button
+            className={`xs-btn xs-icon-btn ${activePop === 'presets' ? 'active' : ''}`}
+            onClick={() => toggle('presets')}
+            aria-label="Presets"
+          >
+            <PresetIcon />
+          </button>
+        </Tooltip>
+        {activePop === 'presets' && (
+          <div className="xs-pop">
+            <PresetsControl
+              preset={preset}
+              settings={settings}
+              onApply={p => {
+                setPreset(p);
+                onActivePopChange(null);
+              }}
+              onRefresh={onRefreshSettings}
+              showToast={showToast}
+              onOpenManager={() => {
+                onOpenPresetManager();
+                onActivePopChange(null);
+              }}
+            />
           </div>
         )}
       </div>

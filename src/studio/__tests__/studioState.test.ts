@@ -26,7 +26,7 @@ describe('resolveStudioPreset', () => {
     } as EditorPreset['studio'];
 
     expect(resolveStudioPreset(presetWith({ studio: oldPreset }))).toMatchObject({
-      content_scale: DEFAULT_STUDIO_PRESET.content_scale,
+      shadow_enabled: DEFAULT_STUDIO_PRESET.shadow_enabled,
       frame_scale: DEFAULT_STUDIO_PRESET.frame_scale,
       shadow_blur: DEFAULT_STUDIO_PRESET.shadow_blur,
       shadow_opacity: DEFAULT_STUDIO_PRESET.shadow_opacity,
@@ -117,9 +117,19 @@ describe('useStudioState setters', () => {
     const { setPreset, getPreset } = captureSetPreset(preset);
     const { setStudioParam } = useStudioState(preset, setPreset);
 
-    setStudioParam('content_scale', 1.25);
+    setStudioParam('corner_radius', 0.18);
 
-    expect(getPreset().studio?.content_scale).toBe(1.25);
+    expect(getPreset().studio?.corner_radius).toBe(0.18);
+  });
+
+  it('setStudioParam patches shadow_enabled toggle', () => {
+    const preset = presetWith();
+    const { setPreset, getPreset } = captureSetPreset(preset);
+    const { setStudioParam } = useStudioState(preset, setPreset);
+
+    setStudioParam('shadow_enabled', false);
+
+    expect(getPreset().studio?.shadow_enabled).toBe(false);
   });
 
   it('preserves existing studio fields when patching one', () => {

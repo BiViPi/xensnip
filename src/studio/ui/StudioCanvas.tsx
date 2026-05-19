@@ -28,9 +28,10 @@ export function StudioCanvas({ preset, image, onExportHandleChange }: Props) {
       depth:           studioPreset.depth,
       bevel:           studioPreset.bevel,
       frameScale:      studioPreset.frame_scale,
-      contentScale:    studioPreset.content_scale,
+      frameRotation:   studioPreset.frame_rotation,
 
       // Shadows
+      shadowEnabled:   studioPreset.shadow_enabled,
       shadowIntensity: studioPreset.shadow_intensity,
       shadowAngle:     studioPreset.shadow_angle,
       shadowBlur:      studioPreset.shadow_blur,

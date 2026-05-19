@@ -15,11 +15,10 @@ export const DEFAULT_STUDIO_PRESET: StudioPreset = {
   depth:         0.05,
   bevel:         0.012,
   frame_scale:   1.0,
-
-  // Screenshot Content Defaults
-  content_scale: 1.0,
+  frame_rotation: 0,
 
   // Shadow Defaults
+  shadow_enabled:   true,
   shadow_intensity: 0.38,
   shadow_angle:     26,
   shadow_blur:      32,
@@ -140,7 +139,31 @@ export function normalizeEditorPreset(raw: unknown): EditorPreset {
   if (typeof raw !== 'object' || raw === null) return { ...DEFAULT_PRESET };
   const base = { ...DEFAULT_PRESET, ...(raw as Partial<EditorPreset>) };
   if (base.studio) {
-    base.studio = { ...DEFAULT_STUDIO_PRESET, ...base.studio };
+    // Sanitize studio properties to prevent old keys (like content_scale) from leaking
+    const sanitizedStudio = { ...DEFAULT_STUDIO_PRESET };
+    const rawStudio = base.studio as any;
+    const knownKeys: (keyof StudioPreset)[] = [
+      'frame_family',
+      'view_mode',
+      'background_id',
+      'frame_style',
+      'corner_radius',
+      'depth',
+      'bevel',
+      'frame_scale',
+      'frame_rotation',
+      'shadow_enabled',
+      'shadow_intensity',
+      'shadow_angle',
+      'shadow_blur',
+      'shadow_opacity'
+    ];
+    for (const key of knownKeys) {
+      if (rawStudio[key] !== undefined) {
+        (sanitizedStudio as any)[key] = rawStudio[key];
+      }
+    }
+    base.studio = sanitizedStudio;
   }
   return base;
 }
