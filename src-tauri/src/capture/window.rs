@@ -49,6 +49,13 @@ fn get_backend_override() -> BackendOverride {
 }
 
 pub fn capture_active_window(app: &AppHandle) -> Result<(), CaptureError> {
+    capture_active_window_with_delay(app, None)
+}
+
+pub fn capture_active_window_with_delay(
+    app: &AppHandle,
+    delay: Option<crate::diagnostics::CaptureDelayMetadata>,
+) -> Result<(), CaptureError> {
     let start_time = std::time::Instant::now();
     let backend_policy = get_backend_override();
     let requested_method = preferred_failure_method(&backend_policy);
@@ -125,11 +132,29 @@ pub fn capture_active_window(app: &AppHandle) -> Result<(), CaptureError> {
     let mut final_image: Option<image::RgbaImage> = None;
     let mut final_method = requested_method;
     let mut process_name: Option<String> = None;
+    let avoid_screen_copy = delay.is_some();
+
+    if avoid_screen_copy
+        && (backend_policy == BackendOverride::Auto || backend_policy == BackendOverride::Wgc)
+    {
+        log::info!(target: "capture", "Attempting overlay-safe WGC capture for delayed HWND {:?}", foreground_hwnd);
+        if let Some((image, proc_name)) = capture_active_window_wgc(foreground_hwnd, hwnd_isize) {
+            final_image = Some(image);
+            final_method = crate::diagnostics::CaptureMethod::WgcWindow;
+            process_name = proc_name;
+        }
+    }
 
     // Try GDI path if policy allows
-    if backend_policy == BackendOverride::Auto || backend_policy == BackendOverride::Gdi {
+    if final_image.is_none()
+        && (backend_policy == BackendOverride::Auto || backend_policy == BackendOverride::Gdi)
+    {
         log::info!(target: "capture", "Attempting GDI capture for HWND {:?}", foreground_hwnd);
-        match capture_active_window_gdi(foreground_hwnd, (win_x, win_y, win_w, win_h)) {
+        match capture_active_window_gdi(
+            foreground_hwnd,
+            (win_x, win_y, win_w, win_h),
+            !avoid_screen_copy,
+        ) {
             Ok(img) => {
                 final_image = Some(img);
                 final_method = crate::diagnostics::CaptureMethod::GdiWindow;
@@ -146,39 +171,10 @@ pub fn capture_active_window(app: &AppHandle) -> Result<(), CaptureError> {
     {
         final_method = crate::diagnostics::CaptureMethod::WgcWindow;
         log::info!(target: "capture", "Attempting WGC capture fallback via xcap");
-        let windows = Window::all().map_err(|err| {
-            let capture_err = CaptureError::WgcFailure();
-            log::warn!(target: "capture", "Window::all() failed: {:?}", err);
-            emit_failure(
-                app,
-                &capture_err,
-                &start_time,
-                crate::diagnostics::CaptureMethod::WgcWindow,
-            );
-            capture_err
-        })?;
-
-        let target_window = windows.into_iter().find(|window| {
-            let window_id = window.id().unwrap_or(0) as isize;
-            window_id == hwnd_isize || (window_id & 0xFFFFFFFF) == (hwnd_isize & 0xFFFFFFFF)
-        });
-
-        if let Some(target) = target_window {
-            process_name = target.app_name().ok().map(|value| value.to_string());
-            match target.capture_image() {
-                Ok(img) => {
-                    let w: u32 = img.width();
-                    let h: u32 = img.height();
-                    let raw = img.into_raw();
-                    final_image = image::RgbaImage::from_raw(w, h, raw);
-                    final_method = crate::diagnostics::CaptureMethod::WgcWindow;
-                }
-                Err(e) => {
-                    log::error!(target: "capture", "WGC capture failed: {:?}", e);
-                }
-            }
-        } else {
-            log::warn!(target: "capture", "Could not find window HWND {} in xcap list.", hwnd_isize);
+        if let Some((image, proc_name)) = capture_active_window_wgc(foreground_hwnd, hwnd_isize) {
+            final_image = Some(image);
+            final_method = crate::diagnostics::CaptureMethod::WgcWindow;
+            process_name = proc_name;
         }
     }
 
@@ -244,6 +240,13 @@ pub fn capture_active_window(app: &AppHandle) -> Result<(), CaptureError> {
         error_class: None,
         error_code: None,
         duration_ms: start_time.elapsed().as_millis() as u32,
+        delay_requested_ms: None,
+        delay_actual_ms: None,
+    };
+    let meta = crate::diagnostics::CaptureMetadata {
+        delay_requested_ms: delay.map(|value| value.requested_ms),
+        delay_actual_ms: delay.map(|value| value.actual_ms),
+        ..meta
     };
     crate::diagnostics::log_capture_event(app, &meta);
 
@@ -299,16 +302,56 @@ fn resolve_window_bounds_physical(hwnd: HWND) -> Result<(i32, i32, u32, u32), St
     }
 }
 
+fn capture_active_window_wgc(
+    foreground_hwnd: HWND,
+    hwnd_isize: isize,
+) -> Option<(image::RgbaImage, Option<String>)> {
+    let windows = match Window::all() {
+        Ok(windows) => windows,
+        Err(err) => {
+            log::warn!(target: "capture", "Window::all() failed: {:?}", err);
+            return None;
+        }
+    };
+
+    let target_window = windows.into_iter().find(|window| {
+        let window_id = window.id().unwrap_or(0) as isize;
+        window_id == hwnd_isize || (window_id & 0xFFFFFFFF) == (hwnd_isize & 0xFFFFFFFF)
+    });
+
+    let Some(target) = target_window else {
+        log::warn!(
+            target: "capture",
+            "Could not find window HWND {} in xcap list for {:?}.",
+            hwnd_isize,
+            foreground_hwnd
+        );
+        return None;
+    };
+
+    let process_name = target.app_name().ok().map(|value| value.to_string());
+    match target.capture_image() {
+        Ok(img) => {
+            let w: u32 = img.width();
+            let h: u32 = img.height();
+            let raw = img.into_raw();
+            image::RgbaImage::from_raw(w, h, raw).map(|rgba| (rgba, process_name))
+        }
+        Err(err) => {
+            log::error!(target: "capture", "WGC capture failed: {:?}", err);
+            None
+        }
+    }
+}
+
 fn capture_active_window_gdi(
     hwnd: HWND,
     bounds: (i32, i32, u32, u32),
+    allow_screen_copy: bool,
 ) -> Result<image::RgbaImage, String> {
     let (x, y, w, h) = bounds;
 
     unsafe {
-        // Capture the composited screen pixels for the active window bounds.
-        // This is more reliable for GPU/compositor-backed apps such as Chrome and Settings,
-        // which can return blank client content through GetWindowDC even when BitBlt succeeds.
         let hdc_screen = GetDC(None);
         if hdc_screen.0.is_null() {
             return Err("GetDC failed".into());
@@ -330,19 +373,21 @@ fn capture_active_window_gdi(
         let hgdiobj = HGDIOBJ(hbm.0);
         let old_obj = SelectObject(hdc_mem, hgdiobj);
 
-        if BitBlt(
-            hdc_mem,
-            0,
-            0,
-            w as i32,
-            h as i32,
-            Some(hdc_screen),
-            x,
-            y,
-            SRCCOPY,
-        )
-        .is_ok()
-        {
+        let copied_ok = allow_screen_copy
+            && BitBlt(
+                hdc_mem,
+                0,
+                0,
+                w as i32,
+                h as i32,
+                Some(hdc_screen),
+                x,
+                y,
+                SRCCOPY,
+            )
+            .is_ok();
+
+        if copied_ok {
             log::info!(target: "capture", "GDI screen-copy BitBlt successful");
         } else if PrintWindow(hwnd, hdc_mem, PW_RENDERFULLCONTENT).as_bool() {
             log::info!(target: "capture", "PrintWindow fallback successful");
@@ -416,6 +461,8 @@ fn emit_failure(
         error_class: Some(format!("{:?}", err.class)),
         error_code: Some(err.code.clone()),
         duration_ms: start_time.elapsed().as_millis() as u32,
+        delay_requested_ms: None,
+        delay_actual_ms: None,
     };
     crate::diagnostics::log_capture_event(app, &meta);
     app.emit("capture.failure", err).ok();

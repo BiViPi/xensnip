@@ -139,6 +139,7 @@ const settings: Settings = {
   },
   theme: 'dark',
   launch_at_startup: false,
+  capture_delay_seconds: 0,
   capture_all_monitors: false,
   export_folder: 'E:/Exports',
   export_format: 'JPEG',

@@ -42,6 +42,14 @@ pub struct CaptureMetadata {
     pub error_class: Option<String>,
     pub error_code: Option<String>,
     pub duration_ms: u32,
+    pub delay_requested_ms: Option<u32>,
+    pub delay_actual_ms: Option<u32>,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct CaptureDelayMetadata {
+    pub requested_ms: u32,
+    pub actual_ms: u32,
 }
 
 pub fn log_capture_event(_app: &AppHandle, meta: &CaptureMetadata) {

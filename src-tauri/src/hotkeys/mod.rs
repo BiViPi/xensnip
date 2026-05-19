@@ -4,6 +4,16 @@ use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 
 pub fn run_region_intent(app: &AppHandle) {
+    let settings = crate::settings::load_or_create_default(app);
+    if settings.capture_delay_seconds > 0 {
+        // Delayed region capture needs a frozen-snapshot selector. Until that path ships,
+        // keep region capture usable instead of turning the global delay setting into a no-op.
+        log::warn!(
+            target: "hotkey",
+            "Delayed region capture is not supported yet; starting immediate region capture"
+        );
+    }
+
     let session = app.state::<CaptureSession>();
     let start_res = session.start_persistent(CaptureIntent::Region);
 
@@ -23,6 +33,17 @@ pub fn run_region_intent(app: &AppHandle) {
 }
 
 pub fn run_window_intent(app: &AppHandle) {
+    let settings = crate::settings::load_or_create_default(app);
+    if settings.capture_delay_seconds > 0 {
+        if let Err(e) = crate::commands::capture::capture_start_window_delayed(
+            app.clone(),
+            settings.capture_delay_seconds,
+        ) {
+            log::warn!(target: "hotkey", "Delayed window capture failed: {:?}", e);
+        }
+        return;
+    }
+
     let session = app.state::<CaptureSession>();
     let start_res = session.start(CaptureIntent::ActiveWindow);
 

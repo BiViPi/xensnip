@@ -1,0 +1,186 @@
+body {
+  margin: 0;
+  padding: 0;
+  background: transparent !important;
+  overflow: hidden;
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  user-select: none;
+}
+
+.xs-delay-overlay {
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  width: 100vw;
+  height: 100vh;
+  box-sizing: border-box;
+  padding: 8px;
+}
+
+.xs-delay-card {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 16px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* Light / Dark Mode Differences for Card */
+:root[data-theme='dark'] .xs-delay-card {
+  background: #0d111d; /* Solid dark background */
+  border: 1px solid rgba(99, 102, 241, 0.45);
+  box-shadow: 0 0 16px rgba(99, 102, 241, 0.18), var(--shadow-panel);
+}
+
+:root[data-theme='light'] .xs-delay-card {
+  background: #ffffff; /* Solid white background */
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.08), var(--shadow-panel);
+}
+
+.xs-delay-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.xs-delay-icon-box {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+:root[data-theme='dark'] .xs-delay-icon-box {
+  background: #191f35; /* Solid */
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  color: var(--accent-cyan);
+}
+
+:root[data-theme='light'] .xs-delay-icon-box {
+  background: #f1f5f9; /* Solid */
+  border: 1px solid rgba(99, 102, 241, 0.18);
+  color: var(--accent-primary);
+}
+
+.xs-delay-title-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.xs-delay-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.xs-delay-subtext {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.2;
+}
+
+.xs-delay-number-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 24px;
+}
+
+:root[data-theme='dark'] .xs-delay-number-box {
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  background: #090c14; /* Solid */
+  color: var(--accent-cyan);
+  text-shadow: 0 0 8px rgba(34, 211, 238, 0.4);
+}
+
+:root[data-theme='light'] .xs-delay-number-box {
+  border: 1px solid rgba(99, 102, 241, 0.15);
+  background: #f8fafc; /* Solid */
+  color: var(--accent-primary);
+  text-shadow: 0 0 6px rgba(99, 102, 241, 0.2);
+}
+
+.xs-delay-progress-bar-container {
+  height: 6px;
+  width: 100%;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+:root[data-theme='dark'] .xs-delay-progress-bar-container {
+  background: #181d2c; /* Solid background track */
+}
+
+:root[data-theme='light'] .xs-delay-progress-bar-container {
+  background: #e2e8f0; /* Solid background track */
+}
+
+.xs-delay-progress-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.03s linear;
+}
+
+:root[data-theme='dark'] .xs-delay-progress-bar-fill {
+  background: linear-gradient(90deg, var(--accent-primary) 0%, var(--accent-cyan) 100%);
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.3);
+}
+
+:root[data-theme='light'] .xs-delay-progress-bar-fill {
+  background: linear-gradient(90deg, var(--accent-primary) 0%, var(--accent-cyan) 100%);
+}
+
+.xs-delay-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.xs-delay-cancel-btn {
+  padding: 5px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 20px;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+:root[data-theme='dark'] .xs-delay-cancel-btn {
+  background: #1c2235; /* Solid */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+:root[data-theme='dark'] .xs-delay-cancel-btn:hover {
+  background: #252d47; /* Solid hover */
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.25);
+}
+
+:root[data-theme='light'] .xs-delay-cancel-btn {
+  background: #f1f5f9; /* Solid */
+  border: 1px solid #cbd5e1;
+  color: var(--text-primary);
+}
+
+:root[data-theme='light'] .xs-delay-cancel-btn:hover {
+  background: #e2e8f0; /* Solid hover */
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.15);
+}

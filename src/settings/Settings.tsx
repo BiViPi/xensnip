@@ -316,6 +316,22 @@ export function Settings() {
                     <span className="xs-slider"></span>
                   </label>
                 </div>
+                <div className="xs-divider" />
+                <div className="xs-settings-row">
+                  <div className="xs-icon-circle">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                  </div>
+                  <div className="xs-field-label">
+                    <span className="xs-label-text">Capture delay</span>
+                    <span className="xs-label-desc">Wait before active-window capture. Region capture stays instant until frozen region delay ships.</span>
+                  </div>
+                  <div className="xs-segmented-control">
+                    <div className={`xs-segment ${draft.capture_delay_seconds === 0 ? 'active' : ''}`} onClick={() => setDraft({...draft, capture_delay_seconds: 0})}>Off</div>
+                    <div className={`xs-segment ${draft.capture_delay_seconds === 3 ? 'active' : ''}`} onClick={() => setDraft({...draft, capture_delay_seconds: 3})}>3s</div>
+                    <div className={`xs-segment ${draft.capture_delay_seconds === 5 ? 'active' : ''}`} onClick={() => setDraft({...draft, capture_delay_seconds: 5})}>5s</div>
+                    <div className={`xs-segment ${draft.capture_delay_seconds === 10 ? 'active' : ''}`} onClick={() => setDraft({...draft, capture_delay_seconds: 10})}>10s</div>
+                  </div>
+                </div>
               </div>
             </section>
 

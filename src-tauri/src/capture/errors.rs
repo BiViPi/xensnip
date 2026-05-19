@@ -64,4 +64,9 @@ impl CaptureError {
             "Active window could not be found or captured.",
         )
     }
+
+    #[allow(non_snake_case)]
+    pub fn Other(message: &str) -> Self {
+        Self::new(CaptureErrorClass::Other, "other", message)
+    }
 }

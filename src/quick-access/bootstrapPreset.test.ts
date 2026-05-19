@@ -9,6 +9,7 @@ function makeSettings(overrides: Partial<Settings> = {}): Settings {
     hotkeys: { region: 'Ctrl+Shift+S', active_window: 'Ctrl+Alt+W' },
     theme: 'dark',
     launch_at_startup: false,
+    capture_delay_seconds: 0,
     play_copy_sound: true,
     play_save_sound: true,
     export_folder: null,

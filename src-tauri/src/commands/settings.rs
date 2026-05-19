@@ -3,14 +3,18 @@ use tauri::AppHandle;
 #[tauri::command]
 pub fn settings_save(
     app_handle: AppHandle,
-    new_settings: crate::settings::Settings,
+    mut new_settings: crate::settings::Settings,
 ) -> Result<crate::settings::SettingsSaveResult, crate::settings::SettingsSaveError> {
+    new_settings.capture_delay_seconds =
+        crate::settings::normalize_capture_delay_seconds(new_settings.capture_delay_seconds);
+
     log::info!(
         target: "settings",
-        "settings_save requested: region={:?}, active_window={:?}, launch_at_startup={}",
+        "settings_save requested: region={:?}, active_window={:?}, launch_at_startup={}, capture_delay_seconds={}",
         new_settings.hotkeys.region,
         new_settings.hotkeys.active_window,
         new_settings.launch_at_startup,
+        new_settings.capture_delay_seconds,
     );
 
     // 1. Validate hotkeys

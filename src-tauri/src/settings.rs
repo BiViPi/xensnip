@@ -37,6 +37,17 @@ fn default_presentation_mode() -> String {
     "flat".to_string()
 }
 
+fn default_capture_delay_seconds() -> u32 {
+    0
+}
+
+pub fn normalize_capture_delay_seconds(value: u32) -> u32 {
+    match value {
+        0 | 3 | 5 | 10 => value,
+        _ => 0,
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Settings {
     pub version: u32,
@@ -44,6 +55,8 @@ pub struct Settings {
     pub launch_at_startup: bool,
     #[serde(default = "default_true")]
     pub play_copy_sound: bool,
+    #[serde(default = "default_capture_delay_seconds")]
+    pub capture_delay_seconds: u32,
     #[serde(default = "default_true")]
     pub play_save_sound: bool,
     #[serde(default)]
@@ -67,13 +80,14 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Self {
-            version: 9,
+            version: 10,
             hotkeys: Hotkeys {
                 region: "Ctrl+Shift+S".to_string(),
                 active_window: "Ctrl+Alt+W".to_string(),
             },
             launch_at_startup: false,
             play_copy_sound: true,
+            capture_delay_seconds: 0,
             play_save_sound: true,
             export_folder: None,
             export_format: "PNG".to_string(),
@@ -89,6 +103,12 @@ impl Default for Settings {
 
 fn migrate_settings_if_needed(settings: &mut Settings) -> bool {
     let mut changed = false;
+
+    let normalized_delay = normalize_capture_delay_seconds(settings.capture_delay_seconds);
+    if settings.capture_delay_seconds != normalized_delay {
+        settings.capture_delay_seconds = normalized_delay;
+        changed = true;
+    }
 
     if settings.version < 2 {
         if settings.hotkeys.active_window == "Ctrl+Shift+W" {
@@ -138,6 +158,12 @@ fn migrate_settings_if_needed(settings: &mut Settings) -> bool {
     if settings.version < 9 {
         settings.version = 9;
         // v9: default_presentation_mode added; serde default covers new field
+        changed = true;
+    }
+
+    if settings.version < 10 {
+        settings.version = 10;
+        // v10: capture_delay_seconds added; serde default covers new field
         changed = true;
     }
 
@@ -239,10 +265,10 @@ mod tests {
 
     #[test]
     fn already_current_version_reports_no_change() {
-        let mut s = settings_at_version(9);
+        let mut s = settings_at_version(10);
         let changed = migrate_settings_if_needed(&mut s);
         assert!(!changed);
-        assert_eq!(s.version, 9);
+        assert_eq!(s.version, 10);
     }
 
     #[test]
@@ -252,7 +278,7 @@ mod tests {
         let changed = migrate_settings_if_needed(&mut s);
         assert!(changed);
         assert_eq!(s.hotkeys.active_window, "Ctrl+Alt+W");
-        assert_eq!(s.version, 9);
+        assert_eq!(s.version, 10);
     }
 
     #[test]
@@ -262,7 +288,7 @@ mod tests {
         let changed = migrate_settings_if_needed(&mut s);
         assert!(changed);
         assert_eq!(s.hotkeys.active_window, "Ctrl+Alt+W");
-        assert_eq!(s.version, 9);
+        assert_eq!(s.version, 10);
     }
 
     #[test]
@@ -270,7 +296,7 @@ mod tests {
         let mut s = settings_at_version(6);
         let changed = migrate_settings_if_needed(&mut s);
         assert!(changed);
-        assert_eq!(s.version, 9);
+        assert_eq!(s.version, 10);
     }
 
     #[test]
@@ -278,7 +304,7 @@ mod tests {
         let mut s = settings_at_version(7);
         let changed = migrate_settings_if_needed(&mut s);
         assert!(changed);
-        assert_eq!(s.version, 9);
+        assert_eq!(s.version, 10);
     }
 
     #[test]
@@ -286,14 +312,44 @@ mod tests {
         let mut s = settings_at_version(8);
         let changed = migrate_settings_if_needed(&mut s);
         assert!(changed);
-        assert_eq!(s.version, 9);
+        assert_eq!(s.version, 10);
         assert_eq!(s.default_presentation_mode, "flat");
+    }
+
+    #[test]
+    fn migrates_v9_to_v10() {
+        let mut s = settings_at_version(9);
+        let changed = migrate_settings_if_needed(&mut s);
+        assert!(changed);
+        assert_eq!(s.version, 10);
+        assert_eq!(s.capture_delay_seconds, 0);
+    }
+
+    #[test]
+    fn invalid_capture_delay_clamps_to_zero() {
+        let mut s = settings_at_version(10);
+        s.capture_delay_seconds = 7;
+        let changed = migrate_settings_if_needed(&mut s);
+
+        assert!(changed);
+        assert_eq!(s.capture_delay_seconds, 0);
+    }
+
+    #[test]
+    fn valid_capture_delay_is_preserved() {
+        let mut s = settings_at_version(10);
+        s.capture_delay_seconds = 5;
+        let changed = migrate_settings_if_needed(&mut s);
+
+        assert!(!changed);
+        assert_eq!(s.capture_delay_seconds, 5);
     }
 
     #[test]
     fn default_settings_are_at_current_version() {
         let s = Settings::default();
-        assert_eq!(s.version, 9);
+        assert_eq!(s.version, 10);
         assert_eq!(s.default_presentation_mode, "flat");
+        assert_eq!(s.capture_delay_seconds, 0);
     }
 }

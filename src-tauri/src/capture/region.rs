@@ -236,6 +236,8 @@ pub fn finish_region_capture(
         error_class: None,
         error_code: None,
         duration_ms: start_time.elapsed().as_millis() as u32,
+        delay_requested_ms: None,
+        delay_actual_ms: None,
     };
     crate::diagnostics::log_capture_event(app, &meta);
 
@@ -347,6 +349,8 @@ fn emit_failure(
         error_class: Some(format!("{:?}", err.class)),
         error_code: Some(err.code.clone()),
         duration_ms: start_time.elapsed().as_millis() as u32,
+        delay_requested_ms: None,
+        delay_actual_ms: None,
     };
     crate::diagnostics::log_capture_event(app, &meta);
     app.emit("capture.failure", err).ok();

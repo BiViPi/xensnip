@@ -42,6 +42,7 @@ export default defineConfig(async () => ({
         main: resolve(__dirname, "index.html"),
         "quick-access": resolve(__dirname, "quick-access.html"),
         settings: resolve(__dirname, "settings.html"),
+        delay: resolve(__dirname, "delay.html"),
       },
     },
   },

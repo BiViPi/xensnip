@@ -12,6 +12,7 @@ export interface Settings {
   hotkeys: Hotkeys;
   theme: ThemeMode;
   launch_at_startup: boolean;
+  capture_delay_seconds: number;
   play_copy_sound: boolean;
   play_save_sound: boolean;
   export_folder: string | null;
