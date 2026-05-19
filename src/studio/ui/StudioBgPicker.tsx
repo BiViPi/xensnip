@@ -26,7 +26,7 @@ export function StudioBgPicker({ value, onChange, activePop, onActivePopChange }
           aria-expanded={isOpen}
         >
           <span className="studio-bg-trigger" aria-hidden="true">
-            <ImageIcon size={14} strokeWidth={2} />
+            <ImageIcon size={18} strokeWidth={2} />
             <span
               className={`studio-bg-trigger__tone studio-bg-trigger__tone--${current?.tone ?? 'light'}`}
             />

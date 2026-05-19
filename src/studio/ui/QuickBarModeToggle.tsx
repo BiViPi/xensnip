@@ -15,7 +15,7 @@ export function QuickBarModeToggle({ active, onToggle }: Props) {
         aria-label={active ? '2D' : 'Studio'}
         aria-pressed={active}
       >
-        <Box size={16} />
+        <Box size={18} strokeWidth={2} />
       </button>
     </Tooltip>
   );

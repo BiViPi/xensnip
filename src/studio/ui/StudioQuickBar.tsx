@@ -69,7 +69,7 @@ export function StudioQuickBar({
             aria-label="Geometry"
             title="Geometry"
           >
-            <SlidersHorizontal size={14} strokeWidth={2} />
+            <SlidersHorizontal size={18} strokeWidth={2} />
           </button>
         </Tooltip>
         {activePop === 'studio-geometry' && (

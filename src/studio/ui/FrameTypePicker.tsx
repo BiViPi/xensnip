@@ -60,7 +60,7 @@ export function FrameTypePicker({
             aria-pressed={value === 'browser'}
             style={{ borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
           >
-            <AppWindow size={14} />
+            <AppWindow size={18} strokeWidth={2} />
           </button>
         </Tooltip>
 
@@ -125,7 +125,7 @@ export function FrameTypePicker({
           aria-pressed={value === 'acrylic'}
           style={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}
         >
-          <Layers size={14} />
+          <Layers size={18} strokeWidth={2} />
         </button>
       </Tooltip>
     </div>
