@@ -14,9 +14,15 @@ interface Props {
 const COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#a855f7', '#ffffff', '#000000'];
 
 export function PixelRulerToolbar({ anchor, obj }: Props) {
-  const { updateObject, toolbarCollapsed, setToolbarCollapsed } = useAnnotationStore();
+  const { updateObject, patchToolDefaults, toolbarCollapsed, setToolbarCollapsed } = useAnnotationStore();
   const [showThickness, setShowThickness] = useState(false);
   const [showColors, setShowColors] = useState(false);
+  const applyPixelRulerStyle = (
+    patch: Partial<Pick<PixelRulerObject, 'stroke' | 'strokeWidth' | 'showBackground'>>
+  ) => {
+    updateObject(obj.id, patch);
+    patchToolDefaults('pixel_ruler', patch);
+  };
 
   const overlay = document.getElementById('annotation-ui-overlay');
   if (!overlay) return null;
@@ -65,7 +71,7 @@ export function PixelRulerToolbar({ anchor, obj }: Props) {
                     key={c}
                     className={`xs-color-chip ${obj.stroke === c ? 'active' : ''}`}
                     style={{ background: c }}
-                    onClick={() => updateObject(obj.id, { stroke: c })}
+                    onClick={() => applyPixelRulerStyle({ stroke: c })}
                     title={c}
                   />
                 ))}
@@ -78,7 +84,7 @@ export function PixelRulerToolbar({ anchor, obj }: Props) {
           {/* Thickness */}
           <SliderToggle
             value={obj.strokeWidth}
-            onChange={(val) => updateObject(obj.id, { strokeWidth: val })}
+            onChange={(val) => applyPixelRulerStyle({ strokeWidth: val })}
             min={1}
             max={12}
             isOpen={showThickness}
@@ -95,7 +101,7 @@ export function PixelRulerToolbar({ anchor, obj }: Props) {
           {/* Label Background Toggle */}
           <button
             className={`xs-toolbar-btn ${obj.showBackground ? 'active' : ''}`}
-            onClick={() => updateObject(obj.id, { showBackground: !obj.showBackground })}
+            onClick={() => applyPixelRulerStyle({ showBackground: !obj.showBackground })}
             title="Toggle Label Background"
           >
             <Square size={16} fill={obj.showBackground ? 'currentColor' : 'none'} />

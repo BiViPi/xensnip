@@ -14,8 +14,12 @@ interface Props {
 const COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#a855f7', '#ffffff', '#000000'];
 
 export function NumberedToolbar({ anchor, obj }: Props) {
-  const { updateObject, toolbarCollapsed, setToolbarCollapsed } = useAnnotationStore();
+  const { updateObject, patchToolDefaults, toolbarCollapsed, setToolbarCollapsed } = useAnnotationStore();
   const [showColors, setShowColors] = useState(false);
+  const applyNumberedStyle = (fill: string) => {
+    updateObject(obj.id, { fill });
+    patchToolDefaults('numbered', { fill });
+  };
 
   const overlay = document.getElementById('annotation-ui-overlay');
   if (!overlay) return null;
@@ -63,7 +67,7 @@ export function NumberedToolbar({ anchor, obj }: Props) {
                       key={c}
                       className={`xs-color-chip ${obj.fill === c ? 'active' : ''}`}
                       style={{ background: c }}
-                      onClick={() => updateObject(obj.id, { fill: c })}
+                      onClick={() => applyNumberedStyle(c)}
                     />
                   </Tooltip>
                 ))}

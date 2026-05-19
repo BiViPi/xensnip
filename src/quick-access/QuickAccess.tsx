@@ -7,7 +7,7 @@ import {
   assetRelease,
   quickAccessMarkReady,
   quickAccessDismissCurrent,
-  settingsLoad,
+  settingsLoad, settingsUpdateLastPreset,
 } from "../ipc/index";
 import { QuickAccessShowPayload, Settings, ThemeMode } from "../ipc/types";
 import { applyTheme } from "../styles/applyTheme";
@@ -132,8 +132,10 @@ export function QuickAccess() {
       switchToDocument,
       removeDocument,
       patchDocument,
+      preset,
       image,
       cropBounds,
+      setPreset,
       setImage,
       setCropBounds,
       undoStackRef,
@@ -147,12 +149,18 @@ export function QuickAccess() {
     patchDocument(id, { filename: name });
   }, [patchDocument]);
 
+  useEffect(() => {
+    if (!activeDocumentId) return;
+    patchActiveDocument({ preset });
+  }, [activeDocumentId, patchActiveDocument, preset]);
+
   // ── 5. Asset bootstrap ──────────────────────────────────────────────────
   const { bootstrapAssetRef, isLoading } = useAssetBootstrap({
     docsRef,
     addDocument,
     releaseDocument,
     patchDocument,
+    flushActiveDocument,
     handleSwitchDocument,
     setActiveDocumentId,
     setImage,
@@ -277,14 +285,26 @@ export function QuickAccess() {
       || (redoStackRef.current?.length ?? 0) > 0;
   }, [objects.length, cropBounds, undoStackRef, redoStackRef]);
 
+  // Sync preset annotation defaults to Zustand store
+  useEffect(() => {
+    if (preset.annotation_defaults) {
+      useAnnotationStore.getState().setToolDefaults(preset.annotation_defaults);
+    }
+  }, [preset.annotation_defaults]);
+
   const closeWindow = useCallback(async () => {
+    const currentAnnotationDefaults = useAnnotationStore.getState().annotationDefaults;
+    const presetCopy = { ...preset };
+    presetCopy.annotation_defaults = currentAnnotationDefaults;
+    void settingsUpdateLastPreset(presetCopy).catch(console.error);
+
     const allDocs = clearAll();
     allDocs.forEach(releaseDocument);
     setImage(null);
     setCropBounds(null);
     setShowCloseGuard(false);
     await quickAccessDismissCurrent();
-  }, [clearAll, releaseDocument]);
+  }, [clearAll, releaseDocument, preset]);
 
   const handleDismiss = useCallback(async () => {
     const isDirty = hasUnsavedChanges();

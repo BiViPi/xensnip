@@ -13,8 +13,12 @@ interface Props {
 const COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#a855f7', '#ffffff', '#000000'];
 
 export function TextToolbar({ anchor, obj }: Props) {
-  const { updateObject, toolbarCollapsed, setToolbarCollapsed } = useAnnotationStore();
+  const { updateObject, patchToolDefaults, toolbarCollapsed, setToolbarCollapsed } = useAnnotationStore();
   const [showSizes, setShowSizes] = useState(false);
+  const applyTextStyle = (patch: Partial<Pick<TextObject, 'fill' | 'fontSize'>>) => {
+    updateObject(obj.id, patch);
+    patchToolDefaults('text', patch);
+  };
 
   const overlay = document.getElementById('annotation-ui-overlay');
   if (!overlay) return null;
@@ -49,7 +53,7 @@ export function TextToolbar({ anchor, obj }: Props) {
               key={c}
               className={`xs-color-chip ${obj.fill === c ? 'active' : ''}`}
               style={{ background: c }}
-              onClick={() => updateObject(obj.id, { fill: c })}
+              onClick={() => applyTextStyle({ fill: c })}
             />
           ))}
 
@@ -57,7 +61,7 @@ export function TextToolbar({ anchor, obj }: Props) {
 
           <SliderToggle
             value={obj.fontSize}
-            onChange={(fontSize: number) => updateObject(obj.id, { fontSize })}
+            onChange={(fontSize: number) => applyTextStyle({ fontSize })}
             icon={<Type size={14} />}
             title="Font Size"
             min={8}

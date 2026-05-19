@@ -9,10 +9,12 @@ import { Tooltip } from '../../editor/Tooltip';
 import { ShadowIcon, PresetIcon } from '../../components/icons';
 import { SlidersHorizontal } from 'lucide-react';
 import type { Settings } from '../../ipc/types';
+import type { AnnotateObject } from '../../annotate/state/types';
 
 interface Props {
   preset: EditorPreset;
   setPreset: (p: EditorPreset | ((prev: EditorPreset) => EditorPreset)) => void;
+  applyPresetAnnotations: (placedAnnotations?: AnnotateObject[]) => void;
   activePop: string | null;
   onActivePopChange: (n: string | null) => void;
   settings: Settings | null;
@@ -24,6 +26,7 @@ interface Props {
 export function StudioQuickBar({
   preset,
   setPreset,
+  applyPresetAnnotations,
   activePop,
   onActivePopChange,
   settings,
@@ -112,8 +115,9 @@ export function StudioQuickBar({
             <PresetsControl
               preset={preset}
               settings={settings}
-              onApply={p => {
+              onApply={(p, placedAnnotations) => {
                 setPreset(p);
+                applyPresetAnnotations(placedAnnotations);
                 onActivePopChange(null);
               }}
               onRefresh={onRefreshSettings}

@@ -13,8 +13,14 @@ interface Props {
 }
 
 export function SpeechBubbleToolbar({ anchor, obj }: Props) {
-  const { updateObject, toolbarCollapsed, setToolbarCollapsed } = useAnnotationStore();
+  const { updateObject, patchToolDefaults, toolbarCollapsed, setToolbarCollapsed } = useAnnotationStore();
   const [activePopover, setActivePopover] = useState<string | null>(null);
+  const applySpeechBubbleStyle = (
+    patch: Partial<Pick<SpeechBubbleObject, 'fill' | 'textColor' | 'fontSize' | 'cornerRadius'>>
+  ) => {
+    updateObject(obj.id, patch);
+    patchToolDefaults('speech_bubble', patch);
+  };
   
   const toggle = (id: string) => (open: boolean) => {
     setActivePopover(open ? id : null);
@@ -50,7 +56,7 @@ export function SpeechBubbleToolbar({ anchor, obj }: Props) {
           <div className="xs-toolbar-section">
             <ColorToggle
               color={obj.fill}
-              onChange={(fill: string) => updateObject(obj.id, { fill })}
+              onChange={(fill: string) => applySpeechBubbleStyle({ fill })}
               title="Background Color"
               isOpen={activePopover === 'bg'}
               onToggle={toggle('bg')}
@@ -58,7 +64,7 @@ export function SpeechBubbleToolbar({ anchor, obj }: Props) {
             <div className="xs-toolbar-divider" />
             <ColorToggle
               color={obj.textColor}
-              onChange={(textColor: string) => updateObject(obj.id, { textColor })}
+              onChange={(textColor: string) => applySpeechBubbleStyle({ textColor })}
               icon={<Type size={14} />}
               title="Text Color"
               isOpen={activePopover === 'text'}
@@ -71,7 +77,7 @@ export function SpeechBubbleToolbar({ anchor, obj }: Props) {
           <div className="xs-toolbar-section">
             <SliderToggle
               value={obj.fontSize}
-              onChange={(fontSize: number) => updateObject(obj.id, { fontSize })}
+              onChange={(fontSize: number) => applySpeechBubbleStyle({ fontSize })}
               icon={<Type size={14} />}
               title="Font Size"
               min={8}
@@ -82,7 +88,7 @@ export function SpeechBubbleToolbar({ anchor, obj }: Props) {
             <div className="xs-toolbar-divider" />
             <RadiusToggle
               value={obj.cornerRadius}
-              onChange={(cornerRadius: number) => updateObject(obj.id, { cornerRadius })}
+              onChange={(cornerRadius: number) => applySpeechBubbleStyle({ cornerRadius })}
               isOpen={activePopover === 'radius'}
               onToggle={toggle('radius')}
             />

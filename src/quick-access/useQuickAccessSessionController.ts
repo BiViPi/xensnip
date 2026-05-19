@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { useAnnotationStore } from "../annotate/state/store";
 import { generateThumbnail } from "../editor/generateThumbnail";
+import type { EditorPreset } from "../compose/preset";
 import {
   DocumentStateSnapshot,
   DocumentUndoSnapshot,
@@ -18,8 +19,10 @@ interface SessionControllerInput {
   patchDocument: (id: string, patch: Partial<ScreenshotDocument>) => void;
 
   // editor shell state
+  preset: EditorPreset;
   image: HTMLImageElement | null;
   cropBounds: CropBounds | null;
+  setPreset: (preset: EditorPreset) => void;
   setImage: (img: HTMLImageElement | null) => void;
   setCropBounds: (bounds: CropBounds | null) => void;
 
@@ -52,8 +55,10 @@ export function useQuickAccessSessionController(
     switchToDocument,
     removeDocument,
     patchDocument,
+    preset,
     image,
     cropBounds,
+    setPreset,
     setImage,
     setCropBounds,
     undoStackRef,
@@ -68,6 +73,7 @@ export function useQuickAccessSessionController(
     if (!activeId) return;
     const s = useAnnotationStore.getState();
     const snap: DocumentStateSnapshot = {
+      preset: { ...preset },
       annotation: {
         activeTool: s.activeTool,
         objects: s.objects.map((obj) => ({ ...obj })),
@@ -81,7 +87,7 @@ export function useQuickAccessSessionController(
       image: image || undefined,
     };
     switchToDocument(activeId, snap);
-  }, [activeIdRef, cropBounds, image, switchToDocument, undoStackRef, redoStackRef]);
+  }, [activeIdRef, cropBounds, image, preset, switchToDocument, undoStackRef, redoStackRef]);
 
   const handleSwitchDocument = useCallback(
     (nextId: string) => {
@@ -92,6 +98,7 @@ export function useQuickAccessSessionController(
 
       const annotationState = useAnnotationStore.getState();
       const snapshot: DocumentStateSnapshot = {
+        preset: { ...preset },
         annotation: {
           activeTool: annotationState.activeTool,
           objects: annotationState.objects.map((obj) => ({ ...obj })),
@@ -109,6 +116,7 @@ export function useQuickAccessSessionController(
 
       const nextDoc = docsRef.current.find((d) => d.id === nextId);
       if (!nextDoc) return;
+      setPreset(nextDoc.preset);
       setImage(nextDoc.image);
       useAnnotationStore.getState().restoreSnapshot(nextDoc.annotation);
       setCropBounds(nextDoc.cropBounds);
@@ -122,8 +130,10 @@ export function useQuickAccessSessionController(
       cropBounds,
       docsRef,
       image,
+      preset,
       setCropBounds,
       setImage,
+      setPreset,
       switchToDocument,
       undoStackRef,
       redoStackRef,
@@ -141,6 +151,7 @@ export function useQuickAccessSessionController(
       if (nextActiveId) {
         const nextDoc = remainingDocs.find((d) => d.id === nextActiveId);
         if (nextDoc) {
+          setPreset(nextDoc.preset);
           setImage(nextDoc.image);
           useAnnotationStore.getState().restoreSnapshot(nextDoc.annotation);
           setCropBounds(nextDoc.cropBounds);
@@ -155,7 +166,7 @@ export function useQuickAccessSessionController(
         redoStackRef.current = [];
       }
     },
-    [removeDocument, releaseDocument, setImage, setCropBounds, undoStackRef, redoStackRef]
+    [removeDocument, releaseDocument, setCropBounds, setImage, setPreset, undoStackRef, redoStackRef]
   );
 
   const handleClearAllInSession = useCallback(() => {

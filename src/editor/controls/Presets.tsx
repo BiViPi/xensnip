@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import "./Presets.css";
-import { EditorPreset } from "../../compose/preset";
+import { EditorPreset, normalizeEditorPreset } from "../../compose/preset";
 import { SavedPreset, Settings } from "../../ipc/types";
+import type { AnnotateObject } from "../../annotate/state/types";
 import { 
   presetSave, 
   presetDelete, 
@@ -12,10 +13,12 @@ import {
   presetImport 
 } from "../../ipc/index";
 
+import { useAnnotationStore } from "../../annotate/state/store";
+
 interface Props {
   preset: EditorPreset;
   settings: Settings | null;
-  onApply: (p: EditorPreset) => void;
+  onApply: (p: EditorPreset, placedAnnotations?: AnnotateObject[]) => void;
   onRefresh: () => void;
   showToast: (m: string, t?: "success" | "error") => void;
   onOpenManager: () => void;
@@ -56,10 +59,20 @@ export function PresetsControl({ preset, settings, onApply, onRefresh, showToast
     
     setIsSaving(true);
     try {
+      const { annotationDefaults, objects } = useAnnotationStore.getState();
+      const presetCopy = JSON.parse(JSON.stringify(preset));
+      presetCopy.annotation_defaults = annotationDefaults;
+      presetCopy.placed_annotations = objects.length > 0
+        ? {
+            schema_version: 1,
+            objects: JSON.parse(JSON.stringify(objects)),
+          }
+        : undefined;
+
       const newSaved: SavedPreset = {
         id: existingPreset?.id ?? crypto.randomUUID(),
         name: trimmedName,
-        preset: JSON.parse(JSON.stringify(preset)),
+        preset: presetCopy,
         updated_at: new Date().toISOString()
       };
       await presetSave(newSaved);
@@ -204,11 +217,23 @@ export function PresetsControl({ preset, settings, onApply, onRefresh, showToast
                   <span className="xs-tag">{p.preset.ratio}</span>
                   <span className="xs-tag">{p.preset.bg_mode}</span>
                   <span className="xs-tag">P:{p.preset.padding}</span>
+                  {(p.preset.placed_annotations?.objects.length ?? 0) > 0 && (
+                    <span className="xs-tag">A:{p.preset.placed_annotations!.objects.length}</span>
+                  )}
                 </div>
               </div>
               
               <div className="xs-preset-actions">
-                <button className="xs-btn-apply" onClick={() => onApply(p.preset)}>Apply</button>
+                <button
+                  className="xs-btn-apply"
+                  onClick={() => {
+                    const normalized = normalizeEditorPreset(p.preset);
+                    const placedAnnotations = normalized.placed_annotations?.objects.map((obj) => ({ ...obj }));
+                    onApply(normalized, placedAnnotations);
+                  }}
+                >
+                  Apply
+                </button>
                 <div className="xs-more-wrap">
                   <button className="xs-btn-more" onClick={(e) => {
                     const rect = e.currentTarget.getBoundingClientRect();

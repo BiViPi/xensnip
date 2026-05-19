@@ -74,11 +74,11 @@ export async function composeToBlob(image: HTMLImageElement, preset: EditorPrese
 
 export async function composeDocumentToBytes(
   doc: ScreenshotDocument,
-  preset: EditorPreset,
   format: string = "image/png",
   quality: number = 1.0
 ): Promise<Uint8Array> {
   const img = doc.image;
+  const preset = doc.preset;
   if (doc.annotation.objects.length > 0) {
     return composeWithAnnotations(img, preset, doc.annotation.objects, format, quality);
   } else {

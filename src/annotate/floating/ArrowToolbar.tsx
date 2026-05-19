@@ -15,9 +15,13 @@ interface Props {
 const COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#a855f7', '#ffffff', '#000000'];
 
 export function ArrowToolbar({ anchor, obj }: Props) {
-  const { updateObject, toolbarCollapsed, setToolbarCollapsed } = useAnnotationStore();
+  const { updateObject, patchToolDefaults, toolbarCollapsed, setToolbarCollapsed } = useAnnotationStore();
   const [showThickness, setShowThickness] = useState(false);
   const [showColors, setShowColors] = useState(false);
+  const applyArrowStyle = (patch: Partial<Pick<ArrowObject, 'style' | 'strokeWidth' | 'stroke'>>) => {
+    updateObject(obj.id, patch);
+    patchToolDefaults('arrow', patch);
+  };
 
   const overlay = document.getElementById('annotation-ui-overlay');
   if (!overlay) return null;
@@ -53,7 +57,7 @@ export function ArrowToolbar({ anchor, obj }: Props) {
           <Tooltip text="Solid Line" position="top">
             <button
               className={`xs-toolbar-btn ${obj.style === 'solid' ? 'active' : ''}`}
-              onClick={() => updateObject(obj.id, { style: 'solid' })}
+              onClick={() => applyArrowStyle({ style: 'solid' })}
             >
               <SolidLineIcon />
             </button>
@@ -62,7 +66,7 @@ export function ArrowToolbar({ anchor, obj }: Props) {
           <Tooltip text="Dashed Line" position="top">
             <button
               className={`xs-toolbar-btn ${obj.style === 'dashed' ? 'active' : ''}`}
-              onClick={() => updateObject(obj.id, { style: 'dashed' })}
+              onClick={() => applyArrowStyle({ style: 'dashed' })}
             >
               <DashedLineIcon />
             </button>
@@ -72,7 +76,7 @@ export function ArrowToolbar({ anchor, obj }: Props) {
 
           <SliderToggle
             value={obj.strokeWidth}
-            onChange={(val) => updateObject(obj.id, { strokeWidth: val })}
+            onChange={(val) => applyArrowStyle({ strokeWidth: val })}
             isOpen={showThickness}
             onToggle={(open) => {
               setShowThickness(open);
@@ -102,7 +106,7 @@ export function ArrowToolbar({ anchor, obj }: Props) {
                     <button
                       className={`xs-color-chip ${obj.stroke === c ? 'active' : ''}`}
                       style={{ background: c }}
-                      onClick={() => updateObject(obj.id, { stroke: c })}
+                      onClick={() => applyArrowStyle({ stroke: c })}
                     />
                   </Tooltip>
                 ))}

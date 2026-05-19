@@ -22,10 +22,11 @@ vi.mock('../../ipc/index', () => ({
 
 describe('useAssetBootstrap Redo support', () => {
   const createMockDeps = () => ({
-    docsRef: { current: [] },
+    docsRef: { current: [] as any[] },
     addDocument: vi.fn((doc) => [doc]),
     releaseDocument: vi.fn(),
     patchDocument: vi.fn(),
+    flushActiveDocument: vi.fn(),
     handleSwitchDocument: vi.fn(),
     setActiveDocumentId: vi.fn(),
     setImage: vi.fn(),
@@ -59,5 +60,42 @@ describe('useAssetBootstrap Redo support', () => {
     });
 
     expect(deps.redoStackRef.current).toEqual([]);
+  });
+
+  it('flushes the active document before bootstrapping a new asset', async () => {
+    const deps = createMockDeps();
+    deps.docsRef.current = [
+      {
+        id: 'doc-1',
+        assetId: 'asset-existing',
+      } as any,
+    ];
+
+    const { result } = renderHook(() => useAssetBootstrap(deps as any));
+
+    await act(async () => {
+      await result.current.bootstrapAsset('asset-new');
+    });
+
+    expect(deps.flushActiveDocument).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not flush when switching to an already-open asset', async () => {
+    const deps = createMockDeps();
+    deps.docsRef.current = [
+      {
+        id: 'doc-1',
+        assetId: 'asset-existing',
+      } as any,
+    ];
+
+    const { result } = renderHook(() => useAssetBootstrap(deps as any));
+
+    await act(async () => {
+      await result.current.bootstrapAsset('asset-existing');
+    });
+
+    expect(deps.flushActiveDocument).not.toHaveBeenCalled();
+    expect(deps.handleSwitchDocument).toHaveBeenCalledWith('doc-1');
   });
 });

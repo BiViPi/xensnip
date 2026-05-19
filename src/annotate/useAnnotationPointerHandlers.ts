@@ -91,7 +91,7 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
     activeUtility,
   } = deps;
 
-  const { activeTool, select, selectMultiple, selectAdditive, addObject, setActiveTool, objects, setEditingTextId } =
+  const { activeTool, select, selectMultiple, selectAdditive, addObject, setActiveTool, objects, setEditingTextId, annotationDefaults } =
     useAnnotationStore();
 
   const { drawingObject, setDrawingObject } = usePointerHandlersState();
@@ -198,7 +198,7 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
 
       // 2. Immediate object creation
       if (activeTool === 'text') {
-        const text = createImmediateText(stageX, stageY);
+        const text = createImmediateText(stageX, stageY, annotationDefaults.text);
         addObject(text);
         select(text.id);
         setEditingTextId(text.id);
@@ -208,7 +208,7 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
 
       if (activeTool === 'numbered') {
         const count = objects.filter((o) => o.type === 'numbered').length;
-        const numbered = createImmediateNumbered(stageX, stageY, count);
+        const numbered = createImmediateNumbered(stageX, stageY, count, annotationDefaults.numbered);
         addObject(numbered);
         select(numbered.id);
         if (!REPEATABLE_TOOLS.has(activeTool)) setActiveTool('select');
@@ -216,7 +216,7 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
       }
 
       if (activeTool === 'speech_bubble') {
-        const bubble = createImmediateSpeechBubble(stageX, stageY);
+        const bubble = createImmediateSpeechBubble(stageX, stageY, annotationDefaults.speech_bubble);
         addObject(bubble);
         select(bubble.id);
         setEditingTextId(bubble.id);
@@ -261,7 +261,7 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
     [
       scale, activeUtility, activeTool, objects, colorPickerFrozen, setColorPickerFrozen,
       setOcrRegion, setOcrText, setOcrError, setOcrStatus, setOcrProgress, resetPrivacy, setPrivacyStatus,
-      addObject, select, setEditingTextId, setActiveTool, setDrawingObject,
+      addObject, select, setEditingTextId, setActiveTool, setDrawingObject, annotationDefaults,
     ]
   );
 
@@ -321,7 +321,9 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
           id: newId,
           type: 'freehand_arrow',
           x: drawingObject.start.x, y: drawingObject.start.y, rotation: 0,
-          points: drawingObject.points, stroke: '#ef4444', strokeWidth: 4,
+          points: drawingObject.points,
+          stroke: annotationDefaults.freehand_arrow?.stroke ?? '#ef4444',
+          strokeWidth: annotationDefaults.freehand_arrow?.strokeWidth ?? 4,
           smoothing: 0.5, pointerLength: 12, pointerWidth: 12, draggable: true,
         };
         addObject(arrow);
@@ -396,7 +398,7 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
     // Regular drag shapes — minimum size check
     if (dist > 4) {
       const newId = `obj-${Date.now()}`;
-      const obj = createDragAnnotationObject(drawingObject.type, drawingObject.start, drawingObject.end, newId);
+      const obj = createDragAnnotationObject(drawingObject.type, drawingObject.start, drawingObject.end, newId, annotationDefaults);
       if (obj) {
         addObject(obj);
         if (obj.type === 'callout') {
@@ -411,7 +413,7 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
   }, [
     drawingObject, setDrawingObject, compositionCanvasRef, addObject, select, selectMultiple, selectAdditive, setActiveTool, setEditingTextId,
     setOcrRegion, setOcrStatus, setOcrProgress, setOcrText, setOcrError, ocrRequestIdRef, setScope, setSelectionRect, setPrivacyStatus,
-    activeTool, objects, getObjectBounds
+    activeTool, objects, getObjectBounds, annotationDefaults
   ]);
 
   return { handleMouseDown, handleMouseMove, handleMouseUp, drawingObject };

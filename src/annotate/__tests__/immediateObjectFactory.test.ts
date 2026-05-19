@@ -47,4 +47,35 @@ describe('immediateObjectFactory', () => {
       draggable: true,
     });
   });
+
+  it('uses provided defaults for immediate objects', () => {
+    expect(
+      createImmediateText(10, 20, {
+        fontSize: 32,
+        fontFamily: 'Fira Sans',
+        fill: '#22c55e',
+        fontStyle: 'italic',
+        align: 'center',
+        padding: 12,
+      }),
+    ).toMatchObject({
+      fontSize: 32,
+      fontFamily: 'Fira Sans',
+      fill: '#22c55e',
+      fontStyle: 'italic',
+      align: 'center',
+      padding: 12,
+    });
+
+    expect(
+      createImmediateNumbered(12, 24, 1, {
+        radius: 22,
+        fill: '#3b82f6',
+      }),
+    ).toMatchObject({
+      displayNumber: 2,
+      radius: 22,
+      fill: '#3b82f6',
+    });
+  });
 });

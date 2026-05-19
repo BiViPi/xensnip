@@ -114,6 +114,7 @@ const activeDocument: ScreenshotDocument = {
   image,
   blobUrl: 'blob:active',
   thumbnailSrc: 'blob:thumb',
+  preset,
   isExportChecked: false,
   assetId: undefined,
   annotation,
@@ -245,5 +246,30 @@ describe('QuickBar studio export integration', () => {
     );
     expect(composeToBlob).not.toHaveBeenCalled();
     expect(composeDocumentToBytes).not.toHaveBeenCalled();
+  });
+
+  it('uses each document preset during flat batch export', async () => {
+    const showToast = vi.fn();
+    composeDocumentToBytes.mockResolvedValue(new Uint8Array([9, 9, 9]));
+    exportSaveMedia.mockResolvedValue(undefined);
+
+    const studioDoc = {
+      ...otherDocument,
+      preset: {
+        ...preset,
+        presentation_mode: 'studio' as const,
+      },
+    };
+
+    renderQuickBar({
+      showToast,
+      documents: [activeDocument, studioDoc],
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /export/i }));
+
+    await vi.waitFor(() => {
+      expect(composeDocumentToBytes).toHaveBeenCalledWith(studioDoc, 'image/jpeg', 1);
+    });
   });
 });

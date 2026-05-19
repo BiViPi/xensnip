@@ -12,12 +12,14 @@ import {
   AnnotateObject,
 } from '../state/types';
 import { DrawingStart } from '../state/drawingTypes';
+import { AnnotationDefaults } from '../../compose/preset';
 
 export function createDragAnnotationObject(
   type: DrawingStart['type'],
   start: { x: number; y: number },
   end: { x: number; y: number },
-  id: string
+  id: string,
+  defaults?: AnnotationDefaults
 ): AnnotateObject | null {
   const dx = end.x - start.x;
   const dy = end.y - start.y;
@@ -30,16 +32,25 @@ export function createDragAnnotationObject(
     case 'arrow': {
       const arrow: ArrowObject = {
         id, type: 'arrow', x: start.x, y: start.y, rotation: 0,
-        points: [0, 0, dx, dy], stroke: '#ef4444', strokeWidth: 4,
-        pointerLength: 12, pointerWidth: 12, style: 'solid', draggable: true,
+        points: [0, 0, dx, dy],
+        stroke: defaults?.arrow?.stroke ?? '#ef4444',
+        strokeWidth: defaults?.arrow?.strokeWidth ?? 4,
+        pointerLength: defaults?.arrow?.pointerLength ?? 12,
+        pointerWidth: defaults?.arrow?.pointerWidth ?? 12,
+        style: defaults?.arrow?.style ?? 'solid',
+        draggable: true,
       };
       return arrow;
     }
     case 'rectangle': {
       const rect: RectangleObject = {
         id, type: 'rectangle', x: left, y: top, rotation: 0,
-        width: w, height: h, stroke: '#ef4444', strokeWidth: 4,
-        lineStyle: 'solid', cornerRadius: 0, draggable: true,
+        width: w, height: h,
+        stroke: defaults?.rectangle?.stroke ?? '#ef4444',
+        strokeWidth: defaults?.rectangle?.strokeWidth ?? 4,
+        lineStyle: defaults?.rectangle?.lineStyle ?? 'solid',
+        cornerRadius: defaults?.rectangle?.cornerRadius ?? 0,
+        draggable: true,
       };
       return rect;
     }
@@ -67,7 +78,10 @@ export function createDragAnnotationObject(
     case 'spotlight': {
       const spotlight: SpotlightObject = {
         id, type: 'spotlight', x: left, y: top, rotation: 0,
-        width: w, height: h, opacity: 0.58, cornerRadius: 24, draggable: true,
+        width: w, height: h,
+        opacity: defaults?.spotlight?.opacity ?? 0.58,
+        cornerRadius: defaults?.spotlight?.cornerRadius ?? 24,
+        draggable: true,
       };
       return spotlight;
     }
@@ -91,18 +105,29 @@ export function createDragAnnotationObject(
     case 'pixel_ruler': {
       const ruler: PixelRulerObject = {
         id, type: 'pixel_ruler', x: start.x, y: start.y, rotation: 0,
-        points: [0, 0, dx, dy], stroke: '#ef4444', strokeWidth: 2,
-        labelFill: '#ffffff', showBackground: true, draggable: true,
+        points: [0, 0, dx, dy],
+        stroke: defaults?.pixel_ruler?.stroke ?? '#ef4444',
+        strokeWidth: defaults?.pixel_ruler?.strokeWidth ?? 2,
+        labelFill: defaults?.pixel_ruler?.labelFill ?? '#ffffff',
+        showBackground: defaults?.pixel_ruler?.showBackground ?? true,
+        draggable: true,
       };
       return ruler;
     }
     case 'callout': {
       const callout: CalloutObject = {
         id, type: 'callout', x: end.x, y: end.y, rotation: 0,
-        width: 120, height: 48, text: 'Callout', fontSize: 14,
-        fontFamily: 'Inter, sans-serif', fill: '#ffffff', textColor: '#1e1e2e',
-        stroke: '#1e1e2e', padding: 8, cornerRadius: 4,
-        targetX: start.x, targetY: start.y, lineColor: '#1e1e2e', lineWidth: 2,
+        width: 120, height: 48, text: 'Callout',
+        fontSize: defaults?.callout?.fontSize ?? 14,
+        fontFamily: defaults?.callout?.fontFamily ?? 'Inter, sans-serif',
+        fill: defaults?.callout?.fill ?? '#ffffff',
+        textColor: defaults?.callout?.textColor ?? '#1e1e2e',
+        stroke: defaults?.callout?.stroke ?? '#1e1e2e',
+        padding: defaults?.callout?.padding ?? 8,
+        cornerRadius: defaults?.callout?.cornerRadius ?? 4,
+        targetX: start.x, targetY: start.y,
+        lineColor: defaults?.callout?.lineColor ?? '#1e1e2e',
+        lineWidth: defaults?.callout?.lineWidth ?? 2,
         draggable: true,
       };
       return callout;

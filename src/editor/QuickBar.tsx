@@ -24,7 +24,9 @@ import { PresetsControl } from "./controls/Presets";
 import { Tooltip } from "./Tooltip";
 import { QuickBarModeToggle } from "../studio/ui/QuickBarModeToggle";
 import { StudioQuickBar } from "../studio/ui/StudioQuickBar";
+import { recordHistorySnapshot } from "./historyBridge";
 import "../studio/ui/StudioQuickBar.css";
+import type { AnnotateObject } from "../annotate/state/types";
 
 interface Props {
   preset: EditorPreset;
@@ -56,6 +58,18 @@ export function QuickBar({
   const dockRef = React.useRef<HTMLDivElement>(null);
   const hasAnnotations = useHasAnnotations();
   const clearAll = useAnnotationStore(s => s.clearAll);
+  const applyPresetAnnotations = React.useCallback((placedAnnotations?: AnnotateObject[]) => {
+    if (!placedAnnotations) return;
+    const store = useAnnotationStore.getState();
+    recordHistorySnapshot();
+    store.restoreSnapshot({
+      activeTool: store.activeTool,
+      objects: placedAnnotations.map((obj) => ({ ...obj })),
+      selectedIds: [],
+      editingTextId: null,
+      toolbarCollapsed: store.toolbarCollapsed,
+    });
+  }, []);
 
   React.useEffect(() => {
     if (!activePop) return;
@@ -185,7 +199,7 @@ export function QuickBar({
                   ? await composeWithAnnotations(image, preset, objects, format, 1.0)
                   : await composeToBlob(image, preset, format, 1.0);
               } else {
-                bytes = await composeDocumentToBytes(doc, preset, format, 1.0);
+                bytes = await composeDocumentToBytes(doc, format, 1.0);
               }
               await exportSaveMedia(
                 bytes,
@@ -373,7 +387,11 @@ export function QuickBar({
                 <PresetsControl
                   preset={preset}
                   settings={settings}
-                  onApply={(p) => { setPreset(p); onActivePopChange(null); }}
+                  onApply={(p, placedAnnotations) => {
+                    setPreset(p);
+                    applyPresetAnnotations(placedAnnotations);
+                    onActivePopChange(null);
+                  }}
                   onRefresh={onRefreshSettings}
                   showToast={showToast}
                   onOpenManager={() => { onOpenPresetManager(); onActivePopChange(null); }}
@@ -391,6 +409,7 @@ export function QuickBar({
           <StudioQuickBar
             preset={preset}
             setPreset={setPreset}
+            applyPresetAnnotations={applyPresetAnnotations}
             activePop={activePop}
             onActivePopChange={onActivePopChange}
             settings={settings}

@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { AnnotationSnapshot } from '../annotate/state/store';
 import { CropBounds } from './useCropTool';
+import type { EditorPreset } from '../compose/preset';
 
 /**
  * Document-scoped undo snapshot.
@@ -22,6 +23,7 @@ export interface ScreenshotDocument {
   assetId?: string;
   thumbnailSrc: string;
   filename?: string;
+  preset: EditorPreset;
   annotation: AnnotationSnapshot;
   cropBounds: CropBounds | null;
   isExportChecked: boolean;
@@ -34,6 +36,7 @@ export interface ScreenshotDocument {
  * Snapshot of the editor state passed during a switch transaction.
  */
 export interface DocumentStateSnapshot {
+  preset: EditorPreset;
   annotation: AnnotationSnapshot;
   cropBounds: CropBounds | null;
   undoStack: DocumentUndoSnapshot[];
@@ -118,6 +121,7 @@ export function useScreenshotDocuments() {
         doc.id === activeId 
           ? { 
               ...doc, 
+              preset: { ...currentSnapshot.preset },
               annotation: { ...currentSnapshot.annotation }, 
               cropBounds: currentSnapshot.cropBounds,
               undoStack: [...currentSnapshot.undoStack],

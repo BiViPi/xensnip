@@ -13,8 +13,14 @@ interface Props {
 }
 
 export function CalloutToolbar({ anchor, obj }: Props) {
-  const { updateObject, toolbarCollapsed, setToolbarCollapsed } = useAnnotationStore();
+  const { updateObject, patchToolDefaults, toolbarCollapsed, setToolbarCollapsed } = useAnnotationStore();
   const [activePopover, setActivePopover] = useState<string | null>(null);
+  const applyCalloutStyle = (
+    patch: Partial<Pick<CalloutObject, 'fill' | 'textColor' | 'lineColor' | 'lineWidth' | 'fontSize' | 'cornerRadius'>>
+  ) => {
+    updateObject(obj.id, patch);
+    patchToolDefaults('callout', patch);
+  };
 
   const toggle = (id: string) => (open: boolean) => {
     setActivePopover(open ? id : null);
@@ -49,7 +55,7 @@ export function CalloutToolbar({ anchor, obj }: Props) {
           <div className="xs-toolbar-section">
             <ColorToggle
               color={obj.fill}
-              onChange={(fill: string) => updateObject(obj.id, { fill })}
+              onChange={(fill: string) => applyCalloutStyle({ fill })}
               title="Label Background"
               isOpen={activePopover === 'bg'}
               onToggle={toggle('bg')}
@@ -57,7 +63,7 @@ export function CalloutToolbar({ anchor, obj }: Props) {
             <div className="xs-toolbar-divider" />
             <ColorToggle
               color={obj.textColor}
-              onChange={(textColor: string) => updateObject(obj.id, { textColor })}
+              onChange={(textColor: string) => applyCalloutStyle({ textColor })}
               icon={<Type size={14} />}
               title="Text Color"
               isOpen={activePopover === 'text'}
@@ -70,7 +76,7 @@ export function CalloutToolbar({ anchor, obj }: Props) {
           <div className="xs-toolbar-section">
             <ColorToggle
               color={obj.lineColor}
-              onChange={(lineColor: string) => updateObject(obj.id, { lineColor })}
+              onChange={(lineColor: string) => applyCalloutStyle({ lineColor })}
               icon={<MousePointer2 size={14} />}
               title="Leader Line Color"
               isOpen={activePopover === 'line'}
@@ -79,7 +85,7 @@ export function CalloutToolbar({ anchor, obj }: Props) {
             <div className="xs-toolbar-divider" />
             <SliderToggle
               value={obj.lineWidth}
-              onChange={(lineWidth: number) => updateObject(obj.id, { lineWidth })}
+              onChange={(lineWidth: number) => applyCalloutStyle({ lineWidth })}
               title="Line Width"
               isOpen={activePopover === 'width'}
               onToggle={toggle('width')}
@@ -87,7 +93,7 @@ export function CalloutToolbar({ anchor, obj }: Props) {
             <div className="xs-toolbar-divider" />
             <SliderToggle
               value={obj.fontSize}
-              onChange={(fontSize: number) => updateObject(obj.id, { fontSize })}
+              onChange={(fontSize: number) => applyCalloutStyle({ fontSize })}
               icon={<Type size={14} />}
               title="Font Size"
               min={8}
@@ -102,7 +108,7 @@ export function CalloutToolbar({ anchor, obj }: Props) {
           <div className="xs-toolbar-section">
             <RadiusToggle
               value={obj.cornerRadius}
-              onChange={(cornerRadius: number) => updateObject(obj.id, { cornerRadius })}
+              onChange={(cornerRadius: number) => applyCalloutStyle({ cornerRadius })}
               isOpen={activePopover === 'radius'}
               onToggle={toggle('radius')}
             />

@@ -21,11 +21,17 @@ const LINE_STYLES: Array<{ id: RectangleObject['lineStyle']; label: string }> = 
 ];
 
 export function RectangleToolbar({ anchor, obj }: Props) {
-  const { updateObject, toolbarCollapsed, setToolbarCollapsed } = useAnnotationStore();
+  const { updateObject, patchToolDefaults, toolbarCollapsed, setToolbarCollapsed } = useAnnotationStore();
   const [showRadius, setShowRadius] = useState(false);
   const [showThickness, setShowThickness] = useState(false);
   const [showColors, setShowColors] = useState(false);
   const lineStyle = obj.lineStyle ?? 'solid';
+  const applyRectangleStyle = (
+    patch: Partial<Pick<RectangleObject, 'lineStyle' | 'strokeWidth' | 'stroke' | 'cornerRadius'>>
+  ) => {
+    updateObject(obj.id, patch);
+    patchToolDefaults('rectangle', patch);
+  };
 
   const overlay = document.getElementById('annotation-ui-overlay');
   if (!overlay) return null;
@@ -61,7 +67,7 @@ export function RectangleToolbar({ anchor, obj }: Props) {
             <Tooltip key={style.id} text={style.label} position="top">
               <button
                 className={`xs-toolbar-btn ${lineStyle === style.id ? 'active' : ''}`}
-                onClick={() => updateObject(obj.id, { lineStyle: style.id })}
+                onClick={() => applyRectangleStyle({ lineStyle: style.id })}
               >
                 {style.id === 'solid' && <SolidLineIcon />}
                 {style.id === 'dashed' && <DashedLineIcon />}
@@ -74,7 +80,7 @@ export function RectangleToolbar({ anchor, obj }: Props) {
 
           <SliderToggle
             value={obj.strokeWidth}
-            onChange={(val) => updateObject(obj.id, { strokeWidth: val })}
+            onChange={(val) => applyRectangleStyle({ strokeWidth: val })}
             isOpen={showThickness}
             onToggle={(open) => {
               setShowThickness(open);
@@ -108,7 +114,7 @@ export function RectangleToolbar({ anchor, obj }: Props) {
                     <button
                       className={`xs-color-chip ${obj.stroke === c ? 'active' : ''}`}
                       style={{ background: c }}
-                      onClick={() => updateObject(obj.id, { stroke: c })}
+                      onClick={() => applyRectangleStyle({ stroke: c })}
                     />
                   </Tooltip>
                 ))}
@@ -122,7 +128,7 @@ export function RectangleToolbar({ anchor, obj }: Props) {
 
               <RadiusToggle
                 value={obj.cornerRadius}
-                onChange={(val) => updateObject(obj.id, { cornerRadius: val })}
+                onChange={(val) => applyRectangleStyle({ cornerRadius: val })}
                 isOpen={showRadius}
                 onToggle={(open) => {
                   setShowRadius(open);

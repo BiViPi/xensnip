@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { AnnotateObject, ToolId } from './types';
 import { recordHistorySnapshot } from '../../editor/historyBridge';
+import { AnnotationDefaults } from '../../compose/preset';
+import { DEFAULT_ANNOTATION_DEFAULTS, sanitizeAnnotationDefaults } from './defaults';
 
 export interface AnnotationSnapshot {
   activeTool: ToolId;
@@ -16,6 +18,7 @@ interface AnnotationState {
   selectedIds: string[];
   editingTextId: string | null;
   toolbarCollapsed: boolean;
+  annotationDefaults: AnnotationDefaults;
   
   setActiveTool: (tool: ToolId) => void;
   addObject: (obj: AnnotateObject) => void;
@@ -31,6 +34,10 @@ interface AnnotationState {
   clearAll: () => void;
   restoreSnapshot: (snapshot: AnnotationSnapshot) => void;
   nudgeObject: (id: string, dx: number, dy: number) => void;
+  
+  getToolDefaults: () => AnnotationDefaults;
+  setToolDefaults: (defaults: AnnotationDefaults) => void;
+  patchToolDefaults: (tool: ToolId, patch: any) => void;
 }
 
 const cloneObjects = (objects: AnnotateObject[]) => objects.map((obj) => ({ ...obj })) as AnnotateObject[];
@@ -41,6 +48,7 @@ export const useAnnotationStore = create<AnnotationState>((set, get) => ({
   selectedIds: [],
   editingTextId: null,
   toolbarCollapsed: false,
+  annotationDefaults: { ...DEFAULT_ANNOTATION_DEFAULTS },
 
   setActiveTool: (tool) => set({ activeTool: tool }),
   addObject: (obj) => set((state) => {
@@ -104,6 +112,60 @@ export const useAnnotationStore = create<AnnotationState>((set, get) => ({
     editingTextId: snapshot.editingTextId,
     toolbarCollapsed: snapshot.toolbarCollapsed,
   }),
+  
+  getToolDefaults: () => {
+    return JSON.parse(JSON.stringify(get().annotationDefaults));
+  },
+  setToolDefaults: (defaults) => {
+    const sanitized = sanitizeAnnotationDefaults(defaults);
+    set({
+      annotationDefaults: {
+        ...DEFAULT_ANNOTATION_DEFAULTS,
+        ...sanitized,
+      },
+    });
+  },
+  patchToolDefaults: (tool, patch) => {
+    const allowlist = [
+      'arrow', 'rectangle', 'text', 'numbered', 'spotlight',
+      'pixel_ruler', 'speech_bubble', 'callout', 'freehand_arrow'
+    ];
+    if (!allowlist.includes(tool)) return;
+    
+    const cleanPatch: any = {};
+    const allowedKeys: Record<string, string[]> = {
+      arrow: ['stroke', 'strokeWidth', 'pointerLength', 'pointerWidth', 'style'],
+      rectangle: ['stroke', 'strokeWidth', 'lineStyle', 'cornerRadius'],
+      text: ['fontSize', 'fontFamily', 'fill', 'fontStyle', 'align', 'padding'],
+      numbered: ['radius', 'fill'],
+      spotlight: ['opacity', 'cornerRadius'],
+      pixel_ruler: ['stroke', 'strokeWidth', 'labelFill', 'showBackground'],
+      speech_bubble: ['stroke', 'fill', 'textColor', 'fontSize', 'fontFamily', 'padding', 'cornerRadius'],
+      callout: ['stroke', 'fill', 'textColor', 'fontSize', 'fontFamily', 'padding', 'cornerRadius', 'lineColor', 'lineWidth'],
+      freehand_arrow: ['stroke', 'strokeWidth'],
+    };
+
+    const keys = allowedKeys[tool];
+    if (!keys) return;
+
+    for (const key of keys) {
+      if (patch[key] !== undefined) {
+        cleanPatch[key] = patch[key];
+      }
+    }
+
+    if (Object.keys(cleanPatch).length === 0) return;
+
+    set((state) => ({
+      annotationDefaults: {
+        ...state.annotationDefaults,
+        [tool]: {
+          ...((state.annotationDefaults[tool as keyof AnnotationDefaults] || {}) as any),
+          ...cleanPatch,
+        },
+      },
+    }));
+  },
 }));
 
 // Derived selector

@@ -5,7 +5,7 @@ import {
   perfLog,
   settingsLoad,
 } from "../ipc/index";
-import { DEFAULT_PRESET, EditorPreset } from "../compose/preset";
+import { DEFAULT_PRESET, EditorPreset, normalizeEditorPreset } from "../compose/preset";
 import { autoBalance } from "../editor/autoBalance";
 import { generateThumbnail } from "../editor/generateThumbnail";
 import { ScreenshotDocument, DocumentUndoSnapshot } from "../editor/useScreenshotDocuments";
@@ -18,6 +18,7 @@ interface UseAssetBootstrapDeps {
   addDocument: (doc: ScreenshotDocument) => ScreenshotDocument[];
   releaseDocument: (doc: ScreenshotDocument) => void;
   patchDocument: (id: string, patch: Partial<ScreenshotDocument>) => void;
+  flushActiveDocument: () => void;
   handleSwitchDocument: (id: string) => void;
   setActiveDocumentId: (id: string | null) => void;
   setImage: (img: HTMLImageElement | null) => void;
@@ -49,12 +50,12 @@ export function resolveBootstrapPreset(
     settings?.default_presentation_mode === 'studio' ? 'studio' : 'flat';
 
   if (settings?.last_preset) {
-    return { ...DEFAULT_PRESET, ...settings.last_preset };
+    return normalizeEditorPreset(settings.last_preset);
   }
 
   if (settings?.default_preset_id) {
     const def = settings.saved_presets.find((p) => p.id === settings.default_preset_id);
-    if (def) return { ...DEFAULT_PRESET, ...def.preset };
+    if (def) return normalizeEditorPreset(def.preset);
   }
 
   return {
@@ -74,6 +75,7 @@ export function useAssetBootstrap(deps: UseAssetBootstrapDeps): {
     addDocument,
     releaseDocument,
     patchDocument,
+    flushActiveDocument,
     handleSwitchDocument,
     setActiveDocumentId,
     setImage,
@@ -94,6 +96,7 @@ export function useAssetBootstrap(deps: UseAssetBootstrapDeps): {
       return;
     }
 
+    flushActiveDocument();
     setIsLoading(true);
 
     try {
@@ -151,6 +154,7 @@ export function useAssetBootstrap(deps: UseAssetBootstrapDeps): {
         blobUrl: url,
         assetId: nextAssetId,
         thumbnailSrc: "", // Placeholder initially
+        preset: resolveBootstrapPreset(null, img.width, img.height),
         annotation: {
           activeTool: "select",
           objects: [],
@@ -187,7 +191,9 @@ export function useAssetBootstrap(deps: UseAssetBootstrapDeps): {
       const currentSettings = await settingsLoad();
       setSettings(currentSettings);
 
-      setPreset(resolveBootstrapPreset(currentSettings, img.width, img.height));
+      const bootstrapPreset = resolveBootstrapPreset(currentSettings, img.width, img.height);
+      patchDocument(newDoc.id, { preset: bootstrapPreset });
+      setPreset(bootstrapPreset);
 
       // Defer thumbnail generation
       setTimeout(async () => {
@@ -210,6 +216,7 @@ export function useAssetBootstrap(deps: UseAssetBootstrapDeps): {
     addDocument,
     releaseDocument,
     handleSwitchDocument,
+    flushActiveDocument,
     setActiveDocumentId,
     setImage,
     setCropBounds,

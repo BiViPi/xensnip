@@ -1,4 +1,5 @@
 import type { PresentationMode, StudioPreset } from '../studio/types';
+import type { AnnotateObject } from '../annotate/state/types';
 export type { PresentationMode, StudioPreset };
 
 // Re-export studio types used in preset so callers import from one place
@@ -41,6 +42,92 @@ export type BackgroundMode = "Wallpaper" | "Gradient" | "Solid";
 export type GradientType = "Linear" | "Radial";
 
 export type RatioOption = "Auto" | "16:9" | "4:3" | "1:1" | "3:4" | "9:16";
+export interface ArrowDefaults {
+  stroke: string;
+  strokeWidth: number;
+  pointerLength: number;
+  pointerWidth: number;
+  style: 'solid' | 'dashed';
+}
+
+export interface RectangleDefaults {
+  stroke: string;
+  strokeWidth: number;
+  lineStyle: 'solid' | 'dashed' | 'cloud';
+  cornerRadius: number;
+}
+
+export interface TextDefaults {
+  fontSize: number;
+  fontFamily: string;
+  fill: string;
+  fontStyle: string;
+  align: 'left' | 'center' | 'right';
+  padding: number;
+}
+
+export interface NumberedDefaults {
+  radius: number;
+  fill: string;
+}
+
+export interface SpotlightDefaults {
+  opacity: number;
+  cornerRadius: number;
+}
+
+export interface PixelRulerDefaults {
+  stroke: string;
+  strokeWidth: number;
+  labelFill: string;
+  showBackground: boolean;
+}
+
+export interface SpeechBubbleDefaults {
+  stroke: string;
+  fill: string;
+  textColor: string;
+  fontSize: number;
+  fontFamily: string;
+  padding: number;
+  cornerRadius: number;
+}
+
+export interface CalloutDefaults {
+  stroke: string;
+  fill: string;
+  textColor: string;
+  fontSize: number;
+  fontFamily: string;
+  padding: number;
+  cornerRadius: number;
+  lineColor: string;
+  lineWidth: number;
+}
+
+export interface FreehandArrowDefaults {
+  stroke: string;
+  strokeWidth: number;
+}
+
+export interface AnnotationDefaults {
+  schema_version: 1;
+  arrow?: ArrowDefaults;
+  rectangle?: RectangleDefaults;
+  text?: TextDefaults;
+  numbered?: NumberedDefaults;
+  spotlight?: SpotlightDefaults;
+  pixel_ruler?: PixelRulerDefaults;
+  speech_bubble?: SpeechBubbleDefaults;
+  callout?: CalloutDefaults;
+  freehand_arrow?: FreehandArrowDefaults;
+}
+
+export interface PlacedAnnotationsPreset {
+  schema_version: 1;
+  objects: AnnotateObject[];
+}
+
 export interface EditorPreset {
   background: string;
 
@@ -68,6 +155,8 @@ export interface EditorPreset {
   // Presentation mode
   presentation_mode: PresentationMode;
   studio?: StudioPreset;
+  annotation_defaults?: AnnotationDefaults;
+  placed_annotations?: PlacedAnnotationsPreset;
 }
 
 export const WALLPAPER_MAP: Record<string, string> = {
@@ -131,6 +220,8 @@ export const DEFAULT_PRESET: EditorPreset = {
 
   presentation_mode: 'flat',
   studio: undefined,
+  annotation_defaults: undefined,
+  placed_annotations: undefined,
 };
 
 /**
@@ -169,5 +260,147 @@ export function normalizeEditorPreset(raw: unknown): EditorPreset {
     }
     base.studio = sanitizedStudio;
   }
+  
+  if (base.annotation_defaults) {
+    const rawDefaults = base.annotation_defaults as any;
+    const sanitizedDefaults: AnnotationDefaults = { schema_version: 1 };
+    
+    // Arrow
+    if (typeof rawDefaults.arrow === 'object' && rawDefaults.arrow !== null) {
+      const a = rawDefaults.arrow;
+      const clean: Partial<ArrowDefaults> = {};
+      if (typeof a.stroke === 'string') clean.stroke = a.stroke;
+      if (typeof a.strokeWidth === 'number') clean.strokeWidth = a.strokeWidth;
+      if (typeof a.pointerLength === 'number') clean.pointerLength = a.pointerLength;
+      if (typeof a.pointerWidth === 'number') clean.pointerWidth = a.pointerWidth;
+      if (a.style === 'solid' || a.style === 'dashed') clean.style = a.style;
+      if (Object.keys(clean).length > 0) sanitizedDefaults.arrow = clean as ArrowDefaults;
+    }
+    
+    // Rectangle
+    if (typeof rawDefaults.rectangle === 'object' && rawDefaults.rectangle !== null) {
+      const r = rawDefaults.rectangle;
+      const clean: Partial<RectangleDefaults> = {};
+      if (typeof r.stroke === 'string') clean.stroke = r.stroke;
+      if (typeof r.strokeWidth === 'number') clean.strokeWidth = r.strokeWidth;
+      if (r.lineStyle === 'solid' || r.lineStyle === 'dashed' || r.lineStyle === 'cloud') clean.lineStyle = r.lineStyle;
+      if (typeof r.cornerRadius === 'number') clean.cornerRadius = r.cornerRadius;
+      if (Object.keys(clean).length > 0) sanitizedDefaults.rectangle = clean as RectangleDefaults;
+    }
+    
+    // Text
+    if (typeof rawDefaults.text === 'object' && rawDefaults.text !== null) {
+      const t = rawDefaults.text;
+      const clean: Partial<TextDefaults> = {};
+      if (typeof t.fontSize === 'number') clean.fontSize = t.fontSize;
+      if (typeof t.fontFamily === 'string') clean.fontFamily = t.fontFamily;
+      if (typeof t.fill === 'string') clean.fill = t.fill;
+      if (typeof t.fontStyle === 'string') clean.fontStyle = t.fontStyle;
+      if (t.align === 'left' || t.align === 'center' || t.align === 'right') clean.align = t.align;
+      if (typeof t.padding === 'number') clean.padding = t.padding;
+      if (Object.keys(clean).length > 0) sanitizedDefaults.text = clean as TextDefaults;
+    }
+    
+    // Numbered
+    if (typeof rawDefaults.numbered === 'object' && rawDefaults.numbered !== null) {
+      const n = rawDefaults.numbered;
+      const clean: Partial<NumberedDefaults> = {};
+      if (typeof n.radius === 'number') clean.radius = n.radius;
+      if (typeof n.fill === 'string') clean.fill = n.fill;
+      if (Object.keys(clean).length > 0) sanitizedDefaults.numbered = clean as NumberedDefaults;
+    }
+    
+    // Spotlight
+    if (typeof rawDefaults.spotlight === 'object' && rawDefaults.spotlight !== null) {
+      const s = rawDefaults.spotlight;
+      const clean: Partial<SpotlightDefaults> = {};
+      if (typeof s.opacity === 'number') clean.opacity = s.opacity;
+      if (typeof s.cornerRadius === 'number') clean.cornerRadius = s.cornerRadius;
+      if (Object.keys(clean).length > 0) sanitizedDefaults.spotlight = clean as SpotlightDefaults;
+    }
+    
+    // Pixel Ruler
+    if (typeof rawDefaults.pixel_ruler === 'object' && rawDefaults.pixel_ruler !== null) {
+      const pr = rawDefaults.pixel_ruler;
+      const clean: Partial<PixelRulerDefaults> = {};
+      if (typeof pr.stroke === 'string') clean.stroke = pr.stroke;
+      if (typeof pr.strokeWidth === 'number') clean.strokeWidth = pr.strokeWidth;
+      if (typeof pr.labelFill === 'string') clean.labelFill = pr.labelFill;
+      if (typeof pr.showBackground === 'boolean') clean.showBackground = pr.showBackground;
+      if (Object.keys(clean).length > 0) sanitizedDefaults.pixel_ruler = clean as PixelRulerDefaults;
+    }
+    
+    // Speech Bubble
+    if (typeof rawDefaults.speech_bubble === 'object' && rawDefaults.speech_bubble !== null) {
+      const sb = rawDefaults.speech_bubble;
+      const clean: Partial<SpeechBubbleDefaults> = {};
+      if (typeof sb.stroke === 'string') clean.stroke = sb.stroke;
+      if (typeof sb.fill === 'string') clean.fill = sb.fill;
+      if (typeof sb.textColor === 'string') clean.textColor = sb.textColor;
+      if (typeof sb.fontSize === 'number') clean.fontSize = sb.fontSize;
+      if (typeof sb.fontFamily === 'string') clean.fontFamily = sb.fontFamily;
+      if (typeof sb.padding === 'number') clean.padding = sb.padding;
+      if (typeof sb.cornerRadius === 'number') clean.cornerRadius = sb.cornerRadius;
+      if (Object.keys(clean).length > 0) sanitizedDefaults.speech_bubble = clean as SpeechBubbleDefaults;
+    }
+    
+    // Callout
+    if (typeof rawDefaults.callout === 'object' && rawDefaults.callout !== null) {
+      const co = rawDefaults.callout;
+      const clean: Partial<CalloutDefaults> = {};
+      if (typeof co.stroke === 'string') clean.stroke = co.stroke;
+      if (typeof co.fill === 'string') clean.fill = co.fill;
+      if (typeof co.textColor === 'string') clean.textColor = co.textColor;
+      if (typeof co.fontSize === 'number') clean.fontSize = co.fontSize;
+      if (typeof co.fontFamily === 'string') clean.fontFamily = co.fontFamily;
+      if (typeof co.padding === 'number') clean.padding = co.padding;
+      if (typeof co.cornerRadius === 'number') clean.cornerRadius = co.cornerRadius;
+      if (typeof co.lineColor === 'string') clean.lineColor = co.lineColor;
+      if (typeof co.lineWidth === 'number') clean.lineWidth = co.lineWidth;
+      if (Object.keys(clean).length > 0) sanitizedDefaults.callout = clean as CalloutDefaults;
+    }
+    
+    // Freehand Arrow
+    if (typeof rawDefaults.freehand_arrow === 'object' && rawDefaults.freehand_arrow !== null) {
+      const fa = rawDefaults.freehand_arrow;
+      const clean: Partial<FreehandArrowDefaults> = {};
+      if (typeof fa.stroke === 'string') clean.stroke = fa.stroke;
+      if (typeof fa.strokeWidth === 'number') clean.strokeWidth = fa.strokeWidth;
+      if (Object.keys(clean).length > 0) sanitizedDefaults.freehand_arrow = clean as FreehandArrowDefaults;
+    }
+
+    // Step 6: Redaction safeguard
+    const redactionKeys = ['blur', 'pixelate', 'opaque_redact', 'smart_redact_ai'];
+    for (const key of redactionKeys) {
+      if (rawDefaults[key] !== undefined) {
+        console.warn(`[Preset Normalizer] Stripped disallowed key '${key}' from annotation_defaults.`);
+      }
+    }
+
+    base.annotation_defaults = sanitizedDefaults;
+  }
+
+  if (base.placed_annotations) {
+    const rawPlaced = base.placed_annotations as any;
+    const rawObjects = Array.isArray(rawPlaced?.objects) ? rawPlaced.objects : [];
+    const sanitizedObjects = rawObjects
+      .filter((obj: unknown): obj is Record<string, unknown> => typeof obj === 'object' && obj !== null)
+      .filter(
+        (obj: Record<string, unknown>) =>
+          typeof obj.id === 'string' &&
+          typeof obj.type === 'string' &&
+          typeof obj.x === 'number' &&
+          typeof obj.y === 'number' &&
+          typeof obj.rotation === 'number' &&
+          typeof obj.draggable === 'boolean'
+      )
+      .map((obj: Record<string, unknown>) => JSON.parse(JSON.stringify(obj)) as AnnotateObject);
+
+    base.placed_annotations = {
+      schema_version: 1,
+      objects: sanitizedObjects,
+    };
+  }
+
   return base;
 }

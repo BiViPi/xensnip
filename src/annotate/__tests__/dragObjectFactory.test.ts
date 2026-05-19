@@ -93,6 +93,28 @@ describe('createDragAnnotationObject', () => {
     });
   });
 
+  it('applies annotation defaults to drag-created objects', () => {
+    const obj = createDragAnnotationObject('arrow', start, end, 'id-12', {
+      schema_version: 1,
+      arrow: {
+        stroke: '#22c55e',
+        strokeWidth: 9,
+        pointerLength: 18,
+        pointerWidth: 16,
+        style: 'dashed',
+      },
+    });
+
+    expect(obj).toMatchObject({
+      type: 'arrow',
+      stroke: '#22c55e',
+      strokeWidth: 9,
+      pointerLength: 18,
+      pointerWidth: 16,
+      style: 'dashed',
+    });
+  });
+
   it('returns null for unknown draw type', () => {
     const obj = createDragAnnotationObject(
       'unknown_type' as never,

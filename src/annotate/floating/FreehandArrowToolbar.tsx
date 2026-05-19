@@ -13,8 +13,12 @@ interface Props {
 }
 
 export function FreehandArrowToolbar({ anchor, obj }: Props) {
-  const { updateObject, toolbarCollapsed, setToolbarCollapsed } = useAnnotationStore();
+  const { updateObject, patchToolDefaults, toolbarCollapsed, setToolbarCollapsed } = useAnnotationStore();
   const [activePopover, setActivePopover] = useState<string | null>(null);
+  const applyFreehandArrowStyle = (patch: Partial<Pick<FreehandArrowObject, 'stroke' | 'strokeWidth'>>) => {
+    updateObject(obj.id, patch);
+    patchToolDefaults('freehand_arrow', patch);
+  };
 
   const toggle = (id: string) => (open: boolean) => {
     setActivePopover(open ? id : null);
@@ -55,7 +59,7 @@ export function FreehandArrowToolbar({ anchor, obj }: Props) {
           <div className="xs-toolbar-divider" />
           <ColorToggle
             color={obj.stroke}
-            onChange={(stroke: string) => updateObject(obj.id, { stroke })}
+            onChange={(stroke: string) => applyFreehandArrowStyle({ stroke })}
             title="Stroke Color"
             isOpen={activePopover === 'color'}
             onToggle={toggle('color')}
@@ -63,7 +67,7 @@ export function FreehandArrowToolbar({ anchor, obj }: Props) {
           <div className="xs-toolbar-divider" />
           <SliderToggle
             value={obj.strokeWidth}
-            onChange={(strokeWidth: number) => updateObject(obj.id, { strokeWidth })}
+            onChange={(strokeWidth: number) => applyFreehandArrowStyle({ strokeWidth })}
             isOpen={activePopover === 'width'}
             onToggle={toggle('width')}
             title="Line Thickness"

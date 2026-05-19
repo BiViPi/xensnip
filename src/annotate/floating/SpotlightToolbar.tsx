@@ -11,9 +11,13 @@ interface Props {
 }
 
 export function SpotlightToolbar({ anchor, obj }: Props) {
-  const { updateObject, toolbarCollapsed, setToolbarCollapsed } = useAnnotationStore();
+  const { updateObject, patchToolDefaults, toolbarCollapsed, setToolbarCollapsed } = useAnnotationStore();
   const [showOpacity, setShowOpacity] = useState(false);
   const [showRadius, setShowRadius] = useState(false);
+  const applySpotlightStyle = (patch: Partial<Pick<SpotlightObject, 'opacity' | 'cornerRadius'>>) => {
+    updateObject(obj.id, patch);
+    patchToolDefaults('spotlight', patch);
+  };
 
   const overlay = document.getElementById('annotation-ui-overlay');
   if (!overlay) return null;
@@ -45,7 +49,7 @@ export function SpotlightToolbar({ anchor, obj }: Props) {
 
           <SliderToggle
             value={Math.round(obj.opacity * 100)}
-            onChange={(val) => updateObject(obj.id, { opacity: val / 100 })}
+            onChange={(val) => applySpotlightStyle({ opacity: val / 100 })}
             min={20}
             max={90}
             unit="%"
@@ -62,7 +66,7 @@ export function SpotlightToolbar({ anchor, obj }: Props) {
 
           <SliderToggle
             value={obj.cornerRadius}
-            onChange={(val) => updateObject(obj.id, { cornerRadius: val })}
+            onChange={(val) => applySpotlightStyle({ cornerRadius: val })}
             min={0}
             max={64}
             isOpen={showRadius}

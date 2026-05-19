@@ -1,5 +1,6 @@
 import { AnnotationSnapshot } from '../../annotate/state/store';
 import { RectangleObject } from '../../annotate/state/types';
+import { DEFAULT_PRESET } from '../../compose/preset';
 import {
   DocumentUndoSnapshot,
   ScreenshotDocument,
@@ -74,6 +75,7 @@ export function createScreenshotDocument(
     image: createMockImage(`image:${id}`),
     blobUrl: `blob:${id}`,
     thumbnailSrc: `thumb:${id}`,
+    preset: { ...DEFAULT_PRESET },
     annotation: createAnnotationSnapshot(),
     cropBounds: null,
     isExportChecked: false,

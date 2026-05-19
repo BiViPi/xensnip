@@ -1,6 +1,7 @@
 import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import { useScreenshotDocuments } from '../useScreenshotDocuments';
+import { DEFAULT_PRESET } from '../../compose/preset';
 import {
   createAnnotationSnapshot,
   createCropBounds,
@@ -93,6 +94,7 @@ describe('useScreenshotDocuments', () => {
     });
 
     const snapshot = {
+      preset: { ...DEFAULT_PRESET, presentation_mode: 'studio' as const },
       annotation: createAnnotationSnapshot({
         objects: [createRectangleObject('obj1')],
       }),
@@ -107,6 +109,7 @@ describe('useScreenshotDocuments', () => {
 
     expect(result.current.activeDocumentId).toBe('2');
     const updatedDoc1 = result.current.documents.find(d => d.id === '1');
+    expect(updatedDoc1?.preset.presentation_mode).toBe('studio');
     expect(updatedDoc1?.annotation.objects).toHaveLength(1);
     expect(updatedDoc1?.cropBounds).toEqual(snapshot.cropBounds);
   });
