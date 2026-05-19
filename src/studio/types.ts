@@ -68,11 +68,20 @@ export interface StudioGeometryParams {
   bevel:        number;
 }
 
+export interface FrameContentLayout {
+  width: number;
+  height: number;
+  radius: number;
+  z: number;
+  backZ: number;
+}
+
 /** Implemented by each frame family. Add new families without touching this interface. */
 export interface FrameRenderer {
   buildGeometry(params: StudioGeometryParams): THREE.BufferGeometry;
   buildMaterial(style: FrameStyle): THREE.Material | THREE.Material[];
   getActualDepth(params: StudioGeometryParams): number;
+  getContentLayout(params: StudioGeometryParams): FrameContentLayout;
   /** True if this family draws a macOS browser title bar on the screen texture */
   hasTitleBar: boolean;
 }

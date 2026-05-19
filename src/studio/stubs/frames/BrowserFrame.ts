@@ -14,4 +14,8 @@ export class BrowserFrame implements FrameRenderer {
   getActualDepth(params: StudioGeometryParams): number {
     return params.depth;
   }
+
+  getContentLayout(_params: StudioGeometryParams): never {
+    throw new Error('Studio frame renderer not available');
+  }
 }

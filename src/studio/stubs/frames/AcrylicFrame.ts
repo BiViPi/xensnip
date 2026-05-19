@@ -14,4 +14,8 @@ export class AcrylicFrame implements FrameRenderer {
   getActualDepth(params: StudioGeometryParams): number {
     return params.depth * 2.5;
   }
+
+  getContentLayout(_params: StudioGeometryParams): never {
+    throw new Error('Studio frame renderer not available');
+  }
 }
