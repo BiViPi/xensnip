@@ -73,6 +73,17 @@ export function StudioGeometryControl({ studioPreset, onChange }: Props) {
 
   return (
     <div className="shadow-control-panel" style={{ width: '260px', padding: '8px' }}>
+      <style>{`
+        .xs-geometry-num-input::-webkit-outer-spin-button,
+        .xs-geometry-num-input::-webkit-inner-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+        .xs-geometry-num-input {
+          -moz-appearance: textfield;
+        }
+      `}</style>
+
       {/* Header */}
       <div style={{ display: 'flex', marginBottom: '24px', alignItems: 'center', gap: '10px' }}>
         <SlidersHorizontal size={16} style={{ color: 'var(--xs-text-dim)' }} />
@@ -96,7 +107,7 @@ export function StudioGeometryControl({ studioPreset, onChange }: Props) {
               key={item.id}
               style={{
                 display: 'grid',
-                gridTemplateColumns: '24px 60px 1fr 40px',
+                gridTemplateColumns: '24px 60px 1fr 68px',
                 alignItems: 'center',
                 gap: '12px',
               }}
@@ -133,19 +144,67 @@ export function StudioGeometryControl({ studioPreset, onChange }: Props) {
                   onChange={e => onChange(item.param, parseFloat(e.target.value))}
                 />
               </div>
-              <span
+              
+              <div
                 style={{
-                  fontSize: '12px',
-                  color: 'var(--xs-accent)',
-                  fontWeight: 700,
-                  textAlign: 'right',
-                  fontVariantNumeric: 'tabular-nums',
-                  minWidth: '40px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'flex-end',
+                  gap: '2px',
+                  minWidth: '68px',
                 }}
               >
-                {item.displayVal}
-                {item.unit}
-              </span>
+                <input
+                  type="number"
+                  min={item.min}
+                  max={item.max}
+                  step={item.step}
+                  value={item.value}
+                  onChange={e => {
+                    const val = parseFloat(e.target.value);
+                    if (!isNaN(val)) {
+                      const clamped = Math.max(item.min, Math.min(item.max, val));
+                      onChange(item.param, clamped);
+                    }
+                  }}
+                  style={{
+                    width: '48px',
+                    background: 'rgba(255, 255, 255, 0.02)',
+                    border: '1px solid var(--xs-border)',
+                    borderRadius: '4px',
+                    color: 'var(--xs-accent)',
+                    fontWeight: 700,
+                    fontSize: '12px',
+                    textAlign: 'right',
+                    fontFamily: 'monospace',
+                    padding: '2px 4px',
+                    outline: 'none',
+                    transition: 'all 0.15s ease',
+                  }}
+                  className="xs-geometry-num-input"
+                  onFocus={e => {
+                    e.target.style.borderColor = 'var(--xs-accent)';
+                    e.target.style.background = 'rgba(99, 102, 241, 0.08)';
+                  }}
+                  onBlur={e => {
+                    e.target.style.borderColor = 'var(--xs-border)';
+                    e.target.style.background = 'rgba(255, 255, 255, 0.02)';
+                  }}
+                />
+                {item.unit && (
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      color: 'var(--xs-text-dim)',
+                      fontWeight: 600,
+                      width: '10px',
+                      textAlign: 'left',
+                    }}
+                  >
+                    {item.unit}
+                  </span>
+                )}
+              </div>
             </div>
           );
         })}
