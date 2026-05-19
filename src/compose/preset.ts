@@ -16,6 +16,8 @@ export const DEFAULT_STUDIO_PRESET: StudioPreset = {
   bevel:         0.012,
   frame_scale:   1.0,
   frame_rotation: 0,
+  frame_offset_x: 0,
+  frame_offset_y: 0,
 
   // Shadow Defaults
   shadow_enabled:   true,
@@ -152,6 +154,8 @@ export function normalizeEditorPreset(raw: unknown): EditorPreset {
       'bevel',
       'frame_scale',
       'frame_rotation',
+      'frame_offset_x',
+      'frame_offset_y',
       'shadow_enabled',
       'shadow_intensity',
       'shadow_angle',

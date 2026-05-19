@@ -45,6 +45,8 @@ export interface StudioPreset {
   bevel:         number;
   frame_scale:   number;
   frame_rotation: number;
+  frame_offset_x: number;
+  frame_offset_y: number;
 
   // Shadow Controls
   shadow_enabled:   boolean;
@@ -84,6 +86,8 @@ export interface StudioRenderConfig {
   bevel:           number;
   frameScale:      number;
   frameRotation:   number;
+  frameOffsetX:    number;
+  frameOffsetY:    number;
 
   // New shadow fields
   shadowEnabled:   boolean;

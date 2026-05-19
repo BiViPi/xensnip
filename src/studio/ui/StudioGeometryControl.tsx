@@ -52,7 +52,7 @@ export function StudioGeometryControl({ studioPreset, onChange }: Props) {
       label: 'Scale',
       value: studioPreset.frame_scale,
       min: 0.7,
-      max: 1.35,
+      max: 2.2,
       step: 0.05,
       unit: 'x',
       displayVal: studioPreset.frame_scale.toFixed(2),

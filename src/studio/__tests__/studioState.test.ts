@@ -28,6 +28,8 @@ describe('resolveStudioPreset', () => {
     expect(resolveStudioPreset(presetWith({ studio: oldPreset }))).toMatchObject({
       shadow_enabled: DEFAULT_STUDIO_PRESET.shadow_enabled,
       frame_scale: DEFAULT_STUDIO_PRESET.frame_scale,
+      frame_offset_x: DEFAULT_STUDIO_PRESET.frame_offset_x,
+      frame_offset_y: DEFAULT_STUDIO_PRESET.frame_offset_y,
       shadow_blur: DEFAULT_STUDIO_PRESET.shadow_blur,
       shadow_opacity: DEFAULT_STUDIO_PRESET.shadow_opacity,
     });
@@ -117,9 +119,9 @@ describe('useStudioState setters', () => {
     const { setPreset, getPreset } = captureSetPreset(preset);
     const { setStudioParam } = useStudioState(preset, setPreset);
 
-    setStudioParam('corner_radius', 0.18);
+    setStudioParam('frame_offset_x', 0.18);
 
-    expect(getPreset().studio?.corner_radius).toBe(0.18);
+    expect(getPreset().studio?.frame_offset_x).toBe(0.18);
   });
 
   it('setStudioParam patches shadow_enabled toggle', () => {

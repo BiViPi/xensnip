@@ -1,7 +1,6 @@
 import type { EditorPreset } from '../../compose/preset';
 import { useStudioState } from '../state/useStudioState';
 import { FrameTypePicker } from './FrameTypePicker';
-import { ViewModePill } from './ViewModePill';
 import { StudioBgPicker } from './StudioBgPicker';
 import { StudioShadowControl } from './StudioShadowControl';
 import { StudioGeometryControl } from './StudioGeometryControl';
@@ -35,7 +34,6 @@ export function StudioQuickBar({
   const {
     studioPreset,
     setFrameFamily,
-    setViewMode,
     setBackgroundId,
     setFrameStyle,
     setStudioParam,
@@ -128,9 +126,6 @@ export function StudioQuickBar({
           </div>
         )}
       </div>
-
-      <div className="xs-divider" />
-      <ViewModePill value={studioPreset.view_mode} onChange={setViewMode} />
     </>
   );
 }

@@ -133,6 +133,7 @@ export function QuickAccessViewport({
                 preset={preset}
                 image={image}
                 onExportHandleChange={onExportHandleChange}
+                onPresetChange={onPresetChange}
               />
             </div>
           </div>
