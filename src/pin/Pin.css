@@ -1,0 +1,101 @@
+.xs-pin-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.xs-pin-drag-surface {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.xs-pin-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  display: block;
+}
+
+.xs-pin-close-wrapper {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0;
+  z-index: 99;
+}
+
+.xs-pin-container:hover .xs-pin-close-wrapper,
+.xs-pin-container.is-hovered .xs-pin-close-wrapper {
+  opacity: 1;
+}
+
+.xs-pin-close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #f8fafc;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  padding: 0;
+  margin: 0;
+}
+
+.xs-pin-close-btn:hover {
+  background: rgba(15, 23, 42, 0.85);
+  transform: scale(1.05);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.xs-pin-close-btn:active {
+  transform: scale(0.95);
+}
+
+.xs-pin-status {
+  min-width: 220px;
+  max-width: min(320px, calc(100vw - 32px));
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(15, 23, 42, 0.82);
+  color: #f8fafc;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.28);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  text-align: center;
+}
+
+.xs-pin-status.is-error {
+  border-color: rgba(248, 113, 113, 0.4);
+}
+
+.xs-pin-status-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.xs-pin-status-body {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: rgba(226, 232, 240, 0.92);
+}

@@ -62,10 +62,14 @@ impl AssetRegistry {
     }
 
     pub fn insert(&self, asset: Asset) {
+        self.insert_with_consumer(asset, "capture_engine");
+    }
+
+    pub fn insert_with_consumer(&self, asset: Asset, initial_consumer: &str) {
         let id = asset.id.clone();
         let mut map = self.inner.lock().unwrap();
         let mut consumers = asset.consumers;
-        consumers.insert("capture_engine".to_string());
+        consumers.insert(initial_consumer.to_string());
         let entry = Asset {
             ref_count: consumers.len() as u32,
             consumers,
@@ -74,8 +78,9 @@ impl AssetRegistry {
         map.insert(id.clone(), entry);
         log::info!(
             target: "asset",
-            r#"{{"event":"asset.created","asset_id":"{}","ref_count":1,"consumer":"capture_engine"}}"#,
-            id
+            r#"{{"event":"asset.created","asset_id":"{}","ref_count":1,"consumer":"{}"}}"#,
+            id,
+            initial_consumer
         );
     }
 

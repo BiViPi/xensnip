@@ -117,6 +117,9 @@ pub fn run() {
             commands::settings_update_last_preset,
             commands::open_settings_window,
             commands::perf_log,
+            commands::pin_create,
+            commands::pin_close,
+            commands::pin_get_asset_id,
         ])
         .setup(|app| {
             app.manage(capture::CaptureSession::new());
@@ -125,6 +128,7 @@ pub fn run() {
             app.manage(quick_access::ActiveAsset::new());
             app.manage(quick_access::ReadyRegistry::new());
             app.manage(quick_access::PendingShow::new());
+            app.manage(commands::PinRegistry::default());
 
             quick_access::pre_warm(app.handle());
 
@@ -212,9 +216,26 @@ pub fn run() {
     app.run(move |_app_handle, event| {
         // Prevent exit when all windows close so the tray stays alive.
         // Allow exit only when the user explicitly clicks Quit from the tray.
-        if let tauri::RunEvent::ExitRequested { api, .. } = event {
+        if let tauri::RunEvent::ExitRequested { api, .. } = &event {
             if !quit_requested_run.load(Ordering::Relaxed) {
                 api.prevent_exit();
+            }
+        }
+
+        if let tauri::RunEvent::WindowEvent {
+            label,
+            event: tauri::WindowEvent::Destroyed,
+            ..
+        } = &event
+        {
+            if label.starts_with("pin-") {
+                let pin_registry = _app_handle.state::<commands::PinRegistry>();
+                let mut map = pin_registry.map.lock().unwrap();
+                if let Some(asset_id) = map.remove(label) {
+                    let asset_registry = _app_handle.state::<asset::AssetRegistry>();
+                    let _ = asset_registry.release(&asset_id, label);
+                    log::info!(target: "pin", "Cleaned up asset for closed pin window: {}", label);
+                }
             }
         }
     });

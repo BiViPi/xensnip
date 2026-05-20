@@ -2,7 +2,7 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Capability for all XenSnip windows",
-  "windows": ["main", "region-overlay", "quick-access", "settings", "editor-*"],
+  "windows": ["main", "region-overlay", "quick-access", "settings", "editor-*", "pin-*"],
   "permissions": [
     "core:default",
     "opener:default",

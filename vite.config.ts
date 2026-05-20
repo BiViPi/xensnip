@@ -43,6 +43,7 @@ export default defineConfig(async () => ({
         "quick-access": resolve(__dirname, "quick-access.html"),
         settings: resolve(__dirname, "settings.html"),
         delay: resolve(__dirname, "delay.html"),
+        pin: resolve(__dirname, "pin.html"),
       },
     },
   },

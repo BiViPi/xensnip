@@ -248,6 +248,40 @@ export function QuickBar({
     onPresentationModeChange(presentationMode === 'flat' ? 'studio' : 'flat');
   };
 
+  const handlePin = async () => {
+    if (isActionInFlight) return;
+    const readyStudioHandle = presentationMode === "studio" ? studioExportHandle : null;
+    if (presentationMode === "studio") {
+      if (!readyStudioHandle?.isReady) {
+        showToast("Studio is still loading", "error");
+        return;
+      }
+    }
+    setIsActionInFlight(true);
+    try {
+      let bytes: Uint8Array;
+      
+      if (presentationMode === 'studio') {
+        bytes = await exportStudioPng(readyStudioHandle!, preset.ratio);
+      } else {
+        onFlush();
+        bytes = objects.length > 0
+          ? await composeWithAnnotations(image, preset, objects)
+          : await composeToBlob(image, preset);
+      }
+      
+      const { invoke } = await import("@tauri-apps/api/core");
+      await invoke("pin_create", {
+        pngBytes: Array.from(bytes),
+      });
+      
+      showToast("Pinned to screen", "success");
+    } catch (err) {
+      showToast("Failed to pin", "error");
+      console.error(err);
+    } finally { setIsActionInFlight(false); }
+  };
+
   return (
     <div className="xs-dock" ref={dockRef}>
       {/* Ratio — always visible */}
@@ -432,6 +466,7 @@ export function QuickBar({
 
       {/* Actions */}
       <div style={{ display: 'flex', gap: '12px' }}>
+        <button className="xs-btn xs-action-secondary" onClick={handlePin} disabled={isActionInFlight}>Pin</button>
         <button className="xs-btn xs-action-primary" onClick={handleCopy} disabled={isActionInFlight}><CopyIcon /> Copy</button>
         <button className="xs-btn xs-action-secondary" onClick={handleExport} disabled={isActionInFlight}><ExportIcon /> Export</button>
         <div className="xs-divider" />
