@@ -19,25 +19,25 @@ describe('exportStudioPng', () => {
   it('calls handle.exportPng with correct dimensions for 16:9', async () => {
     const handle = makeHandle();
     await exportStudioPng(handle, '16:9');
-    expect(handle.exportPng).toHaveBeenCalledWith(2560, 1440);
+    expect(handle.exportPng).toHaveBeenCalledWith(3840, 2160);
   });
 
   it('calls handle.exportPng with correct dimensions for 1:1', async () => {
     const handle = makeHandle();
     await exportStudioPng(handle, '1:1');
-    expect(handle.exportPng).toHaveBeenCalledWith(2560, 2560);
+    expect(handle.exportPng).toHaveBeenCalledWith(3840, 3840);
   });
 
   it('calls handle.exportPng with correct dimensions for 9:16', async () => {
     const handle = makeHandle();
     await exportStudioPng(handle, '9:16');
-    expect(handle.exportPng).toHaveBeenCalledWith(1440, 2560);
+    expect(handle.exportPng).toHaveBeenCalledWith(2160, 3840);
   });
 
   it('calls handle.exportPng with correct dimensions for Auto', async () => {
     const handle = makeHandle();
     await exportStudioPng(handle, 'Auto');
-    expect(handle.exportPng).toHaveBeenCalledWith(2560, 2560);
+    expect(handle.exportPng).toHaveBeenCalledWith(3840, 3840);
   });
 
   it('dataUrlToBytes round-trip — returns correct byte values', async () => {

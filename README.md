@@ -8,6 +8,10 @@ It lives in the system tray, captures regions or the active window with global h
 
 ## Preview
 
+### 2.5D Perspective Frame
+
+![XenSnip 2.5D perspective frame](src/assets/readme/xensnip_perspective_view.png)
+
 ### Dark Theme
 
 ![XenSnip dark theme](src/assets/dark_theme.png)
@@ -18,20 +22,24 @@ It lives in the system tray, captures regions or the active window with global h
 
 ## Version
 
-Current release: `0.3.0`
+Current release: `0.4.0`
 
 ## What XenSnip Does
 
 - Capture a screen region or the active window
+- Delay active-window capture to catch transient UI states such as menus, hover panels, and dropdowns
 - Refine a region capture before commit with resize handles, move drag, and confirm or cancel actions
 - Snap region adjustments toward nearby window edges and visual dividers during resize
 - Open a quick-access editor immediately after capture
+- Switch each screenshot independently between 2D flat and 2.5D Studio presentation modes
+- Render styled presentation outputs with Browser Frame or Acrylic Block, user-controlled viewing angles, and curated studio backgrounds
 - Name each capture directly from its thumbnail card before export
 - Annotate screenshots with arrows, rectangles, text, callouts, steps, and freehand arrows
 - Hide sensitive information with blur, pixelate, or opaque redact tools
 - Style screenshots with gradients, wallpaper backgrounds, padding, borders, and shadows
+- Pin the current composition to the screen as an always-on-top reference window
 - Copy the final result to the clipboard or export it to disk
-- Reuse and manage visual presets across captures
+- Reuse and manage visual presets across captures, including annotation defaults and placed annotation layouts
 - Extract text from a selected area with OCR
 
 ## Download
@@ -41,7 +49,7 @@ For normal use, download the latest Windows installer from GitHub Releases:
 - Release page: [GitHub Releases](https://github.com/BiViPi/xensnip/releases)
 - Landing page: [XenSnip landing page](https://xensnip-landing-page.vercel.app/)
 
-The `0.3.0` release is intended to be distributed as installer packages rather than as a source-only package.
+The `0.4.0` release is intended to be distributed as installer packages rather than as a source-only package.
 
 Release package formats:
 
@@ -71,7 +79,8 @@ Both shortcuts can be changed in the Settings window.
 3. For region capture, drag a rough selection, then refine it before commit with move, resize, confirm, or cancel.
 4. Review the accepted capture in the quick-access editor.
 5. Annotate, redact, style, and optionally rename the capture from the left thumbnail card.
-6. Copy or export the final image.
+6. Choose flat 2D output or switch that screenshot into 2.5D Studio mode.
+7. Copy, export, or pin the final image.
 
 ## OCR
 
@@ -135,6 +144,8 @@ pnpm tauri build -b nsis msi --ci --no-sign
 
 - Some protected or hardware-accelerated windows may capture as black or empty due to Windows restrictions
 - OCR is best-effort and should not be treated as a guaranteed extraction layer
+- Capture delay currently applies to active-window capture. Region capture still stays instant in this release.
+- Presets can replay placed annotations, but cross-image size or aspect-ratio differences may still require manual adjustment.
 - Smart alignment assist is intentionally conservative in this release and may still need threshold polish on some desktop layouts
 - XenSnip is currently Windows-only
 

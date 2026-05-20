@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.0] - 2026-05-20
+
+### Added
+- Studio Mode: XenSnip now supports a dedicated 2.5D presentation workspace with Browser Frame and Acrylic Block render paths, user-controlled viewing angles, and curated studio backgrounds.
+- Per-screenshot presentation mode: each screenshot can now keep its own `2D` or `2.5D` mode instead of sharing one global session toggle.
+- Pin to Screen: the current styled composition can now be opened as an always-on-top floating reference window that supports multiple concurrent pins.
+- Active-window capture delay: users can now choose `Off`, `3s`, `5s`, or `10s` before active-window capture fires.
+- Annotation presets now persist annotation defaults and can replay placed annotation objects from saved presets.
+
+### Changed
+- Copy, export, and pin flows now share the same composition render contract for flat and Studio outputs.
+- The settings surface now exposes default presentation mode and capture delay as first-class release features.
+
+### Fixed
+- Starting a new capture no longer drops placed annotations from the previously active document before preset/state persistence completes.
+- Pin window creation, asset loading, close handling, and drag behavior were hardened for the standalone always-on-top workflow.
+
 ## [0.3.0] - 2026-05-14
 
 ### Added
