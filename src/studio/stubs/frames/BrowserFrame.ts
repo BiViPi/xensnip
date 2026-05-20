@@ -15,7 +15,13 @@ export class BrowserFrame implements FrameRenderer {
     return params.depth;
   }
 
-  getContentLayout(_params: StudioGeometryParams): never {
-    throw new Error('Studio frame renderer not available');
+  getContentLayout(params: StudioGeometryParams) {
+    return {
+      width: params.width - params.bevel * 1.6,
+      height: params.height - params.bevel * 1.6,
+      radius: Math.max(0, params.cornerRadius - params.bevel * 0.8),
+      z: params.depth / 2 - 0.004,
+      backZ: params.depth / 2 - 0.01,
+    };
   }
 }

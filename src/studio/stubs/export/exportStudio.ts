@@ -3,12 +3,12 @@ import type { RatioOption } from '../../../compose/preset';
 
 function resolveExportDimensions(ratio: RatioOption): [number, number] {
   switch (ratio) {
-    case '16:9': return [2560, 1440];
-    case '4:3':  return [2560, 1920];
-    case '1:1':  return [2560, 2560];
-    case '3:4':  return [1920, 2560];
-    case '9:16': return [1440, 2560];
-    case 'Auto': return [2560, 2560];
+    case '16:9': return [3840, 2160];
+    case '4:3':  return [3840, 2880];
+    case '1:1':  return [3840, 3840];
+    case '3:4':  return [2880, 3840];
+    case '9:16': return [2160, 3840];
+    case 'Auto': return [3840, 3840];
   }
 }
 
