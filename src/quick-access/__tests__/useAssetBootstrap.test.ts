@@ -15,6 +15,7 @@ class MockImage {
 // Mock IPC
 vi.mock('../../ipc/index', () => ({
   assetResolve: vi.fn().mockResolvedValue(undefined),
+  assetRelease: vi.fn().mockResolvedValue(undefined),
   assetReadPng: vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3])),
   perfLog: vi.fn(),
   settingsLoad: vi.fn().mockResolvedValue({}),
@@ -97,5 +98,21 @@ describe('useAssetBootstrap Redo support', () => {
 
     expect(deps.flushActiveDocument).not.toHaveBeenCalled();
     expect(deps.handleSwitchDocument).toHaveBeenCalledWith('doc-1');
+  });
+
+  it('releases the UI asset when bootstrap fails after resolve', async () => {
+    const deps = createMockDeps();
+    const { assetReadPng, assetRelease } = await import('../../ipc/index');
+    vi.mocked(assetReadPng).mockRejectedValueOnce(new Error('read failed'));
+
+    const { result } = renderHook(() => useAssetBootstrap(deps as any));
+
+    await expect(
+      act(async () => {
+        await result.current.bootstrapAsset('asset-bad');
+      }),
+    ).rejects.toThrow('read failed');
+
+    expect(assetRelease).toHaveBeenCalledWith('asset-bad', 'quick_access_ui');
   });
 });

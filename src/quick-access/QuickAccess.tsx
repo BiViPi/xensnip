@@ -9,7 +9,7 @@ import {
   quickAccessDismissCurrent,
   settingsLoad, settingsUpdateLastPreset,
 } from "../ipc/index";
-import { QuickAccessShowPayload, Settings, ThemeMode } from "../ipc/types";
+import { CaptureFailure, QuickAccessShowPayload, Settings, ThemeMode } from "../ipc/types";
 import { applyTheme } from "../styles/applyTheme";
 import { DEFAULT_PRESET, EditorPreset, type PresentationMode } from "../compose/preset";
 import { preloadWallpaper, getOrLoadWallpaper } from "../compose/core";
@@ -39,6 +39,12 @@ const LEFT_PANEL_MAX_WIDTH = 272;
 const LEFT_PANEL_COLLAPSED_WIDTH = 52;
 const LEFT_PANEL_OFFSET = 20;
 const LEFT_PANEL_SAFE_GAP = 16;
+
+function revokeManagedUrl(url: string | undefined) {
+  if (url?.startsWith("blob:")) {
+    URL.revokeObjectURL(url);
+  }
+}
 
 export function QuickAccess() {
   const [viewportSize, setViewportSize] = useState(() => ({
@@ -91,7 +97,7 @@ export function QuickAccess() {
 
   // Shell-owned: mixes blob URL cleanup + IPC asset release
   const releaseDocument = useCallback((doc: ScreenshotDocument) => {
-    URL.revokeObjectURL(doc.blobUrl);
+    revokeManagedUrl(doc.blobUrl);
     if (doc.assetId) {
       void assetRelease(doc.assetId, "quick_access_ui").catch(() => {});
     }
@@ -110,6 +116,8 @@ export function QuickAccess() {
     hasAnnotations,
   } = useCropTool(image, preset, setImage, setActiveTool, async (newImg) => {
     if (activeDocumentId) {
+      const currentDoc = docsRef.current.find((doc) => doc.id === activeDocumentId);
+      revokeManagedUrl(currentDoc?.blobUrl);
       const thumb = await generateThumbnail(newImg);
       patchActiveDocument({ image: newImg, blobUrl: newImg.src, thumbnailSrc: thumb });
     }
@@ -222,13 +230,13 @@ export function QuickAccess() {
 
   useEffect(() => {
     let mounted = true;
-    let unlisten: null | (() => void) = null;
+    let unlistenShow: null | (() => void) = null;
+    let unlistenFailure: null | (() => void) = null;
     void listen<QuickAccessShowPayload>("quick-access-show", (event) => {
       refreshSettings();
       void (async () => {
         try {
           setToast(null);
-          setIsActionInFlight(false);
           await bootstrapAssetRef.current(event.payload.asset_id, {
             captureKind: event.payload.capture_meta.capture_kind,
           });
@@ -238,15 +246,29 @@ export function QuickAccess() {
       })();
     }).then((fn) => {
       if (mounted) {
-        unlisten = fn;
+        unlistenShow = fn;
         void quickAccessMarkReady().catch(console.error);
       } else {
         fn();
       }
     });
+
+    void listen<CaptureFailure>("capture.failure", (event) => {
+      if (event.payload.code === "editor_busy") {
+        showToast(event.payload.message, "error");
+      }
+    }).then((fn) => {
+      if (mounted) {
+        unlistenFailure = fn;
+      } else {
+        fn();
+      }
+    });
+
     return () => {
       mounted = false;
-      unlisten?.();
+      unlistenShow?.();
+      unlistenFailure?.();
     };
   }, [refreshSettings, bootstrapAssetRef, showToast]);
 

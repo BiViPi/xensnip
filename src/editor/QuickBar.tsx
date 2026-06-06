@@ -12,7 +12,7 @@ import { useAnnotationStore, useHasAnnotations } from "../annotate/state/store";
 import { normalizeFilenameStem } from "./normalizeFilenameStem";
 import copySound from "../assets/sounds/copy.ogg";
 import exportSound from "../assets/sounds/export.ogg";
-import { clipboardWriteImage, exportSaveMedia, openSettingsWindow } from "../ipc/index";
+import { clipboardWriteImage, exportSaveMedia, openSettingsWindow, quickAccessSetBusy } from "../ipc/index";
 import { Settings } from "../ipc/types";
 import type { StudioExportHandle } from "../studio/types";
 import { exportStudioPng } from "@studio-impl/export/exportStudio";
@@ -48,6 +48,8 @@ interface Props {
   onPresentationModeChange: (m: PresentationMode) => void;
   studioExportHandle: StudioExportHandle | null;
 }
+
+const QUICK_ACCESS_SESSION_BUSY_TOKEN = "quick_access_session";
 
 export function QuickBar({
   preset, setPreset, image, isActionInFlight, setIsActionInFlight, showToast,
@@ -100,6 +102,13 @@ export function QuickBar({
   const toggle = (n: string) => onActivePopChange(activePop === n ? null : n);
 
   const objects = useAnnotationStore(s => s.objects);
+  const setQuickAccessBusy = React.useCallback(async (busy: boolean) => {
+    try {
+      await quickAccessSetBusy(QUICK_ACCESS_SESSION_BUSY_TOKEN, busy);
+    } catch (error) {
+      console.error("Failed to sync quick access busy state", error);
+    }
+  }, []);
 
   const buildExportBaseName = (
     doc: ScreenshotDocument | null,
@@ -123,6 +132,7 @@ export function QuickBar({
       }
     }
     setIsActionInFlight(true);
+    await setQuickAccessBusy(true);
     try {
       let bytes: Uint8Array;
       if (presentationMode === 'studio') {
@@ -138,7 +148,10 @@ export function QuickBar({
         new Audio(copySound).play().catch(() => {});
       }
       showToast("Copied", "success");
-    } finally { setIsActionInFlight(false); }
+    } finally {
+      setIsActionInFlight(false);
+      await setQuickAccessBusy(false);
+    }
   };
 
   const handleExport = async () => {
@@ -156,6 +169,7 @@ export function QuickBar({
     }
 
     setIsActionInFlight(true);
+    await setQuickAccessBusy(true);
     try {
       if (presentationMode === 'studio') {
         const docsToExport = documents.filter((d) => d.isExportChecked);
@@ -222,7 +236,10 @@ export function QuickBar({
     } catch (err) {
       showToast("Failed to save image", "error");
       console.error(err);
-    } finally { setIsActionInFlight(false); }
+    } finally {
+      setIsActionInFlight(false);
+      await setQuickAccessBusy(false);
+    }
   };
 
   const handleOpenSettings = async () => {
@@ -258,6 +275,7 @@ export function QuickBar({
       }
     }
     setIsActionInFlight(true);
+    await setQuickAccessBusy(true);
     try {
       let bytes: Uint8Array;
       
@@ -279,7 +297,10 @@ export function QuickBar({
     } catch (err) {
       showToast("Failed to pin", "error");
       console.error(err);
-    } finally { setIsActionInFlight(false); }
+    } finally {
+      setIsActionInFlight(false);
+      await setQuickAccessBusy(false);
+    }
   };
 
   return (

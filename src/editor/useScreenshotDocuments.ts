@@ -9,6 +9,7 @@ import type { EditorPreset } from '../compose/preset';
  */
 export interface DocumentUndoSnapshot {
   imageSrc: string;
+  image?: HTMLImageElement;
   annotation: AnnotationSnapshot;
   cropBounds: CropBounds | null;
 }

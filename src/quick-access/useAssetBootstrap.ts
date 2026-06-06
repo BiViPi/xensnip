@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import {
   assetReadPng,
+  assetRelease,
   assetResolve,
   perfLog,
   settingsLoad,
@@ -98,6 +99,8 @@ export function useAssetBootstrap(deps: UseAssetBootstrapDeps): {
 
     flushActiveDocument();
     setIsLoading(true);
+    let uiAssetAcquired = false;
+    let bootstrapUrl: string | null = null;
 
     try {
       const bootstrapStart = performance.now();
@@ -106,6 +109,7 @@ export function useAssetBootstrap(deps: UseAssetBootstrapDeps): {
       // Acquire ref-count for this consumer. URI is unused here;
       // image bytes are read via assetReadPng() on the IPC path.
       await assetResolve(nextAssetId, "quick_access_ui");
+      uiAssetAcquired = true;
       void perfLog(`Asset resolve ref-count took ${Math.round(performance.now() - resolveStart)}ms`);
 
       const readStart = performance.now();
@@ -117,6 +121,7 @@ export function useAssetBootstrap(deps: UseAssetBootstrapDeps): {
       const decodeStart = performance.now();
       const blob = new Blob([bytes], { type: "image/png" });
       const url = URL.createObjectURL(blob);
+      bootstrapUrl = url;
 
       let img = new Image();
       img.src = url;
@@ -188,23 +193,38 @@ export function useAssetBootstrap(deps: UseAssetBootstrapDeps): {
       });
 
       // Settings and Presets can be loaded asynchronously without blocking first paint
-      const currentSettings = await settingsLoad();
-      setSettings(currentSettings);
+      const currentSettings = await settingsLoad().catch((error) => {
+        console.error("Settings load failed during bootstrap", error);
+        return null;
+      });
+      if (currentSettings) {
+        setSettings(currentSettings);
 
-      const bootstrapPreset = resolveBootstrapPreset(currentSettings, img.width, img.height);
-      patchDocument(newDoc.id, { preset: bootstrapPreset });
-      setPreset(bootstrapPreset);
+        const bootstrapPreset = resolveBootstrapPreset(currentSettings, img.width, img.height);
+        patchDocument(newDoc.id, { preset: bootstrapPreset });
+        setPreset(bootstrapPreset);
+      }
 
       // Defer thumbnail generation
       setTimeout(async () => {
         const thumbStart = performance.now();
-        const thumb = await generateThumbnail(img);
-        void perfLog(
-          `Deferred thumbnail generation took ${Math.round(performance.now() - thumbStart)}ms`
-        );
-        patchDocument(newDoc.id, { thumbnailSrc: thumb });
+        try {
+          const thumb = await generateThumbnail(img);
+          void perfLog(
+            `Deferred thumbnail generation took ${Math.round(performance.now() - thumbStart)}ms`
+          );
+          patchDocument(newDoc.id, { thumbnailSrc: thumb });
+        } catch (error) {
+          console.error("Deferred thumbnail generation failed", error);
+        }
       }, 0);
     } catch (e) {
+      if (bootstrapUrl?.startsWith("blob:")) {
+        URL.revokeObjectURL(bootstrapUrl);
+      }
+      if (uiAssetAcquired) {
+        void assetRelease(nextAssetId, "quick_access_ui").catch(() => {});
+      }
       console.error("Bootstrap failed", e);
       // Surface error to caller; QuickAccess.tsx shows toast
       throw e;

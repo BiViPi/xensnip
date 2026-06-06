@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import Konva from "konva";
 import { composeToCanvas } from "../compose/compose";
+import { getCompositionDimensions } from "../compose/core";
 import { EditorPreset } from "../compose/preset";
 import { AnnotationStage } from "../annotate/AnnotationStage";
 import { FloatingToolbarManager } from "../annotate/floating/FloatingToolbarManager";
@@ -77,6 +78,8 @@ export function QuickAccessCanvasArea({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [image, preset, wallpaperFlip, dims, previewRenderScale]);
 
+  const compositionDims = getCompositionDimensions(image.width, image.height, preset);
+
   return (
     <div
       className="xs-canvas-area"
@@ -131,8 +134,12 @@ export function QuickAccessCanvasArea({
             onCommit={onCommitCrop}
             onCancel={onCancelCrop}
             scale={previewScale}
-            imageWidth={image.width}
-            imageHeight={image.height}
+            resizeBounds={{
+              minX: compositionDims.drawX,
+              minY: compositionDims.drawY,
+              maxX: compositionDims.drawX + compositionDims.drawW,
+              maxY: compositionDims.drawY + compositionDims.drawH,
+            }}
             hasAnnotations={hasAnnotations}
           />
         )}

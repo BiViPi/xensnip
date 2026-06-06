@@ -42,6 +42,7 @@ export function useEditorUndoStack({
   const buildSnapshot = useCallback((): DocumentUndoSnapshot | null => {
     if (!image?.src) return null;
     return {
+      image,
       imageSrc: image.src,
       annotation: buildAnnotationSnapshot(),
       cropBounds: cropBounds ? { ...cropBounds } : null,
@@ -57,6 +58,16 @@ export function useEditorUndoStack({
     });
     return img;
   }, []);
+
+  const restoreSnapshotImage = useCallback(
+    async (snapshot: DocumentUndoSnapshot) => {
+      if (snapshot.image?.src === snapshot.imageSrc) {
+        return snapshot.image;
+      }
+      return loadSnapshotImage(snapshot.imageSrc);
+    },
+    [loadSnapshotImage]
+  );
 
   const pushHistorySnapshot = useCallback(() => {
     const snapshot = buildSnapshot();
@@ -94,7 +105,7 @@ export function useEditorUndoStack({
     }
 
     try {
-      const restoredImage = await loadSnapshotImage(snapshot.imageSrc);
+      const restoredImage = await restoreSnapshotImage(snapshot);
       withHistorySuspended(() => {
         setImage(restoredImage);
         // Shared preset is intentionally excluded from per-document undo
@@ -107,7 +118,7 @@ export function useEditorUndoStack({
       undoStackRef.current.push(snapshot);
       redoStackRef.current.pop();
     }
-  }, [buildSnapshot, loadSnapshotImage, setImage, setCropBounds]);
+  }, [buildSnapshot, restoreSnapshotImage, setImage, setCropBounds]);
 
   const handleRedo = useCallback(async () => {
     const snapshot = redoStackRef.current.pop();
@@ -123,7 +134,7 @@ export function useEditorUndoStack({
     }
 
     try {
-      const restoredImage = await loadSnapshotImage(snapshot.imageSrc);
+      const restoredImage = await restoreSnapshotImage(snapshot);
       withHistorySuspended(() => {
         setImage(restoredImage);
         useAnnotationStore.getState().restoreSnapshot(snapshot.annotation);
@@ -135,7 +146,7 @@ export function useEditorUndoStack({
       redoStackRef.current.push(snapshot);
       undoStackRef.current.pop();
     }
-  }, [buildSnapshot, loadSnapshotImage, setImage, setCropBounds]);
+  }, [buildSnapshot, restoreSnapshotImage, setImage, setCropBounds]);
 
   return { pushHistorySnapshot, handleUndo, handleRedo, undoStackRef, redoStackRef };
 }

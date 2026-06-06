@@ -4,10 +4,26 @@ import { useEditorUndoStack } from '../useEditorUndoStack';
 
 // Mock Image global
 class MockImage {
-  src: string = '';
+  private _src: string = '';
   onload: () => void = () => {};
+  onerror: () => void = () => {};
   constructor() {
-    setTimeout(() => { if (this.onload) this.onload(); }, 0);
+    this.src = '';
+  }
+
+  get src() {
+    return this._src;
+  }
+
+  set src(value: string) {
+    this._src = value;
+    setTimeout(() => {
+      if (value.includes('revoked')) {
+        this.onerror();
+        return;
+      }
+      this.onload();
+    }, 0);
   }
 }
 (global as any).Image = MockImage;
@@ -92,5 +108,40 @@ describe('useEditorUndoStack Redo support', () => {
     }
 
     expect(result.current.redoStackRef.current).toHaveLength(50);
+  });
+
+  it('undo restores in-memory snapshot image when imageSrc can no longer be reloaded', async () => {
+    const originalImage = { src: 'blob:revoked-before-crop' } as HTMLImageElement;
+    const croppedImage = { src: 'data:cropped' } as HTMLImageElement;
+    const setImage = vi.fn();
+
+    const { result, rerender } = renderHook(
+      (props) => useEditorUndoStack(props),
+      { initialProps: createProps(originalImage.src, setImage) }
+    );
+
+    rerender({
+      image: originalImage,
+      cropBounds: null,
+      setImage,
+      setCropBounds: vi.fn(),
+    });
+
+    act(() => {
+      result.current.pushHistorySnapshot();
+    });
+
+    rerender({
+      image: croppedImage,
+      cropBounds: null,
+      setImage,
+      setCropBounds: vi.fn(),
+    });
+
+    await act(async () => {
+      await result.current.handleUndo();
+    });
+
+    expect(setImage).toHaveBeenCalledWith(originalImage);
   });
 });

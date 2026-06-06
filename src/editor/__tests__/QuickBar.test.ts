@@ -13,6 +13,7 @@ const {
   clipboardWriteImage,
   exportSaveMedia,
   openSettingsWindow,
+  quickAccessSetBusy,
   exportStudioPng,
 } = vi.hoisted(() => ({
   composeToBlob: vi.fn(),
@@ -21,6 +22,7 @@ const {
   clipboardWriteImage: vi.fn(),
   exportSaveMedia: vi.fn(),
   openSettingsWindow: vi.fn(),
+  quickAccessSetBusy: vi.fn(),
   exportStudioPng: vi.fn(),
 }));
 
@@ -42,6 +44,7 @@ vi.mock('../../ipc/index', () => ({
   clipboardWriteImage,
   exportSaveMedia,
   openSettingsWindow,
+  quickAccessSetBusy,
 }));
 
 vi.mock('@studio-impl/export/exportStudio', () => ({
@@ -186,6 +189,7 @@ describe('QuickBar studio export integration', () => {
     clipboardWriteImage.mockReset();
     exportSaveMedia.mockReset();
     openSettingsWindow.mockReset();
+    quickAccessSetBusy.mockReset();
     exportStudioPng.mockReset();
     annotationState.clearAll.mockReset();
     annotationState.objects = [];
@@ -271,5 +275,22 @@ describe('QuickBar studio export integration', () => {
     await vi.waitFor(() => {
       expect(composeDocumentToBytes).toHaveBeenCalledWith(studioDoc, 'image/jpeg', 1);
     });
+  });
+
+  it('marks the quick access session busy around copy actions', async () => {
+    composeToBlob.mockResolvedValue(new Uint8Array([4, 5, 6]));
+    clipboardWriteImage.mockResolvedValue(undefined);
+
+    renderQuickBar();
+
+    fireEvent.click(screen.getByRole('button', { name: /copy/i }));
+
+    await vi.waitFor(() => {
+      expect(quickAccessSetBusy).toHaveBeenNthCalledWith(1, 'quick_access_session', true);
+    });
+    await vi.waitFor(() => {
+      expect(quickAccessSetBusy).toHaveBeenLastCalledWith('quick_access_session', false);
+    });
+    expect(clipboardWriteImage).toHaveBeenCalledWith(new Uint8Array([4, 5, 6]));
   });
 });
