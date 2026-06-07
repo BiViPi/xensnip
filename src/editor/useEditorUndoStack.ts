@@ -3,20 +3,44 @@ import { useAnnotationStore } from "../annotate/state/store";
 import { withHistorySuspended } from "./historyBridge";
 import { DocumentUndoSnapshot } from "./useScreenshotDocuments";
 import { CropBounds } from "./useCropTool";
+import { CanvasDocument, cloneCanvasDocument, getSelectedCanvasImage } from "./canvasDocument";
 
 const HISTORY_LIMIT = 50;
 
+function buildCanvasSignature(canvasDocument: CanvasDocument | null): string | null {
+  if (!canvasDocument) return null;
+  return JSON.stringify({
+    selectedImageId: canvasDocument.selectedImageId,
+    maxImages: canvasDocument.maxImages,
+    images: canvasDocument.images.map((image) => ({
+      id: image.id,
+      assetId: image.assetId ?? null,
+      blobUrl: image.blobUrl,
+      x: image.x,
+      y: image.y,
+      width: image.width,
+      height: image.height,
+      rotation: image.rotation,
+      sourceCrop: image.sourceCrop,
+    })),
+  });
+}
+
 interface UseEditorUndoStackDeps {
   image: HTMLImageElement | null;
+  canvasDocument: CanvasDocument | null;
   cropBounds: CropBounds | null;
   setImage: (img: HTMLImageElement) => void;
+  setCanvasDocument: (canvasDocument: CanvasDocument) => void;
   setCropBounds: (b: CropBounds | null) => void;
 }
 
 export function useEditorUndoStack({
   image,
+  canvasDocument,
   cropBounds,
   setImage,
+  setCanvasDocument,
   setCropBounds,
 }: UseEditorUndoStackDeps): {
   pushHistorySnapshot: () => void;
@@ -44,10 +68,11 @@ export function useEditorUndoStack({
     return {
       image,
       imageSrc: image.src,
+      canvas: canvasDocument ? cloneCanvasDocument(canvasDocument) : undefined,
       annotation: buildAnnotationSnapshot(),
       cropBounds: cropBounds ? { ...cropBounds } : null,
     };
-  }, [cropBounds, image, buildAnnotationSnapshot]);
+  }, [canvasDocument, cropBounds, image, buildAnnotationSnapshot]);
 
   const loadSnapshotImage = useCallback(async (src: string) => {
     const img = new Image();
@@ -74,9 +99,12 @@ export function useEditorUndoStack({
     if (!snapshot) return;
 
     const previous = undoStackRef.current[undoStackRef.current.length - 1];
+    const previousCanvasSignature = buildCanvasSignature(previous?.canvas ?? null);
+    const nextCanvasSignature = buildCanvasSignature(snapshot.canvas ?? null);
     if (
       previous &&
       previous.imageSrc === snapshot.imageSrc &&
+      previousCanvasSignature === nextCanvasSignature &&
       JSON.stringify(previous.annotation) === JSON.stringify(snapshot.annotation) &&
       JSON.stringify(previous.cropBounds) === JSON.stringify(snapshot.cropBounds)
     ) {
@@ -107,7 +135,17 @@ export function useEditorUndoStack({
     try {
       const restoredImage = await restoreSnapshotImage(snapshot);
       withHistorySuspended(() => {
-        setImage(restoredImage);
+        if (snapshot.canvas) {
+          setCanvasDocument(snapshot.canvas);
+          const selectedImage = getSelectedCanvasImage(snapshot.canvas);
+          if (selectedImage?.image) {
+            setImage(selectedImage.image);
+          } else {
+            setImage(restoredImage);
+          }
+        } else {
+          setImage(restoredImage);
+        }
         // Shared preset is intentionally excluded from per-document undo
         useAnnotationStore.getState().restoreSnapshot(snapshot.annotation);
         setCropBounds(snapshot.cropBounds ? { ...snapshot.cropBounds } : null);
@@ -118,7 +156,7 @@ export function useEditorUndoStack({
       undoStackRef.current.push(snapshot);
       redoStackRef.current.pop();
     }
-  }, [buildSnapshot, restoreSnapshotImage, setImage, setCropBounds]);
+  }, [buildSnapshot, restoreSnapshotImage, setCanvasDocument, setImage, setCropBounds]);
 
   const handleRedo = useCallback(async () => {
     const snapshot = redoStackRef.current.pop();
@@ -136,7 +174,17 @@ export function useEditorUndoStack({
     try {
       const restoredImage = await restoreSnapshotImage(snapshot);
       withHistorySuspended(() => {
-        setImage(restoredImage);
+        if (snapshot.canvas) {
+          setCanvasDocument(snapshot.canvas);
+          const selectedImage = getSelectedCanvasImage(snapshot.canvas);
+          if (selectedImage?.image) {
+            setImage(selectedImage.image);
+          } else {
+            setImage(restoredImage);
+          }
+        } else {
+          setImage(restoredImage);
+        }
         useAnnotationStore.getState().restoreSnapshot(snapshot.annotation);
         setCropBounds(snapshot.cropBounds ? { ...snapshot.cropBounds } : null);
       });
@@ -146,7 +194,7 @@ export function useEditorUndoStack({
       redoStackRef.current.push(snapshot);
       undoStackRef.current.pop();
     }
-  }, [buildSnapshot, restoreSnapshotImage, setImage, setCropBounds]);
+  }, [buildSnapshot, restoreSnapshotImage, setCanvasDocument, setImage, setCropBounds]);
 
   return { pushHistorySnapshot, handleUndo, handleRedo, undoStackRef, redoStackRef };
 }

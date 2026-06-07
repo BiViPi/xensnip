@@ -5,7 +5,7 @@ import type { Settings } from '../ipc/types';
 
 function makeSettings(overrides: Partial<Settings> = {}): Settings {
   return {
-    version: 9,
+    version: 11,
     hotkeys: { region: 'Ctrl+Shift+S', active_window: 'Ctrl+Alt+W' },
     theme: 'dark',
     launch_at_startup: false,
@@ -15,6 +15,7 @@ function makeSettings(overrides: Partial<Settings> = {}): Settings {
     export_folder: null,
     export_format: 'PNG',
     capture_all_monitors: true,
+    print_screen_capture_enabled: false,
     saved_presets: [],
     last_preset: null,
     default_preset_id: null,

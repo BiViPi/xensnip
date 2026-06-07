@@ -35,6 +35,10 @@ export async function captureStartWindow(): Promise<void> {
   return await invoke<void>("capture_start_window");
 }
 
+export async function captureStartCurrentMonitor(): Promise<void> {
+  return await invoke<void>("capture_start_current_monitor");
+}
+
 export async function captureCancel(): Promise<void> {
   return await invoke<void>("capture_cancel");
 }

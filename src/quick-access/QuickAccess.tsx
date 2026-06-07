@@ -23,15 +23,16 @@ import { useMeasureStore } from "../measure/store";
 import { useSidebarStore } from "../sidebar/store";
 import { useKeyboardShortcuts } from "../editor/useKeyboardShortcuts";
 import { useCropTool } from "../editor/useCropTool";
-import { registerHistoryRecorder } from "../editor/historyBridge";
+import { recordHistorySnapshot, registerHistoryRecorder } from "../editor/historyBridge";
 import { useScreenshotDocuments, ScreenshotDocument } from "../editor/useScreenshotDocuments";
-import { generateThumbnail } from "../editor/generateThumbnail";
+import { generateDocumentThumbnail } from "../editor/generateThumbnail";
 import { useEditorUndoStack } from "../editor/useEditorUndoStack";
 import { useAssetBootstrap } from "./useAssetBootstrap";
 import { useQuickAccessSessionController } from "./useQuickAccessSessionController";
 import { QuickAccessViewport } from "./QuickAccessViewport";
 import { QuickAccessDock } from "./QuickAccessDock";
 import { CloseGuardModal } from "./CloseGuardModal";
+import { getSelectedCanvasImage, removeCanvasImage } from "../editor/canvasDocument";
 import "./QuickAccess.css";
 
 const LEFT_PANEL_MIN_WIDTH = 220;
@@ -95,12 +96,22 @@ export function QuickAccess() {
     activeIdRef,
   } = useScreenshotDocuments();
 
+  useEffect(() => {
+    if (!activeDoc) return;
+    const selected = getSelectedCanvasImage(activeDoc.canvas);
+    if (selected?.image && selected.image !== image) {
+      setImage(selected.image);
+    }
+  }, [activeDoc, image]);
+
   // Shell-owned: mixes blob URL cleanup + IPC asset release
   const releaseDocument = useCallback((doc: ScreenshotDocument) => {
-    revokeManagedUrl(doc.blobUrl);
-    if (doc.assetId) {
-      void assetRelease(doc.assetId, "quick_access_ui").catch(() => {});
-    }
+    doc.canvas.images.forEach((imageObject) => {
+      revokeManagedUrl(imageObject.blobUrl);
+      if (imageObject.assetId) {
+        void assetRelease(imageObject.assetId, "quick_access_ui").catch(() => {});
+      }
+    });
   }, []);
 
   // ── 2. Crop tool ────────────────────────────────────────────────────────
@@ -114,20 +125,51 @@ export function QuickAccess() {
     cancelCrop,
     commitCrop,
     hasAnnotations,
-  } = useCropTool(image, preset, setImage, setActiveTool, async (newImg) => {
-    if (activeDocumentId) {
-      const currentDoc = docsRef.current.find((doc) => doc.id === activeDocumentId);
-      revokeManagedUrl(currentDoc?.blobUrl);
-      const thumb = await generateThumbnail(newImg);
-      patchActiveDocument({ image: newImg, blobUrl: newImg.src, thumbnailSrc: thumb });
+  } = useCropTool(image, activeDoc?.canvas ?? null, preset, setImage, setActiveTool, async (nextCanvas, selectedImg) => {
+    const nextPreset =
+      nextCanvas.images.length > 1 && preset.presentation_mode === "studio"
+        ? { ...preset, presentation_mode: "flat" as const }
+        : preset;
+    patchActiveDocument({
+      canvas: nextCanvas,
+      image: selectedImg,
+      blobUrl: getSelectedCanvasImage(nextCanvas)?.blobUrl ?? selectedImg.src,
+      assetId: getSelectedCanvasImage(nextCanvas)?.assetId,
+      preset: nextPreset,
+    });
+    if (nextPreset !== preset) {
+      setPreset(nextPreset);
+      showToast("Studio mode is unavailable for multi-image layouts in v0.5.0.", "error");
+    }
+    try {
+      const thumb = await generateDocumentThumbnail({
+        image: selectedImg,
+        canvas: nextCanvas,
+        preset: nextPreset,
+      });
+      patchActiveDocument({ thumbnailSrc: thumb });
+    } catch (error) {
+      console.error("Thumbnail refresh failed after crop", error);
     }
   });
 
   // ── 3. Undo stack ───────────────────────────────────────────────────────
   const { pushHistorySnapshot, handleUndo, handleRedo, undoStackRef, redoStackRef } = useEditorUndoStack({
     image,
+    canvasDocument: activeDoc?.canvas ?? null,
     cropBounds,
     setImage,
+    setCanvasDocument: (canvasDocument) => {
+      const selected = getSelectedCanvasImage(canvasDocument);
+      if (!selected) return;
+      patchActiveDocument({
+        canvas: canvasDocument,
+        image: selected.image,
+        blobUrl: selected.blobUrl,
+        assetId: selected.assetId,
+      });
+      setImage(selected.image);
+    },
     setCropBounds,
   });
 
@@ -165,6 +207,7 @@ export function QuickAccess() {
   // ── 5. Asset bootstrap ──────────────────────────────────────────────────
   const { bootstrapAssetRef, isLoading } = useAssetBootstrap({
     docsRef,
+    activeIdRef,
     addDocument,
     releaseDocument,
     patchDocument,
@@ -214,10 +257,89 @@ export function QuickAccess() {
     toastTimerRef.current = setTimeout(() => setToast(null), 3000);
   }, []);
 
+  const applyActiveCanvasDocumentSync = useCallback((nextCanvas: ScreenshotDocument["canvas"]) => {
+    const selected = getSelectedCanvasImage(nextCanvas);
+    if (!selected) return;
+
+    const nextPreset =
+      nextCanvas.images.length > 1 && preset.presentation_mode === "studio"
+        ? { ...preset, presentation_mode: "flat" as const }
+        : preset;
+
+    patchActiveDocument({
+      canvas: nextCanvas,
+      image: selected.image,
+      blobUrl: selected.blobUrl,
+      assetId: selected.assetId,
+      preset: nextPreset,
+    });
+    setImage(selected.image);
+    if (nextPreset !== preset) {
+      setPreset(nextPreset);
+      showToast("Studio mode is unavailable for multi-image layouts in v0.5.0.", "error");
+    }
+  }, [patchActiveDocument, preset, setPreset, showToast]);
+
+  const applyActiveCanvasDocument = useCallback(async (nextCanvas: ScreenshotDocument["canvas"]) => {
+    const nextPreset =
+      nextCanvas.images.length > 1 && preset.presentation_mode === "studio"
+        ? { ...preset, presentation_mode: "flat" as const }
+        : preset;
+    applyActiveCanvasDocumentSync(nextCanvas);
+    const selected = getSelectedCanvasImage(nextCanvas);
+    if (!selected) return;
+    try {
+      const thumb = await generateDocumentThumbnail({
+        image: selected.image,
+        canvas: nextCanvas,
+        preset: nextPreset,
+      });
+      patchActiveDocument({ thumbnailSrc: thumb });
+    } catch (error) {
+      console.error("Thumbnail refresh failed after canvas update", error);
+    }
+  }, [applyActiveCanvasDocumentSync, patchActiveDocument]);
+
   useKeyboardShortcuts({
     onUndo: () => void handleUndo(),
     onRedo: () => void handleRedo(),
   });
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (
+        event.target instanceof HTMLInputElement ||
+        event.target instanceof HTMLTextAreaElement ||
+        (event.target instanceof HTMLElement && event.target.isContentEditable)
+      ) {
+        return;
+      }
+
+      if (!activeDoc) return;
+      const selectedImage = getSelectedCanvasImage(activeDoc.canvas);
+      const selectedAnnotationIds = useAnnotationStore.getState().selectedIds;
+
+      if ((event.key === "Delete" || event.key === "Backspace") && selectedImage && selectedAnnotationIds.length === 0) {
+        event.preventDefault();
+        if (activeDoc.canvas.images.length === 1) {
+          handleDeleteDocument(activeDoc.id);
+          return;
+        }
+        recordHistorySnapshot();
+        const { canvas, removed } = removeCanvasImage(activeDoc.canvas, selectedImage.id);
+        if (removed) {
+          revokeManagedUrl(removed.blobUrl);
+          if (removed.assetId) {
+            void assetRelease(removed.assetId, "quick_access_ui").catch(() => {});
+          }
+        }
+        void applyActiveCanvasDocument(canvas);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [activeDoc, applyActiveCanvasDocument, handleDeleteDocument]);
 
   useEffect(() => {
     registerHistoryRecorder(pushHistorySnapshot);
@@ -404,7 +526,7 @@ export function QuickAccess() {
     previewCenterOffsetX,
     previewViewportCenterOffsetX,
     layout,
-  } = usePreviewMetrics(image, preset, viewportSize, leftPanelReserve);
+  } = usePreviewMetrics(image, preset, viewportSize, leftPanelReserve, activeDoc?.canvas ?? null);
 
   // ── Render ──────────────────────────────────────────────────────────────
 
@@ -418,6 +540,7 @@ export function QuickAccess() {
         activeDocumentId={activeDocumentId}
         activeDoc={activeDoc}
         image={image}
+        canvasDocument={activeDoc?.canvas ?? null}
         isLoading={isLoading}
         isLeftPanelCollapsed={isLeftPanelCollapsed}
         expandedPanelWidth={expandedPanelWidth}
@@ -448,6 +571,7 @@ export function QuickAccess() {
         onRenameDocument={handleRenameDocument}
         onPresetChange={setPreset}
         onCropBoundsChange={setCropBounds}
+        onCanvasDocumentChange={(canvasDocument) => { void applyActiveCanvasDocument(canvasDocument); }}
         onCommitCrop={commitCrop}
         onCancelCrop={cancelCrop}
         onExportHandleChange={onExportHandleChange}

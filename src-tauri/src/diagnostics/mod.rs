@@ -5,6 +5,7 @@ use tauri::AppHandle;
 pub enum CaptureMode {
     Region,
     Window,
+    Fullscreen,
 }
 
 #[derive(Debug, Serialize, Clone)]
@@ -12,6 +13,7 @@ pub enum CaptureMethod {
     WgcWindow,
     GdiBitblt,
     GdiWindow,
+    GdiMonitor,
 }
 
 #[derive(Debug, Serialize, Clone)]

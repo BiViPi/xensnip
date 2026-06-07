@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from 'react';
 import { AnnotationSnapshot } from '../annotate/state/store';
 import { CropBounds } from './useCropTool';
 import type { EditorPreset } from '../compose/preset';
+import type { CanvasDocument } from './canvasDocument';
 
 /**
  * Document-scoped undo snapshot.
@@ -10,6 +11,7 @@ import type { EditorPreset } from '../compose/preset';
 export interface DocumentUndoSnapshot {
   imageSrc: string;
   image?: HTMLImageElement;
+  canvas?: CanvasDocument;
   annotation: AnnotationSnapshot;
   cropBounds: CropBounds | null;
 }
@@ -20,6 +22,7 @@ export interface DocumentUndoSnapshot {
 export interface ScreenshotDocument {
   id: string;
   image: HTMLImageElement;
+  canvas: CanvasDocument;
   blobUrl: string;
   assetId?: string;
   thumbnailSrc: string;
@@ -43,6 +46,11 @@ export interface DocumentStateSnapshot {
   undoStack: DocumentUndoSnapshot[];
   redoStack: DocumentUndoSnapshot[];
   image?: HTMLImageElement; // Added to support persisting image changes (crops)
+  canvas?: CanvasDocument;
+}
+
+function isSingleImageDocument(doc: ScreenshotDocument): boolean {
+  return doc.canvas.images.length <= 1;
 }
 
 export function useScreenshotDocuments() {
@@ -69,14 +77,17 @@ export function useScreenshotDocuments() {
 
     if (next.length > 20) {
       const uncheckedIndices = next
-        .map((d, i) => (!d.isExportChecked ? i : -1))
+        .map((d, i) => (!d.isExportChecked && isSingleImageDocument(d) ? i : -1))
+        .filter((i) => i !== -1);
+      const singleImageIndices = next
+        .map((d, i) => (isSingleImageDocument(d) ? i : -1))
         .filter((i) => i !== -1);
 
       let indexToRemove = -1;
       if (uncheckedIndices.length > 0) {
         indexToRemove = uncheckedIndices[uncheckedIndices.length - 1];
-      } else {
-        indexToRemove = next.length - 1;
+      } else if (singleImageIndices.length > 0) {
+        indexToRemove = singleImageIndices[singleImageIndices.length - 1];
       }
 
       if (indexToRemove !== -1) {
@@ -128,6 +139,7 @@ export function useScreenshotDocuments() {
               undoStack: [...currentSnapshot.undoStack],
               redoStack: [...currentSnapshot.redoStack],
               image: currentSnapshot.image || doc.image,
+              canvas: currentSnapshot.canvas || doc.canvas,
             } 
           : doc
       )

@@ -10,11 +10,12 @@ pub fn settings_save(
 
     log::info!(
         target: "settings",
-        "settings_save requested: region={:?}, active_window={:?}, launch_at_startup={}, capture_delay_seconds={}",
+        "settings_save requested: region={:?}, active_window={:?}, launch_at_startup={}, capture_delay_seconds={}, print_screen_capture_enabled={}",
         new_settings.hotkeys.region,
         new_settings.hotkeys.active_window,
         new_settings.launch_at_startup,
         new_settings.capture_delay_seconds,
+        new_settings.print_screen_capture_enabled,
     );
 
     // 1. Validate hotkeys
@@ -39,6 +40,8 @@ pub fn settings_save(
     let hotkeys_changed = old_settings.hotkeys.region != new_settings.hotkeys.region
         || old_settings.hotkeys.active_window != new_settings.hotkeys.active_window;
     let autostart_changed = old_settings.launch_at_startup != new_settings.launch_at_startup;
+    let print_screen_changed =
+        old_settings.print_screen_capture_enabled != new_settings.print_screen_capture_enabled;
 
     // 3. Write to file
     crate::settings::save_settings(&app_handle, &new_settings).map_err(|e| {
@@ -57,10 +60,11 @@ pub fn settings_save(
     // 6. Log success
     log::info!(
         target: "settings",
-        "settings.saved {{ version: {}, hotkeys_changed: {}, autostart_changed: {} }}",
+        "settings.saved {{ version: {}, hotkeys_changed: {}, autostart_changed: {}, print_screen_changed: {} }}",
         new_settings.version,
         hotkeys_changed,
-        autostart_changed
+        autostart_changed,
+        print_screen_changed,
     );
 
     Ok(crate::settings::SettingsSaveResult { warnings })

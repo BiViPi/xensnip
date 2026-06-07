@@ -72,6 +72,7 @@ export function QuickAccessDock({
         onClearAllSession={onClearAllSession}
         onFlush={onFlush}
         presentationMode={presentationMode}
+        studioDisabled={activeDoc.canvas.images.length > 1}
         onPresentationModeChange={onPresentationModeChange}
         studioExportHandle={studioExportHandle}
       />

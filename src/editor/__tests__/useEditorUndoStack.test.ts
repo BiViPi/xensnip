@@ -1,6 +1,7 @@
 import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useEditorUndoStack } from '../useEditorUndoStack';
+import { createCanvasDocument, createCanvasImageObject } from '../canvasDocument';
 
 // Mock Image global
 class MockImage {
@@ -35,8 +36,10 @@ describe('useEditorUndoStack Redo support', () => {
 
   const createProps = (src: string, setImage?: any) => ({
     image: { src } as HTMLImageElement,
+    canvasDocument: null,
     cropBounds: null,
     setImage: setImage || vi.fn(),
+    setCanvasDocument: vi.fn(),
     setCropBounds: vi.fn(),
   });
 
@@ -122,8 +125,10 @@ describe('useEditorUndoStack Redo support', () => {
 
     rerender({
       image: originalImage,
+      canvasDocument: null,
       cropBounds: null,
       setImage,
+      setCanvasDocument: vi.fn(),
       setCropBounds: vi.fn(),
     });
 
@@ -133,8 +138,10 @@ describe('useEditorUndoStack Redo support', () => {
 
     rerender({
       image: croppedImage,
+      canvasDocument: null,
       cropBounds: null,
       setImage,
+      setCanvasDocument: vi.fn(),
       setCropBounds: vi.fn(),
     });
 
@@ -143,5 +150,59 @@ describe('useEditorUndoStack Redo support', () => {
     });
 
     expect(setImage).toHaveBeenCalledWith(originalImage);
+  });
+
+  it('records distinct history snapshots when only canvas layout changes', () => {
+    const baseImage = { src: 'data:canvas-state', width: 200, height: 100 } as HTMLImageElement;
+    const canvasA = createCanvasDocument(
+      createCanvasImageObject({
+        image: baseImage,
+        blobUrl: 'blob:a',
+        x: 0,
+        y: 0,
+        width: 200,
+        height: 100,
+      })
+    );
+    const canvasB = {
+      ...canvasA,
+      images: canvasA.images.map((image) => ({
+        ...image,
+        x: image.x + 32,
+      })),
+    };
+
+    const { result, rerender } = renderHook(
+      (props) => useEditorUndoStack(props),
+      {
+        initialProps: {
+          image: baseImage,
+          canvasDocument: canvasA,
+          cropBounds: null,
+          setImage: vi.fn(),
+          setCanvasDocument: vi.fn(),
+          setCropBounds: vi.fn(),
+        },
+      }
+    );
+
+    act(() => {
+      result.current.pushHistorySnapshot();
+    });
+
+    rerender({
+      image: baseImage,
+      canvasDocument: canvasB,
+      cropBounds: null,
+      setImage: vi.fn(),
+      setCanvasDocument: vi.fn(),
+      setCropBounds: vi.fn(),
+    });
+
+    act(() => {
+      result.current.pushHistorySnapshot();
+    });
+
+    expect(result.current.undoStackRef.current).toHaveLength(2);
   });
 });

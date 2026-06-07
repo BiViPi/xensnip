@@ -5,7 +5,7 @@ import {
   RatioIcon, BackgroundIcon, PaddingIcon, RadiusIcon,
   ShadowIcon, PresetIcon, ChevronIcon, CopyIcon, ExportIcon, SettingsIcon
 } from "../components/icons";
-import { composeToBlob, composeDocumentToBytes } from "../compose/compose";
+import { composeCanvasDocumentToBlob, composeToBlob, composeDocumentToBytes } from "../compose/compose";
 import { ScreenshotDocument } from "./useScreenshotDocuments";
 import { composeWithAnnotations } from "../compose/composeWithAnnotations";
 import { useAnnotationStore, useHasAnnotations } from "../annotate/state/store";
@@ -45,6 +45,7 @@ interface Props {
   onClearAllSession: () => void;
   onFlush: () => void;
   presentationMode: PresentationMode;
+  studioDisabled?: boolean;
   onPresentationModeChange: (m: PresentationMode) => void;
   studioExportHandle: StudioExportHandle | null;
 }
@@ -55,7 +56,7 @@ export function QuickBar({
   preset, setPreset, image, isActionInFlight, setIsActionInFlight, showToast,
   activePop, onActivePopChange, settings, onRefreshSettings, onOpenPresetManager,
   documents, activeDocument, onClearAllSession, onFlush,
-  presentationMode, onPresentationModeChange, studioExportHandle,
+  presentationMode, studioDisabled = false, onPresentationModeChange, studioExportHandle,
 }: Props) {
   const dockRef = React.useRef<HTMLDivElement>(null);
   const hasAnnotations = useHasAnnotations();
@@ -139,9 +140,15 @@ export function QuickBar({
         bytes = await exportStudioPng(readyStudioHandle!, preset.ratio);
       } else {
         onFlush();
+        const requiresCanvasRenderer =
+          activeDocument?.canvas.images.length
+            ? activeDocument.canvas.images.length > 1 || activeDocument.canvas.images.some((item) => item.sourceCrop !== null)
+            : false;
         bytes = objects.length > 0
-          ? await composeWithAnnotations(image, preset, objects)
-          : await composeToBlob(image, preset);
+          ? await composeWithAnnotations(image, preset, objects, "image/png", 1.0, requiresCanvasRenderer ? activeDocument?.canvas : undefined)
+          : requiresCanvasRenderer && activeDocument
+            ? await composeCanvasDocumentToBlob(activeDocument.canvas, preset)
+            : await composeToBlob(image, preset);
       }
       await clipboardWriteImage(bytes);
       if (settings?.play_copy_sound) {
@@ -192,9 +199,14 @@ export function QuickBar({
 
         if (docsToExport.length === 0 && activeDocument) {
           onFlush();
+          const requiresCanvasRenderer =
+            activeDocument.canvas.images.length > 1 ||
+            activeDocument.canvas.images.some((item) => item.sourceCrop !== null);
           const bytes = objects.length > 0
-            ? await composeWithAnnotations(image, preset, objects, format, 1.0)
-            : await composeToBlob(image, preset, format, 1.0);
+            ? await composeWithAnnotations(image, preset, objects, format, 1.0, requiresCanvasRenderer ? activeDocument.canvas : undefined)
+            : requiresCanvasRenderer
+              ? await composeCanvasDocumentToBlob(activeDocument.canvas, preset, format, 1.0)
+              : await composeToBlob(image, preset, format, 1.0);
           await exportSaveMedia(
             bytes,
             settings.export_folder,
@@ -209,9 +221,14 @@ export function QuickBar({
             try {
               let bytes;
               if (doc.id === activeDocument?.id) {
+                const requiresCanvasRenderer =
+                  doc.canvas.images.length > 1 ||
+                  doc.canvas.images.some((item) => item.sourceCrop !== null);
                 bytes = objects.length > 0
-                  ? await composeWithAnnotations(image, preset, objects, format, 1.0)
-                  : await composeToBlob(image, preset, format, 1.0);
+                  ? await composeWithAnnotations(image, preset, objects, format, 1.0, requiresCanvasRenderer ? doc.canvas : undefined)
+                  : requiresCanvasRenderer
+                    ? await composeCanvasDocumentToBlob(doc.canvas, preset, format, 1.0)
+                    : await composeToBlob(image, preset, format, 1.0);
               } else {
                 bytes = await composeDocumentToBytes(doc, format, 1.0);
               }
@@ -262,6 +279,10 @@ export function QuickBar({
   };
 
   const handleModeToggle = () => {
+    if (studioDisabled) {
+      showToast("Studio mode is unavailable for multi-image layouts in v0.5.0.", "error");
+      return;
+    }
     onPresentationModeChange(presentationMode === 'flat' ? 'studio' : 'flat');
   };
 
@@ -283,9 +304,15 @@ export function QuickBar({
         bytes = await exportStudioPng(readyStudioHandle!, preset.ratio);
       } else {
         onFlush();
+        const requiresCanvasRenderer =
+          activeDocument?.canvas.images.length
+            ? activeDocument.canvas.images.length > 1 || activeDocument.canvas.images.some((item) => item.sourceCrop !== null)
+            : false;
         bytes = objects.length > 0
-          ? await composeWithAnnotations(image, preset, objects)
-          : await composeToBlob(image, preset);
+          ? await composeWithAnnotations(image, preset, objects, "image/png", 1.0, requiresCanvasRenderer ? activeDocument?.canvas : undefined)
+          : requiresCanvasRenderer && activeDocument
+            ? await composeCanvasDocumentToBlob(activeDocument.canvas, preset)
+            : await composeToBlob(image, preset);
       }
       
       const { invoke } = await import("@tauri-apps/api/core");
@@ -480,6 +507,7 @@ export function QuickBar({
       {/* Mode toggle */}
       <QuickBarModeToggle
         active={presentationMode === 'studio'}
+        disabled={studioDisabled}
         onToggle={handleModeToggle}
       />
 

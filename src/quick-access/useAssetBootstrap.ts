@@ -8,14 +8,17 @@ import {
 } from "../ipc/index";
 import { DEFAULT_PRESET, EditorPreset, normalizeEditorPreset } from "../compose/preset";
 import { autoBalance } from "../editor/autoBalance";
-import { generateThumbnail } from "../editor/generateThumbnail";
+import { generateDocumentThumbnail, generateThumbnail } from "../editor/generateThumbnail";
 import { ScreenshotDocument, DocumentUndoSnapshot } from "../editor/useScreenshotDocuments";
 import { useAnnotationStore } from "../annotate/state/store";
 import { CropBounds } from "../editor/useCropTool";
 import { Settings } from "../ipc/types";
+import { addCanvasImage, createCanvasDocument, createCanvasImageObject, getSelectedCanvasImage } from "../editor/canvasDocument";
+import { recordHistorySnapshot } from "../editor/historyBridge";
 
 interface UseAssetBootstrapDeps {
   docsRef: React.MutableRefObject<ScreenshotDocument[]>;
+  activeIdRef: React.MutableRefObject<string | null>;
   addDocument: (doc: ScreenshotDocument) => ScreenshotDocument[];
   releaseDocument: (doc: ScreenshotDocument) => void;
   patchDocument: (id: string, patch: Partial<ScreenshotDocument>) => void;
@@ -73,6 +76,7 @@ export function useAssetBootstrap(deps: UseAssetBootstrapDeps): {
 } {
   const {
     docsRef,
+    activeIdRef,
     addDocument,
     releaseDocument,
     patchDocument,
@@ -153,9 +157,57 @@ export function useAssetBootstrap(deps: UseAssetBootstrapDeps): {
         `Image decode took ${Math.round(performance.now() - decodeStart)}ms (${img.naturalWidth}x${img.naturalHeight})`
       );
 
+      const activeDoc = activeIdRef.current
+        ? docsRef.current.find((doc) => doc.id === activeIdRef.current) ?? null
+        : null;
+
+      if (activeDoc && activeDoc.canvas.images.length < activeDoc.canvas.maxImages) {
+        recordHistorySnapshot();
+        const nextCanvas = addCanvasImage(activeDoc.canvas, {
+          image: img,
+          blobUrl: url,
+          assetId: nextAssetId,
+        });
+        const selected = getSelectedCanvasImage(nextCanvas);
+        const nextPreset =
+          activeDoc.preset.presentation_mode === "studio"
+            ? { ...activeDoc.preset, presentation_mode: "flat" as const }
+            : activeDoc.preset;
+        patchDocument(activeDoc.id, {
+          canvas: nextCanvas,
+          image: selected?.image ?? img,
+          blobUrl: selected?.blobUrl ?? url,
+          assetId: undefined,
+          preset: nextPreset,
+        });
+        setImage(selected?.image ?? img);
+        setActiveDocumentId(activeDoc.id);
+        setPreset(nextPreset);
+        setCropBounds(null);
+        setTimeout(async () => {
+          try {
+            const thumb = await generateDocumentThumbnail({
+              image: selected?.image ?? img,
+              canvas: nextCanvas,
+              preset: nextPreset,
+            });
+            patchDocument(activeDoc.id, { thumbnailSrc: thumb });
+          } catch (error) {
+            console.error("Deferred multi-image thumbnail generation failed", error);
+          }
+        }, 0);
+        setIsLoading(false);
+        return;
+      }
+
       const newDoc: ScreenshotDocument = {
         id: crypto.randomUUID(),
         image: img,
+        canvas: createCanvasDocument(createCanvasImageObject({
+          image: img,
+          blobUrl: url,
+          assetId: nextAssetId,
+        })),
         blobUrl: url,
         assetId: nextAssetId,
         thumbnailSrc: "", // Placeholder initially
@@ -233,6 +285,7 @@ export function useAssetBootstrap(deps: UseAssetBootstrapDeps): {
     }
   }, [
     docsRef,
+    activeIdRef,
     addDocument,
     releaseDocument,
     handleSwitchDocument,

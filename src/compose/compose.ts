@@ -2,6 +2,11 @@ import { getCompositionDimensions, drawComposition, preloadWallpaper } from "./c
 import type { EditorPreset } from "./preset";
 import { ScreenshotDocument } from "../editor/useScreenshotDocuments";
 import { composeWithAnnotations } from "./composeWithAnnotations";
+import { CanvasDocument } from "../editor/canvasDocument";
+import {
+  drawCanvasDocument,
+  getCanvasDocumentDimensions,
+} from "./canvasDocument";
 
 export function composeToCanvas(
   canvas: HTMLCanvasElement,
@@ -27,6 +32,37 @@ export function composeToCanvas(
   if (!ctx) return;
 
   drawComposition(compositionCtx, image, preset, dims);
+
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, scaledCanvasW, scaledCanvasH);
+  ctx.imageSmoothingEnabled = targetScale > 1;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(compositionCanvas, 0, 0, scaledCanvasW, scaledCanvasH);
+}
+
+export function composeCanvasDocumentToCanvas(
+  canvas: HTMLCanvasElement,
+  canvasDocument: CanvasDocument,
+  preset: EditorPreset,
+  renderScale: number = 1
+) {
+  const dims = getCanvasDocumentDimensions(canvasDocument, preset);
+  const targetScale = Math.max(1, renderScale);
+  const scaledCanvasW = Math.max(1, Math.round(dims.canvasW * targetScale));
+  const scaledCanvasH = Math.max(1, Math.round(dims.canvasH * targetScale));
+  const compositionCanvas = document.createElement("canvas");
+  compositionCanvas.width = dims.canvasW;
+  compositionCanvas.height = dims.canvasH;
+  const compositionCtx = compositionCanvas.getContext("2d");
+  if (!compositionCtx) return;
+
+  if (canvas.width !== scaledCanvasW) canvas.width = scaledCanvasW;
+  if (canvas.height !== scaledCanvasH) canvas.height = scaledCanvasH;
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  drawCanvasDocument(compositionCtx, canvasDocument, preset, dims);
 
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, scaledCanvasW, scaledCanvasH);
@@ -70,6 +106,46 @@ export async function composeToBlob(image: HTMLImageElement, preset: EditorPrese
   });
 }
 
+export async function composeCanvasDocumentToBlob(
+  canvasDocument: CanvasDocument,
+  preset: EditorPreset,
+  format: string = "image/png",
+  quality: number = 1.0
+): Promise<Uint8Array> {
+  const canvas = document.createElement("canvas");
+  const dims = getCanvasDocumentDimensions(canvasDocument, preset);
+
+  canvas.width = dims.canvasW;
+  canvas.height = dims.canvasH;
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Could not get canvas context");
+
+  if (preset.bg_mode === "Wallpaper") {
+    await preloadWallpaper(preset.bg_value).catch(console.error);
+  }
+
+  drawCanvasDocument(ctx, canvasDocument, preset, dims);
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        reject(new Error("Canvas toBlob failed"));
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const arrayBuffer = reader.result as ArrayBuffer;
+        const blobBytes = new Uint8Array(arrayBuffer);
+        resolve(blobBytes);
+      };
+      reader.onerror = () => reject(new Error("FileReader failed"));
+      reader.readAsArrayBuffer(blob);
+    }, format, quality);
+  });
+}
+
 
 
 export async function composeDocumentToBytes(
@@ -79,8 +155,17 @@ export async function composeDocumentToBytes(
 ): Promise<Uint8Array> {
   const img = doc.image;
   const preset = doc.preset;
+  const requiresCanvasRenderer =
+    doc.canvas.images.length > 1 ||
+    doc.canvas.images.some((imageObject) => imageObject.sourceCrop !== null);
+  if (requiresCanvasRenderer) {
+    if (doc.annotation.objects.length > 0) {
+      return composeWithAnnotations(doc.image, preset, doc.annotation.objects, format, quality, doc.canvas);
+    }
+    return composeCanvasDocumentToBlob(doc.canvas, preset, format, quality);
+  }
   if (doc.annotation.objects.length > 0) {
-    return composeWithAnnotations(img, preset, doc.annotation.objects, format, quality);
+    return composeWithAnnotations(img, preset, doc.annotation.objects, format, quality, doc.canvas);
   } else {
     return composeToBlob(img, preset, format, quality);
   }

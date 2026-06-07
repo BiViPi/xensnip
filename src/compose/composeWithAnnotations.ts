@@ -1,6 +1,8 @@
 import Konva from 'konva';
 import { getCompositionDimensions, drawComposition, preloadWallpaper } from "./core";
 import type { EditorPreset } from "./preset";
+import type { CanvasDocument } from "../editor/canvasDocument";
+import { drawCanvasDocument, getCanvasDocumentDimensions } from "./canvasDocument";
 import { 
   AnnotateObject, 
   ArrowObject, 
@@ -42,12 +44,18 @@ export async function composeWithAnnotations(
   preset: EditorPreset,
   objects: AnnotateObject[],
   format: string = "image/png",
-  quality: number = 1.0
+  quality: number = 1.0,
+  canvasDocument?: CanvasDocument
 ): Promise<Uint8Array> {
-  const dims = getCompositionDimensions(image.width, image.height, preset);
+  const dims = canvasDocument
+    ? getCanvasDocumentDimensions(canvasDocument, preset)
+    : null;
+  const singleImageDims = canvasDocument
+    ? null
+    : getCompositionDimensions(image.width, image.height, preset);
   const canvas = document.createElement("canvas");
-  canvas.width = dims.canvasW;
-  canvas.height = dims.canvasH;
+  canvas.width = canvasDocument ? dims!.canvasW : singleImageDims!.canvasW;
+  canvas.height = canvasDocument ? dims!.canvasH : singleImageDims!.canvasH;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Could not get canvas context");
 
@@ -56,7 +64,11 @@ export async function composeWithAnnotations(
   }
 
   // 1. Draw base composition
-  drawComposition(ctx, image, preset, dims);
+  if (canvasDocument) {
+    drawCanvasDocument(ctx, canvasDocument, preset, dims!);
+  } else {
+    drawComposition(ctx, image, preset, singleImageDims!);
+  }
   const sourceCanvas = document.createElement('canvas');
   sourceCanvas.width = canvas.width;
   sourceCanvas.height = canvas.height;
@@ -65,11 +77,13 @@ export async function composeWithAnnotations(
 
   // 2. Draw annotations
   if (objects.length > 0) {
+    const canvasW = canvasDocument ? dims!.canvasW : singleImageDims!.canvasW;
+    const canvasH = canvasDocument ? dims!.canvasH : singleImageDims!.canvasH;
     const container = document.createElement('div');
     const stage = new Konva.Stage({
       container: container,
-      width: dims.canvasW,
-      height: dims.canvasH
+      width: canvasW,
+      height: canvasH
     });
     const layer = new Konva.Layer();
     stage.add(layer);
@@ -81,7 +95,7 @@ export async function composeWithAnnotations(
       text: (obj: TextObject) => layer.add(createTextNode(obj)),
       numbered: (obj: NumberedObject) => layer.add(createNumberedNode(obj)),
       spotlight: (obj: SpotlightObject) => {
-        for (const node of createSpotlightNodes(obj, dims.canvasW, dims.canvasH)) {
+        for (const node of createSpotlightNodes(obj, canvasW, canvasH)) {
           layer.add(node);
         }
       },

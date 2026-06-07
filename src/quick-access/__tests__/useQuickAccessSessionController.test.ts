@@ -16,6 +16,7 @@ import {
 // Mock generateThumbnail
 vi.mock('../../editor/generateThumbnail', () => ({
   generateThumbnail: vi.fn(() => Promise.resolve('data:thumb')),
+  generateDocumentThumbnail: vi.fn(() => Promise.resolve('data:thumb')),
 }));
 
 describe('useQuickAccessSessionController', () => {

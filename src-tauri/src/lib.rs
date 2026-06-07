@@ -91,6 +91,7 @@ pub fn run() {
             commands::app_ping,
             commands::settings_load,
             commands::capture_start_window,
+            commands::capture_start_current_monitor,
             commands::capture_start_window_delayed,
             commands::capture_start_region,
             commands::capture_start_region_delayed,

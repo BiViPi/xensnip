@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { useAnnotationStore } from "../annotate/state/store";
-import { generateThumbnail } from "../editor/generateThumbnail";
+import { generateDocumentThumbnail } from "../editor/generateThumbnail";
 import type { EditorPreset } from "../compose/preset";
 import {
   DocumentStateSnapshot,
@@ -8,6 +8,7 @@ import {
   ScreenshotDocument,
 } from "../editor/useScreenshotDocuments";
 import { CropBounds } from "../editor/useCropTool";
+import { getSelectedCanvasImage } from "../editor/canvasDocument";
 
 interface SessionControllerInput {
   // document state
@@ -85,6 +86,7 @@ export function useQuickAccessSessionController(
       undoStack: [...undoStackRef.current],
       redoStack: [...redoStackRef.current],
       image: image || undefined,
+      canvas: docsRef.current.find((doc) => doc.id === activeId)?.canvas,
     };
     switchToDocument(activeId, snap);
   }, [activeIdRef, cropBounds, image, preset, switchToDocument, undoStackRef, redoStackRef]);
@@ -110,6 +112,7 @@ export function useQuickAccessSessionController(
         undoStack: [...undoStackRef.current],
         redoStack: [...redoStackRef.current],
         image: image ?? undefined,
+        canvas: docsRef.current.find((doc) => doc.id === activeId)?.canvas,
       };
 
       switchToDocument(nextId, snapshot);
@@ -117,7 +120,7 @@ export function useQuickAccessSessionController(
       const nextDoc = docsRef.current.find((d) => d.id === nextId);
       if (!nextDoc) return;
       setPreset(nextDoc.preset);
-      setImage(nextDoc.image);
+      setImage(getSelectedCanvasImage(nextDoc.canvas)?.image ?? nextDoc.image);
       useAnnotationStore.getState().restoreSnapshot(nextDoc.annotation);
       setCropBounds(nextDoc.cropBounds);
       undoStackRef.current = [...nextDoc.undoStack];
@@ -152,7 +155,7 @@ export function useQuickAccessSessionController(
         const nextDoc = remainingDocs.find((d) => d.id === nextActiveId);
         if (nextDoc) {
           setPreset(nextDoc.preset);
-          setImage(nextDoc.image);
+          setImage(getSelectedCanvasImage(nextDoc.canvas)?.image ?? nextDoc.image);
           useAnnotationStore.getState().restoreSnapshot(nextDoc.annotation);
           setCropBounds(nextDoc.cropBounds);
           undoStackRef.current = [...nextDoc.undoStack];
@@ -185,7 +188,11 @@ export function useQuickAccessSessionController(
         undoStack: [],
         redoStack: [],
       });
-      void generateThumbnail(doc.image).then((thumb) => {
+      void generateDocumentThumbnail({
+        image: doc.image,
+        canvas: doc.canvas,
+        preset: doc.preset,
+      }).then((thumb) => {
         patchDocument(doc.id, { thumbnailSrc: thumb });
       });
     });

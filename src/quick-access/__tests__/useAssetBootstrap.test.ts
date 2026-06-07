@@ -1,6 +1,8 @@
 import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { useAssetBootstrap } from '../useAssetBootstrap';
+import { createMockImage, createScreenshotDocument } from '../../test/builders/screenshotDocument';
+import { DEFAULT_PRESET } from '../../compose/preset';
 
 // Mock Image global since JSDOM might not trigger onload correctly
 class MockImage {
@@ -21,9 +23,19 @@ vi.mock('../../ipc/index', () => ({
   settingsLoad: vi.fn().mockResolvedValue({}),
 }));
 
+vi.mock('../../editor/generateThumbnail', () => ({
+  generateThumbnail: vi.fn().mockResolvedValue('data:thumb'),
+  generateDocumentThumbnail: vi.fn().mockResolvedValue('data:doc-thumb'),
+}));
+
+vi.mock('../../editor/historyBridge', () => ({
+  recordHistorySnapshot: vi.fn(),
+}));
+
 describe('useAssetBootstrap Redo support', () => {
   const createMockDeps = () => ({
     docsRef: { current: [] as any[] },
+    activeIdRef: { current: null as string | null },
     addDocument: vi.fn((doc) => [doc]),
     releaseDocument: vi.fn(),
     patchDocument: vi.fn(),
@@ -114,5 +126,43 @@ describe('useAssetBootstrap Redo support', () => {
     ).rejects.toThrow('read failed');
 
     expect(assetRelease).toHaveBeenCalledWith('asset-bad', 'quick_access_ui');
+  });
+
+  it('adds capture 2 into the active canvas and demotes studio mode', async () => {
+    const deps = createMockDeps();
+    const activeDoc = createScreenshotDocument('doc-1', {
+      image: createMockImage('img-1'),
+      preset: {
+        ...DEFAULT_PRESET,
+        presentation_mode: 'studio',
+      },
+    });
+    deps.docsRef.current = [activeDoc];
+    deps.activeIdRef.current = activeDoc.id;
+
+    const { result } = renderHook(() => useAssetBootstrap(deps as any));
+
+    await act(async () => {
+      await result.current.bootstrapAsset('asset-2');
+    });
+
+    expect(deps.addDocument).not.toHaveBeenCalled();
+    expect(deps.patchDocument).toHaveBeenCalledWith(
+      activeDoc.id,
+      expect.objectContaining({
+        assetId: undefined,
+        preset: expect.objectContaining({ presentation_mode: 'flat' }),
+        canvas: expect.objectContaining({
+          images: expect.arrayContaining([
+            expect.objectContaining({ blobUrl: expect.any(String) }),
+            expect.objectContaining({ assetId: 'asset-2' }),
+          ]),
+        }),
+      }),
+    );
+    expect(deps.setActiveDocumentId).toHaveBeenCalledWith(activeDoc.id);
+    expect(deps.setPreset).toHaveBeenCalledWith(
+      expect.objectContaining({ presentation_mode: 'flat' })
+    );
   });
 });

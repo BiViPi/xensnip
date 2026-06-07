@@ -69,15 +69,19 @@ export function Settings() {
 
     setIsSaving(true);
     setErrors({});
-    try {
-      const result = await settingsSave(draft);
+      try {
+        const result = await settingsSave(draft);
       loadedRef.current = draft;
       applyTheme(draft.theme);
       await emit("theme-changed", draft.theme);
       await emit("settings-updated", draft);
       if (result.warnings.length > 0) {
         for (const w of result.warnings) {
-          showToast(`Saved. Shortcut '${w.shortcut}' could not be activated.`, "error");
+          if (w.field === "print_screen") {
+            showToast("Saved. Print Screen could not be activated. Windows or another app is still using this key.", "error");
+          } else {
+            showToast(`Saved. Shortcut '${w.shortcut}' could not be activated.`, "error");
+          }
         }
       } else {
         showToast("Settings saved successfully.");
@@ -312,6 +316,28 @@ export function Settings() {
                       type="checkbox"
                       checked={draft.capture_all_monitors}
                       onChange={(e) => setDraft({ ...draft, capture_all_monitors: e.target.checked })}
+                    />
+                    <span className="xs-slider"></span>
+                  </label>
+                </div>
+                <div className="xs-divider" />
+                <div className="xs-settings-row">
+                  <div className="xs-icon-circle">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="4" y="6" width="16" height="12" rx="2"></rect>
+                      <path d="M8 10h8"></path>
+                      <path d="M8 14h5"></path>
+                    </svg>
+                  </div>
+                  <div className="xs-field-label">
+                    <span className="xs-label-text">Use Print Screen for current monitor capture</span>
+                    <span className="xs-label-desc">When XenSnip is running, Print Screen captures the monitor under your cursor.</span>
+                  </div>
+                  <label className="xs-switch">
+                    <input
+                      type="checkbox"
+                      checked={draft.print_screen_capture_enabled}
+                      onChange={(e) => setDraft({ ...draft, print_screen_capture_enabled: e.target.checked })}
                     />
                     <span className="xs-slider"></span>
                   </label>

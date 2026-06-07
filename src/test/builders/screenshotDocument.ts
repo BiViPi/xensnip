@@ -6,6 +6,7 @@ import {
   ScreenshotDocument,
 } from '../../editor/useScreenshotDocuments';
 import { CropBounds } from '../../editor/useCropTool';
+import { createCanvasDocument, createCanvasImageObject } from '../../editor/canvasDocument';
 
 export function createMockImage(src = 'mock-image'): HTMLImageElement {
   const image = new Image();
@@ -70,10 +71,21 @@ export function createScreenshotDocument(
   id: string,
   overrides: Partial<ScreenshotDocument> = {}
 ): ScreenshotDocument {
+  const baseImage = overrides.image ?? createMockImage(`image:${id}`);
+  const baseBlobUrl = overrides.blobUrl ?? `blob:${id}`;
   return {
     id,
-    image: createMockImage(`image:${id}`),
-    blobUrl: `blob:${id}`,
+    image: baseImage,
+    canvas:
+      overrides.canvas ??
+      createCanvasDocument(
+        createCanvasImageObject({
+          image: baseImage,
+          blobUrl: baseBlobUrl,
+          assetId: overrides.assetId,
+        })
+      ),
+    blobUrl: baseBlobUrl,
     thumbnailSrc: `thumb:${id}`,
     preset: { ...DEFAULT_PRESET },
     annotation: createAnnotationSnapshot(),

@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.0] - 2026-06-07
+
+### Added
+- Opt-in `Print Screen` capture for the monitor under the mouse pointer, including settings migration to schema version `11`.
+- Persistent Quick Access handoff that reuses the editor session and preserves cold-spawn `capture_kind` metadata for the first capture.
+- Two-image canvas documents with shared preview/export rendering, per-image selection, move, resize, crop, and undoable second-capture insertion.
+- A dedicated manual test checklist and focused automated coverage for multi-image history, active-canvas insertion, and cold-spawn metadata.
+
+### Changed
+- Copy, export, and pin flows now render multi-image canvases and selected-image crops through the same canvas-document path used by preview.
+- Studio mode now demotes or blocks itself for multi-image documents in `v0.5.0`.
+- Session cache eviction now protects multi-image documents from automatic removal when the normal single-image limit is reached.
+
+### Fixed
+- Quick Access busy-state gating now uses the session-scoped busy token instead of depending on a soon-to-be-deleted asset id.
+- Quick Access cleanup now releases warm-session UI asset refs after close or unexpected destroy.
+- Multi-image canvas mutations now record undo history correctly, and document thumbnails refresh from the composed canvas instead of a stale raw image.
+
 ## [0.4.0] - 2026-05-20
 
 ### Added

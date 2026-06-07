@@ -6,6 +6,7 @@ import { LeftPanel } from "../left-panel/LeftPanel";
 import { QuickAccessCanvasArea } from "./QuickAccessCanvasArea";
 import { StudioCanvas } from "../studio/ui/StudioCanvas";
 import type { StudioExportHandle } from "../studio/types";
+import type { CanvasDocument } from "../editor/canvasDocument";
 
 interface ViewportLayout {
   topInset: number;
@@ -25,6 +26,7 @@ interface QuickAccessViewportProps {
   activeDocumentId: string | null;
   activeDoc: ScreenshotDocument | null;
   image: HTMLImageElement | null;
+  canvasDocument: CanvasDocument | null;
   isLoading: boolean;
   isLeftPanelCollapsed: boolean;
   expandedPanelWidth: number;
@@ -52,6 +54,7 @@ interface QuickAccessViewportProps {
   onRenameDocument: (id: string, name: string | undefined) => void;
   onPresetChange: (preset: EditorPreset) => void;
   onCropBoundsChange: (bounds: CropBounds | null) => void;
+  onCanvasDocumentChange: (canvasDocument: CanvasDocument) => void;
   onCommitCrop: () => void;
   onCancelCrop: () => void;
   onExportHandleChange: (h: StudioExportHandle | null) => void;
@@ -62,6 +65,7 @@ export function QuickAccessViewport({
   activeDocumentId,
   activeDoc,
   image,
+  canvasDocument,
   isLoading,
   isLeftPanelCollapsed,
   expandedPanelWidth,
@@ -89,11 +93,12 @@ export function QuickAccessViewport({
   onRenameDocument,
   onPresetChange,
   onCropBoundsChange,
+  onCanvasDocumentChange,
   onCommitCrop,
   onCancelCrop,
   onExportHandleChange,
 }: QuickAccessViewportProps) {
-  const isStudio = preset.presentation_mode === 'studio';
+  const isStudio = preset.presentation_mode === 'studio' && (canvasDocument?.images.length ?? 0) <= 1;
 
   return (
     <div className="xs-viewport">
@@ -109,7 +114,7 @@ export function QuickAccessViewport({
         onRename={onRenameDocument}
       />
 
-      {activeDoc && image ? (
+      {activeDoc && image && canvasDocument ? (
         isStudio ? (
           <div
             className="xs-canvas-area"
@@ -140,6 +145,7 @@ export function QuickAccessViewport({
         ) : (
           <QuickAccessCanvasArea
             image={image}
+            canvasDocument={canvasDocument}
             preset={preset}
             dims={dims}
             previewW={previewW}
@@ -159,6 +165,7 @@ export function QuickAccessViewport({
             stageRef={stageRef}
             onPresetChange={onPresetChange}
             onCropBoundsChange={onCropBoundsChange}
+            onCanvasDocumentChange={onCanvasDocumentChange}
             onCommitCrop={onCommitCrop}
             onCancelCrop={onCancelCrop}
           />

@@ -12,6 +12,7 @@ pub mod native_region_selector;
 mod native_region_selector_controller;
 mod native_region_snap;
 mod native_region_state;
+pub mod fullscreen;
 pub mod region;
 pub mod window;
 
@@ -21,6 +22,7 @@ pub enum CaptureIntent {
     Region,
     RegionConfirming,
     ActiveWindow,
+    CurrentMonitor,
 }
 
 pub struct DelayedCaptureToken {

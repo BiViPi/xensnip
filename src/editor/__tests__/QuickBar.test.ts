@@ -5,6 +5,7 @@ import { QuickBar } from '../QuickBar';
 import type { EditorPreset } from '../../compose/preset';
 import type { ScreenshotDocument } from '../useScreenshotDocuments';
 import type { Settings } from '../../ipc/types';
+import { createCanvasDocument, createCanvasImageObject } from '../canvasDocument';
 
 const {
   composeToBlob,
@@ -115,6 +116,10 @@ const activeDocument: ScreenshotDocument = {
   id: 'doc-1',
   filename: 'capture.png',
   image,
+  canvas: createCanvasDocument(createCanvasImageObject({
+    image,
+    blobUrl: 'blob:active',
+  })),
   blobUrl: 'blob:active',
   thumbnailSrc: 'blob:thumb',
   preset,
@@ -136,7 +141,7 @@ const otherDocument: ScreenshotDocument = {
 };
 
 const settings: Settings = {
-  version: 8,
+  version: 11,
   hotkeys: {
     region: 'Ctrl+Shift+4',
     active_window: 'Ctrl+Shift+5',
@@ -145,6 +150,7 @@ const settings: Settings = {
   launch_at_startup: false,
   capture_delay_seconds: 0,
   capture_all_monitors: false,
+  print_screen_capture_enabled: false,
   export_folder: 'E:/Exports',
   export_format: 'JPEG',
   play_copy_sound: false,

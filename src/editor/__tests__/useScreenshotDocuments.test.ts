@@ -8,6 +8,7 @@ import {
   createRectangleObject,
   createScreenshotDocument,
 } from '../../test/builders/screenshotDocument';
+import { addCanvasImage } from '../canvasDocument';
 
 describe('useScreenshotDocuments', () => {
   it('adds a document while active selection remains caller-owned', () => {
@@ -49,6 +50,72 @@ describe('useScreenshotDocuments', () => {
     // Document '1' should be evicted because it was the oldest and unchecked
     expect(result.current.documents.find(d => d.id === '1')).toBeUndefined();
     expect(result.current.documents[0].id).toBe('21');
+  });
+
+  it('does not auto-evict a multi-image document when the cache is full', () => {
+    const { result } = renderHook(() => useScreenshotDocuments());
+
+    for (let i = 1; i <= 19; i++) {
+      act(() => {
+        result.current.addDocument(createScreenshotDocument(i.toString()));
+      });
+    }
+
+    const base = createScreenshotDocument('multi');
+    const multiImageDoc = {
+      ...base,
+      canvas: addCanvasImage(base.canvas, {
+        image: base.image,
+        blobUrl: 'blob:multi-2',
+      }),
+    };
+
+    act(() => {
+      result.current.addDocument(multiImageDoc);
+    });
+
+    expect(result.current.documents).toHaveLength(20);
+
+    act(() => {
+      result.current.addDocument(createScreenshotDocument('21', {
+        isExportChecked: true,
+      }));
+    });
+
+    expect(result.current.documents).toHaveLength(20);
+    expect(result.current.documents.find((d) => d.id === 'multi')).toBeDefined();
+    expect(result.current.documents.find((d) => d.id === '1')).toBeUndefined();
+  });
+
+  it('allows the cache to exceed 20 when every document is multi-image', () => {
+    const { result } = renderHook(() => useScreenshotDocuments());
+
+    for (let i = 1; i <= 20; i++) {
+      const base = createScreenshotDocument(i.toString());
+      act(() => {
+        result.current.addDocument({
+          ...base,
+          canvas: addCanvasImage(base.canvas, {
+            image: base.image,
+            blobUrl: `blob:${i}:2`,
+          }),
+        });
+      });
+    }
+
+    const extraBase = createScreenshotDocument('21');
+    act(() => {
+      result.current.addDocument({
+        ...extraBase,
+        canvas: addCanvasImage(extraBase.canvas, {
+          image: extraBase.image,
+          blobUrl: 'blob:21:2',
+        }),
+      });
+    });
+
+    expect(result.current.documents).toHaveLength(21);
+    expect(result.current.documents.find((d) => d.id === '1')).toBeDefined();
   });
 
   it('removes a document and updates active ID only when the removed document was active', () => {

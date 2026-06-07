@@ -66,6 +66,8 @@ pub struct Settings {
     #[serde(default = "default_true")]
     pub capture_all_monitors: bool,
     #[serde(default)]
+    pub print_screen_capture_enabled: bool,
+    #[serde(default)]
     pub saved_presets: Vec<SavedPreset>,
     #[serde(default)]
     pub last_preset: Option<serde_json::Value>,
@@ -80,7 +82,7 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Self {
-            version: 10,
+            version: 11,
             hotkeys: Hotkeys {
                 region: "Ctrl+Shift+S".to_string(),
                 active_window: "Ctrl+Alt+W".to_string(),
@@ -92,6 +94,7 @@ impl Default for Settings {
             export_folder: None,
             export_format: "PNG".to_string(),
             capture_all_monitors: true,
+            print_screen_capture_enabled: false,
             saved_presets: Vec::new(),
             last_preset: None,
             default_preset_id: None,
@@ -164,6 +167,12 @@ fn migrate_settings_if_needed(settings: &mut Settings) -> bool {
     if settings.version < 10 {
         settings.version = 10;
         // v10: capture_delay_seconds added; serde default covers new field
+        changed = true;
+    }
+
+    if settings.version < 11 {
+        settings.version = 11;
+        // v11: print_screen_capture_enabled added; serde default covers new field
         changed = true;
     }
 
@@ -265,10 +274,10 @@ mod tests {
 
     #[test]
     fn already_current_version_reports_no_change() {
-        let mut s = settings_at_version(10);
+        let mut s = settings_at_version(11);
         let changed = migrate_settings_if_needed(&mut s);
         assert!(!changed);
-        assert_eq!(s.version, 10);
+        assert_eq!(s.version, 11);
     }
 
     #[test]
@@ -278,7 +287,7 @@ mod tests {
         let changed = migrate_settings_if_needed(&mut s);
         assert!(changed);
         assert_eq!(s.hotkeys.active_window, "Ctrl+Alt+W");
-        assert_eq!(s.version, 10);
+        assert_eq!(s.version, 11);
     }
 
     #[test]
@@ -288,7 +297,7 @@ mod tests {
         let changed = migrate_settings_if_needed(&mut s);
         assert!(changed);
         assert_eq!(s.hotkeys.active_window, "Ctrl+Alt+W");
-        assert_eq!(s.version, 10);
+        assert_eq!(s.version, 11);
     }
 
     #[test]
@@ -296,7 +305,7 @@ mod tests {
         let mut s = settings_at_version(6);
         let changed = migrate_settings_if_needed(&mut s);
         assert!(changed);
-        assert_eq!(s.version, 10);
+        assert_eq!(s.version, 11);
     }
 
     #[test]
@@ -304,7 +313,7 @@ mod tests {
         let mut s = settings_at_version(7);
         let changed = migrate_settings_if_needed(&mut s);
         assert!(changed);
-        assert_eq!(s.version, 10);
+        assert_eq!(s.version, 11);
     }
 
     #[test]
@@ -312,7 +321,7 @@ mod tests {
         let mut s = settings_at_version(8);
         let changed = migrate_settings_if_needed(&mut s);
         assert!(changed);
-        assert_eq!(s.version, 10);
+        assert_eq!(s.version, 11);
         assert_eq!(s.default_presentation_mode, "flat");
     }
 
@@ -321,13 +330,22 @@ mod tests {
         let mut s = settings_at_version(9);
         let changed = migrate_settings_if_needed(&mut s);
         assert!(changed);
-        assert_eq!(s.version, 10);
+        assert_eq!(s.version, 11);
         assert_eq!(s.capture_delay_seconds, 0);
     }
 
     #[test]
-    fn invalid_capture_delay_clamps_to_zero() {
+    fn migrates_v10_to_v11() {
         let mut s = settings_at_version(10);
+        let changed = migrate_settings_if_needed(&mut s);
+        assert!(changed);
+        assert_eq!(s.version, 11);
+        assert!(!s.print_screen_capture_enabled);
+    }
+
+    #[test]
+    fn invalid_capture_delay_clamps_to_zero() {
+        let mut s = settings_at_version(11);
         s.capture_delay_seconds = 7;
         let changed = migrate_settings_if_needed(&mut s);
 
@@ -337,7 +355,7 @@ mod tests {
 
     #[test]
     fn valid_capture_delay_is_preserved() {
-        let mut s = settings_at_version(10);
+        let mut s = settings_at_version(11);
         s.capture_delay_seconds = 5;
         let changed = migrate_settings_if_needed(&mut s);
 
@@ -348,8 +366,9 @@ mod tests {
     #[test]
     fn default_settings_are_at_current_version() {
         let s = Settings::default();
-        assert_eq!(s.version, 10);
+        assert_eq!(s.version, 11);
         assert_eq!(s.default_presentation_mode, "flat");
         assert_eq!(s.capture_delay_seconds, 0);
+        assert!(!s.print_screen_capture_enabled);
     }
 }

@@ -296,8 +296,7 @@ fn spawn_window(
     meta: &CapturePositionMeta,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let (x, y) = compute_position(meta);
-
-    let url = format!("quick-access.html?asset_id={}", url_encode(asset_id));
+    let url = build_quick_access_url(asset_id, meta);
 
     let window = WebviewWindowBuilder::new(app, QA_LABEL, WebviewUrl::App(url.into()))
         .title("XenSnip Editor")
@@ -459,6 +458,14 @@ fn rects_overlap(a: &Rect, b: &Rect) -> bool {
     a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y
 }
 
+fn build_quick_access_url(asset_id: &str, meta: &CapturePositionMeta) -> String {
+    format!(
+        "quick-access.html?asset_id={}&capture_kind={}",
+        url_encode(asset_id),
+        url_encode(&meta.capture_kind)
+    )
+}
+
 fn url_encode(value: &str) -> String {
     value
         .chars()
@@ -470,4 +477,41 @@ fn url_encode(value: &str) -> String {
             }
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn sample_meta(capture_kind: &str) -> CapturePositionMeta {
+        CapturePositionMeta {
+            monitor_work_area_logical: MonitorWorkAreaLogical {
+                x: 0,
+                y: 0,
+                w: 1920,
+                h: 1080,
+            },
+            monitor_dpi: 100,
+            capture_kind: capture_kind.to_string(),
+            capture_rect_logical: None,
+        }
+    }
+
+    #[test]
+    fn build_quick_access_url_includes_capture_kind_for_cold_spawn() {
+        let url = build_quick_access_url("asset-123", &sample_meta("fullscreen"));
+        assert_eq!(
+            url,
+            "quick-access.html?asset_id=asset-123&capture_kind=fullscreen"
+        );
+    }
+
+    #[test]
+    fn build_quick_access_url_encodes_special_characters() {
+        let url = build_quick_access_url("asset id", &sample_meta("full screen"));
+        assert_eq!(
+            url,
+            "quick-access.html?asset_id=asset%20id&capture_kind=full%20screen"
+        );
+    }
 }

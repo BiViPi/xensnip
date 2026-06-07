@@ -1,9 +1,10 @@
 import { useState, useCallback } from 'react';
 import { EditorPreset } from '../compose/preset';
-import { getCompositionDimensions } from '../compose/core';
 import { useAnnotationStore } from '../annotate/state/store';
 import { ToolId } from '../annotate/state/types';
 import { recordHistorySnapshot, withHistorySuspended } from './historyBridge';
+import { CanvasDocument, getSelectedCanvasImage, replaceCanvasImage } from './canvasDocument';
+import { getCanvasDocumentDimensions } from '../compose/canvasDocument';
 
 export interface CropBounds {
   x: number;
@@ -22,26 +23,30 @@ export interface CropBounds {
  */
 export function useCropTool(
   image: HTMLImageElement | null,
+  canvasDocument: CanvasDocument | null,
   preset: EditorPreset,
   setImage: (img: HTMLImageElement) => void,
   setActiveTool: (tool: ToolId) => void,
-  onCommit?: (img: HTMLImageElement) => void
+  onCommit?: (canvasDocument: CanvasDocument, img: HTMLImageElement) => void
 ) {
   const { objects, clearAll } = useAnnotationStore();
   const [cropBounds, setCropBounds] = useState<CropBounds | null>(null);
 
   const startCrop = useCallback(() => {
-    if (!image) return;
+    if (!image || !canvasDocument) return;
+    const selectedImage = getSelectedCanvasImage(canvasDocument);
+    if (!selectedImage) return;
+
     // Get composition-aware draw bounds so the initial crop frame
     // aligns with the visible screenshot content, not the raw image origin.
-    const dims = getCompositionDimensions(image.width, image.height, preset);
+    const dims = getCanvasDocumentDimensions(canvasDocument, preset);
     setCropBounds({
-      x: dims.drawX,
-      y: dims.drawY,
-      w: dims.drawW,
-      h: dims.drawH,
+      x: dims.contentOffsetX + selectedImage.x,
+      y: dims.contentOffsetY + selectedImage.y,
+      w: selectedImage.width,
+      h: selectedImage.height,
     });
-  }, [image, preset]);
+  }, [canvasDocument, image, preset]);
 
   const cancelCrop = useCallback(() => {
     setCropBounds(null);
@@ -49,46 +54,50 @@ export function useCropTool(
   }, [setActiveTool]);
 
   const commitCrop = useCallback(async () => {
-    if (!image || !cropBounds) return;
+    if (!image || !cropBounds || !canvasDocument) return;
+    const selectedImage = getSelectedCanvasImage(canvasDocument);
+    if (!selectedImage) return;
     recordHistorySnapshot();
 
-    // Translate crop bounds from composition canvas space to raw image space.
-    const dims = getCompositionDimensions(image.width, image.height, preset);
+    const dims = getCanvasDocumentDimensions(canvasDocument, preset);
+    const displayX = dims.contentOffsetX + selectedImage.x;
+    const displayY = dims.contentOffsetY + selectedImage.y;
+    const currentSource = selectedImage.sourceCrop ?? {
+      x: 0,
+      y: 0,
+      w: selectedImage.image.width,
+      h: selectedImage.image.height,
+    };
+    const scaleX = selectedImage.width / currentSource.w;
+    const scaleY = selectedImage.height / currentSource.h;
 
-    // The scale factor from raw image to draw area
-    const scaleX = dims.drawW / image.width;
-    const scaleY = dims.drawH / image.height;
-
-    // Convert crop bounds (in composition canvas) to raw image coords
-    const srcX = Math.round((cropBounds.x - dims.drawX) / scaleX);
-    const srcY = Math.round((cropBounds.y - dims.drawY) / scaleY);
+    const srcX = Math.round(currentSource.x + (cropBounds.x - displayX) / scaleX);
+    const srcY = Math.round(currentSource.y + (cropBounds.y - displayY) / scaleY);
     const srcW = Math.round(cropBounds.w / scaleX);
     const srcH = Math.round(cropBounds.h / scaleY);
 
-    // Clamp to image bounds
-    const clampedX = Math.max(0, Math.min(srcX, image.width));
-    const clampedY = Math.max(0, Math.min(srcY, image.height));
-    const clampedW = Math.max(1, Math.min(srcW, image.width - clampedX));
-    const clampedH = Math.max(1, Math.min(srcH, image.height - clampedY));
+    const clampedX = Math.max(0, Math.min(srcX, selectedImage.image.width));
+    const clampedY = Math.max(0, Math.min(srcY, selectedImage.image.height));
+    const clampedW = Math.max(1, Math.min(srcW, selectedImage.image.width - clampedX));
+    const clampedH = Math.max(1, Math.min(srcH, selectedImage.image.height - clampedY));
 
-    const canvas = document.createElement('canvas');
-    canvas.width = clampedW;
-    canvas.height = clampedH;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    const nextCanvas = replaceCanvasImage(canvasDocument, selectedImage.id, {
+      sourceCrop: {
+        x: clampedX,
+        y: clampedY,
+        w: clampedW,
+        h: clampedH,
+      },
+    });
 
-    ctx.drawImage(image, clampedX, clampedY, clampedW, clampedH, 0, 0, clampedW, clampedH);
-
-    const newImg = new Image();
-    newImg.src = canvas.toDataURL('image/png');
-    await new Promise<void>((resolve) => { newImg.onload = () => resolve(); });
-
-    setImage(newImg);
-    if (onCommit) onCommit(newImg);
-    withHistorySuspended(() => clearAll());
+    setImage(selectedImage.image);
+    if (onCommit) onCommit(nextCanvas, selectedImage.image);
+    if (canvasDocument.images.length <= 1) {
+      withHistorySuspended(() => clearAll());
+    }
     setCropBounds(null);
     setActiveTool('select');
-  }, [image, cropBounds, preset, setImage, clearAll, setActiveTool, onCommit]);
+  }, [image, cropBounds, canvasDocument, preset, setImage, clearAll, setActiveTool, onCommit]);
 
   return {
     cropBounds,

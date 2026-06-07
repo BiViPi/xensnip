@@ -18,6 +18,7 @@ export interface Settings {
   export_folder: string | null;
   export_format: string;
   capture_all_monitors: boolean;
+  print_screen_capture_enabled: boolean;
   saved_presets: SavedPreset[];
   last_preset: EditorPreset | null;
   default_preset_id: string | null;

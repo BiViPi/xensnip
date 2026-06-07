@@ -71,7 +71,7 @@ const basePreset: EditorPreset = {
 };
 
 const settings: Settings = {
-  version: 10,
+  version: 11,
   hotkeys: { region: 'Ctrl+Shift+S', active_window: 'Ctrl+Alt+W' },
   theme: 'dark',
   launch_at_startup: false,
@@ -81,6 +81,7 @@ const settings: Settings = {
   export_folder: null,
   export_format: 'PNG',
   capture_all_monitors: true,
+  print_screen_capture_enabled: false,
   saved_presets: [
     {
       id: 'preset-1',
