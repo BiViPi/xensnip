@@ -8,6 +8,10 @@ It lives in the system tray, captures regions or the active window with global h
 
 ## Preview
 
+### Drag to Merge
+
+<video src="src/assets/merge-by-drag.mp4" controls muted playsinline></video>
+
 ### 2.5D Perspective Frame
 
 ![XenSnip 2.5D perspective frame](src/assets/readme/xensnip_perspective_view.png)
@@ -32,7 +36,7 @@ Current release: `0.5.0`
 - Refine a region capture before commit with resize handles, move drag, and confirm or cancel actions
 - Snap region adjustments toward nearby window edges and visual dividers during resize
 - Open a quick-access editor immediately after capture
-- Keep the editor open across repeated captures and add a second screenshot into the active canvas
+- Keep the editor open across repeated captures and merge two sessions into one canvas with drag to merge
 - Switch each screenshot independently between 2D flat and 2.5D Studio presentation modes
 - Render styled presentation outputs with Browser Frame or Acrylic Block, user-controlled viewing angles, and curated studio backgrounds
 - Name each capture directly from its thumbnail card before export
