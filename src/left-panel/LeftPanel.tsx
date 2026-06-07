@@ -1,4 +1,5 @@
 import { ChevronLeft, ChevronRight, Camera } from 'lucide-react';
+import type { PointerEvent } from 'react';
 import { ScreenshotDocument } from '../editor/useScreenshotDocuments';
 import { LeftPanelItem } from './LeftPanelItem';
 import { Tooltip } from '../editor/Tooltip';
@@ -7,6 +8,9 @@ import './LeftPanel.css';
 interface Props {
   documents: ScreenshotDocument[];
   activeDocumentId: string | null;
+  dragSourceId: string | null;
+  dropTargetId: string | null;
+  blockedTargetId: string | null;
   isCollapsed: boolean;
   expandedWidth: number;
   onCollapsedChange: (v: boolean) => void;
@@ -14,11 +18,17 @@ interface Props {
   onCheckboxToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onRename: (id: string, name: string | undefined) => void;
+  onPointerDownItem: (id: string, event: PointerEvent<HTMLDivElement>) => void;
+  onPointerEnterItem: (id: string) => void;
+  onPointerLeaveItem: (id: string) => void;
 }
 
 export function LeftPanel({
   documents,
   activeDocumentId,
+  dragSourceId,
+  dropTargetId,
+  blockedTargetId,
   isCollapsed,
   expandedWidth,
   onCollapsedChange,
@@ -26,6 +36,9 @@ export function LeftPanel({
   onCheckboxToggle,
   onDelete,
   onRename,
+  onPointerDownItem,
+  onPointerEnterItem,
+  onPointerLeaveItem,
 }: Props) {
 
   return (
@@ -83,10 +96,16 @@ export function LeftPanel({
               key={doc.id}
               doc={doc}
               isActive={doc.id === activeDocumentId}
+              isDragSource={doc.id === dragSourceId}
+              isDropTarget={doc.id === dropTargetId}
+              isBlockedTarget={doc.id === blockedTargetId}
               onSelect={() => onSelect(doc.id)}
               onToggleCheck={() => onCheckboxToggle(doc.id)}
               onDelete={() => onDelete(doc.id)}
               onRename={(name) => onRename(doc.id, name)}
+              onPointerDown={(event) => onPointerDownItem(doc.id, event)}
+              onPointerEnter={() => onPointerEnterItem(doc.id)}
+              onPointerLeave={() => onPointerLeaveItem(doc.id)}
             />
           ))
         )}

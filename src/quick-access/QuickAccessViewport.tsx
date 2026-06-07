@@ -1,4 +1,5 @@
 import Konva from "konva";
+import type { PointerEvent as ReactPointerEvent } from "react";
 import { EditorPreset } from "../compose/preset";
 import { ScreenshotDocument } from "../editor/useScreenshotDocuments";
 import { CropBounds } from "../editor/useCropTool";
@@ -25,6 +26,9 @@ interface QuickAccessViewportProps {
   documents: ScreenshotDocument[];
   activeDocumentId: string | null;
   activeDoc: ScreenshotDocument | null;
+  dragSourceId: string | null;
+  dropTargetId: string | null;
+  blockedTargetId: string | null;
   image: HTMLImageElement | null;
   canvasDocument: CanvasDocument | null;
   isLoading: boolean;
@@ -52,6 +56,9 @@ interface QuickAccessViewportProps {
   onToggleCheckbox: (id: string) => void;
   onDeleteDocument: (id: string) => void;
   onRenameDocument: (id: string, name: string | undefined) => void;
+  onPointerDownDocument: (id: string, event: ReactPointerEvent<HTMLDivElement>) => void;
+  onPointerEnterDocument: (id: string) => void;
+  onPointerLeaveDocument: (id: string) => void;
   onPresetChange: (preset: EditorPreset) => void;
   onCropBoundsChange: (bounds: CropBounds | null) => void;
   onCanvasDocumentChange: (canvasDocument: CanvasDocument) => void;
@@ -64,6 +71,9 @@ export function QuickAccessViewport({
   documents,
   activeDocumentId,
   activeDoc,
+  dragSourceId,
+  dropTargetId,
+  blockedTargetId,
   image,
   canvasDocument,
   isLoading,
@@ -91,6 +101,9 @@ export function QuickAccessViewport({
   onToggleCheckbox,
   onDeleteDocument,
   onRenameDocument,
+  onPointerDownDocument,
+  onPointerEnterDocument,
+  onPointerLeaveDocument,
   onPresetChange,
   onCropBoundsChange,
   onCanvasDocumentChange,
@@ -105,6 +118,9 @@ export function QuickAccessViewport({
       <LeftPanel
         documents={documents}
         activeDocumentId={activeDocumentId}
+        dragSourceId={dragSourceId}
+        dropTargetId={dropTargetId}
+        blockedTargetId={blockedTargetId}
         isCollapsed={isLeftPanelCollapsed}
         expandedWidth={expandedPanelWidth}
         onCollapsedChange={onCollapsedChange}
@@ -112,6 +128,9 @@ export function QuickAccessViewport({
         onCheckboxToggle={onToggleCheckbox}
         onDelete={onDeleteDocument}
         onRename={onRenameDocument}
+        onPointerDownItem={onPointerDownDocument}
+        onPointerEnterItem={onPointerEnterDocument}
+        onPointerLeaveItem={onPointerLeaveDocument}
       />
 
       {activeDoc && image && canvasDocument ? (

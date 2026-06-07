@@ -2,7 +2,7 @@ import { useState, useCallback, useRef } from 'react';
 import { AnnotationSnapshot } from '../annotate/state/store';
 import { CropBounds } from './useCropTool';
 import type { EditorPreset } from '../compose/preset';
-import type { CanvasDocument } from './canvasDocument';
+import { addCanvasImageObject, type CanvasDocument } from './canvasDocument';
 
 /**
  * Document-scoped undo snapshot.
@@ -48,6 +48,30 @@ export interface DocumentStateSnapshot {
   image?: HTMLImageElement; // Added to support persisting image changes (crops)
   canvas?: CanvasDocument;
 }
+
+export type MergeDocumentsFailureReason =
+  | 'missing_document'
+  | 'same_document'
+  | 'target_full'
+  | 'source_not_single_image'
+  | 'source_has_annotations'
+  | 'source_crop_pending'
+  | 'target_crop_pending';
+
+export type MergeDocumentsResult =
+  | {
+      ok: true;
+      sourceId: string;
+      targetId: string;
+      nextActiveId: string | null;
+      mergedDocument: ScreenshotDocument;
+      removedDocument: ScreenshotDocument;
+      remainingDocs: ScreenshotDocument[];
+    }
+  | {
+      ok: false;
+      reason: MergeDocumentsFailureReason;
+    };
 
 function isSingleImageDocument(doc: ScreenshotDocument): boolean {
   return doc.canvas.images.length <= 1;
@@ -96,6 +120,7 @@ export function useScreenshotDocuments() {
       }
     }
 
+    docsRef.current = next;
     setDocuments(next);
     return evicted;
   }, []);
@@ -107,11 +132,13 @@ export function useScreenshotDocuments() {
     
     if (target) {
       const nextDocs = prev.filter((d) => d.id !== id);
+      docsRef.current = nextDocs;
       setDocuments(nextDocs);
       
       let nextActiveId = activeId;
       if (activeId === id) {
         nextActiveId = nextDocs.length > 0 ? nextDocs[0].id : null;
+        activeIdRef.current = nextActiveId;
         setActiveDocumentId(nextActiveId);
       }
       
@@ -126,52 +153,140 @@ export function useScreenshotDocuments() {
    */
   const switchToDocument = useCallback((nextId: string, currentSnapshot: DocumentStateSnapshot) => {
     const activeId = activeIdRef.current;
-    
-    // Update the list and the active ID in one batch (React flushes these together)
-    setDocuments((prev) => 
-      prev.map((doc) => 
-        doc.id === activeId 
-          ? { 
-              ...doc, 
-              preset: { ...currentSnapshot.preset },
-              annotation: { ...currentSnapshot.annotation }, 
-              cropBounds: currentSnapshot.cropBounds,
-              undoStack: [...currentSnapshot.undoStack],
-              redoStack: [...currentSnapshot.redoStack],
-              image: currentSnapshot.image || doc.image,
-              canvas: currentSnapshot.canvas || doc.canvas,
-            } 
-          : doc
-      )
+    const nextDocs = docsRef.current.map((doc) =>
+      doc.id === activeId
+        ? {
+            ...doc,
+            preset: { ...currentSnapshot.preset },
+            annotation: { ...currentSnapshot.annotation },
+            cropBounds: currentSnapshot.cropBounds,
+            undoStack: [...currentSnapshot.undoStack],
+            redoStack: [...currentSnapshot.redoStack],
+            image: currentSnapshot.image || doc.image,
+            canvas: currentSnapshot.canvas || doc.canvas,
+          }
+        : doc
     );
+    docsRef.current = nextDocs;
+    activeIdRef.current = nextId;
+    setDocuments(nextDocs);
     setActiveDocumentId(nextId);
   }, []);
 
   const updateCheckbox = useCallback((id: string, checked: boolean) => {
-    setDocuments((prev) =>
-      prev.map((doc) => (doc.id === id ? { ...doc, isExportChecked: checked } : doc))
+    const nextDocs = docsRef.current.map((doc) =>
+      doc.id === id ? { ...doc, isExportChecked: checked } : doc
     );
+    docsRef.current = nextDocs;
+    setDocuments(nextDocs);
   }, []);
 
   const patchActiveDocument = useCallback((patch: Partial<ScreenshotDocument>) => {
     const activeId = activeIdRef.current;
-    setDocuments((prev) =>
-      prev.map((doc) => (doc.id === activeId ? { ...doc, ...patch } : doc))
+    const nextDocs = docsRef.current.map((doc) =>
+      doc.id === activeId ? { ...doc, ...patch } : doc
     );
+    docsRef.current = nextDocs;
+    setDocuments(nextDocs);
   }, []);
 
   const patchDocument = useCallback((id: string, patch: Partial<ScreenshotDocument>) => {
-    setDocuments((prev) =>
-      prev.map((doc) => (doc.id === id ? { ...doc, ...patch } : doc))
+    const nextDocs = docsRef.current.map((doc) =>
+      doc.id === id ? { ...doc, ...patch } : doc
     );
+    docsRef.current = nextDocs;
+    setDocuments(nextDocs);
   }, []);
 
   const clearAll = useCallback(() => {
     const all = [...docsRef.current];
+    docsRef.current = [];
+    activeIdRef.current = null;
     setDocuments([]);
     setActiveDocumentId(null);
     return all;
   }, []);
+
+  const getMergeFailureReason = useCallback((
+    sourceId: string,
+    targetId: string
+  ): MergeDocumentsFailureReason | null => {
+    if (sourceId === targetId) {
+      return 'same_document';
+    }
+
+    const prev = docsRef.current;
+    const sourceDoc = prev.find((doc) => doc.id === sourceId);
+    const targetDoc = prev.find((doc) => doc.id === targetId);
+    if (!sourceDoc || !targetDoc) {
+      return 'missing_document';
+    }
+    if (targetDoc.canvas.images.length >= targetDoc.canvas.maxImages) {
+      return 'target_full';
+    }
+    if (sourceDoc.canvas.images.length !== 1) {
+      return 'source_not_single_image';
+    }
+    if (sourceDoc.annotation.objects.length > 0) {
+      return 'source_has_annotations';
+    }
+    if (sourceDoc.cropBounds) {
+      return 'source_crop_pending';
+    }
+    if (targetDoc.cropBounds) {
+      return 'target_crop_pending';
+    }
+    return null;
+  }, []);
+
+  const mergeDocuments = useCallback((sourceId: string, targetId: string): MergeDocumentsResult => {
+    const failureReason = getMergeFailureReason(sourceId, targetId);
+    if (failureReason) {
+      return { ok: false, reason: failureReason };
+    }
+
+    const prev = docsRef.current;
+    const sourceDoc = prev.find((doc) => doc.id === sourceId)!;
+    const targetDoc = prev.find((doc) => doc.id === targetId)!;
+    const sourceImage = sourceDoc.canvas.images[0];
+    const mergedCanvas = addCanvasImageObject(targetDoc.canvas, sourceImage);
+    const mergedPreset =
+      targetDoc.preset.presentation_mode === 'studio'
+        ? { ...targetDoc.preset, presentation_mode: 'flat' as const }
+        : targetDoc.preset;
+    const mergedDocument: ScreenshotDocument = {
+      ...targetDoc,
+      canvas: mergedCanvas,
+      image: sourceImage.image,
+      blobUrl: sourceImage.blobUrl,
+      assetId: undefined,
+      preset: mergedPreset,
+    };
+    const remainingDocs = prev
+      .filter((doc) => doc.id !== sourceId)
+      .map((doc) => (doc.id === targetId ? mergedDocument : doc));
+
+    const currentActiveId = activeIdRef.current;
+    const nextActiveId =
+      currentActiveId === sourceId || currentActiveId === targetId
+        ? targetId
+        : currentActiveId;
+
+    docsRef.current = remainingDocs;
+    activeIdRef.current = nextActiveId;
+    setDocuments(remainingDocs);
+    setActiveDocumentId(nextActiveId);
+
+    return {
+      ok: true,
+      sourceId,
+      targetId,
+      nextActiveId,
+      mergedDocument,
+      removedDocument: sourceDoc,
+      remainingDocs,
+    };
+  }, [getMergeFailureReason]);
 
   return {
     documents,
@@ -184,6 +299,8 @@ export function useScreenshotDocuments() {
     patchActiveDocument,
     patchDocument,
     clearAll,
+    getMergeFailureReason,
+    mergeDocuments,
     setActiveDocumentId,
     docsRef,
     activeIdRef

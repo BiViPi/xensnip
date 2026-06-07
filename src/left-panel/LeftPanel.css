@@ -180,6 +180,24 @@
   transition: transform 180ms ease-out;
 }
 
+.xs-left-item-wrapper.is-drag-source {
+  opacity: 0.58;
+}
+
+.xs-left-item-wrapper.is-drag-source .xs-left-item-card {
+  cursor: grabbing;
+}
+
+.xs-left-item-wrapper.is-drop-target .xs-left-item-card {
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 0 1px var(--accent-cyan), var(--shadow-md);
+}
+
+.xs-left-item-wrapper.is-drop-blocked .xs-left-item-card {
+  border-color: rgba(248, 113, 113, 0.65);
+  box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.45);
+}
+
 /* Export Dot (Left of thumbnail) */
 .xs-left-export-dot {
   width: 12px;
@@ -238,6 +256,9 @@
   transition: all 0.2s;
   display: flex;
   flex-direction: column;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
 }
 
 .xs-left-item-wrapper.is-active .xs-left-item-card {
@@ -265,6 +286,9 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
 }
 
 /* Badges (Top Right) */

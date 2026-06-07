@@ -1,6 +1,7 @@
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { PointerEvent as ReactPointerEvent } from "react";
 import type { StudioExportHandle } from "../studio/types";
 import Konva from "konva";
 import {
@@ -24,7 +25,7 @@ import { useSidebarStore } from "../sidebar/store";
 import { useKeyboardShortcuts } from "../editor/useKeyboardShortcuts";
 import { useCropTool } from "../editor/useCropTool";
 import { recordHistorySnapshot, registerHistoryRecorder } from "../editor/historyBridge";
-import { useScreenshotDocuments, ScreenshotDocument } from "../editor/useScreenshotDocuments";
+import { useScreenshotDocuments, ScreenshotDocument, type MergeDocumentsFailureReason } from "../editor/useScreenshotDocuments";
 import { generateDocumentThumbnail } from "../editor/generateThumbnail";
 import { useEditorUndoStack } from "../editor/useEditorUndoStack";
 import { useAssetBootstrap } from "./useAssetBootstrap";
@@ -40,10 +41,30 @@ const LEFT_PANEL_MAX_WIDTH = 272;
 const LEFT_PANEL_COLLAPSED_WIDTH = 52;
 const LEFT_PANEL_OFFSET = 20;
 const LEFT_PANEL_SAFE_GAP = 16;
+const SESSION_DRAG_THRESHOLD_PX = 6;
 
 function revokeManagedUrl(url: string | undefined) {
   if (url?.startsWith("blob:")) {
     URL.revokeObjectURL(url);
+  }
+}
+
+function getMergeRejectionMessage(reason: MergeDocumentsFailureReason): string {
+  switch (reason) {
+    case "same_document":
+      return "Drop onto a different session to merge.";
+    case "target_full":
+      return "That session already has two screenshots.";
+    case "source_not_single_image":
+      return "Only single-image sessions can be merged into another session.";
+    case "source_has_annotations":
+      return "Annotated sessions cannot be merged in v0.5.0.";
+    case "source_crop_pending":
+    case "target_crop_pending":
+      return "Finish or cancel crop before merging sessions.";
+    case "missing_document":
+    default:
+      return "Session merge failed because one session is no longer available.";
   }
 }
 
@@ -62,11 +83,20 @@ export function QuickAccess() {
   const [activePop, setActivePop] = useState<string | null>(null);
   const [isLeftPanelCollapsed, setIsLeftPanelCollapsed] = useState(false);
   const [showCloseGuard, setShowCloseGuard] = useState(false);
+  const [dragSourceId, setDragSourceId] = useState<string | null>(null);
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null);
+  const [blockedTargetId, setBlockedTargetId] = useState<string | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stageRef = useRef<Konva.Stage | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const initialAssetHandledRef = useRef(false);
+  const pendingSessionDragRef = useRef<{
+    sourceId: string;
+    startX: number;
+    startY: number;
+  } | null>(null);
+  const suppressSelectionClickRef = useRef(false);
   const [studioExportHandle, setStudioExportHandle] = useState<StudioExportHandle | null>(null);
   const studioExportHandleRef = useRef<StudioExportHandle | null>(null);
   const onExportHandleChange = useCallback((h: StudioExportHandle | null) => {
@@ -91,6 +121,8 @@ export function QuickAccess() {
     patchActiveDocument,
     patchDocument,
     clearAll,
+    getMergeFailureReason,
+    mergeDocuments,
     setActiveDocumentId,
     docsRef,
     activeIdRef,
@@ -199,6 +231,14 @@ export function QuickAccess() {
     patchDocument(id, { filename: name });
   }, [patchDocument]);
 
+  const handleSelectDocument = useCallback((id: string) => {
+    if (suppressSelectionClickRef.current) {
+      suppressSelectionClickRef.current = false;
+      return;
+    }
+    handleSwitchDocument(id);
+  }, [handleSwitchDocument]);
+
   useEffect(() => {
     if (!activeDocumentId) return;
     patchActiveDocument({ preset });
@@ -207,7 +247,6 @@ export function QuickAccess() {
   // ── 5. Asset bootstrap ──────────────────────────────────────────────────
   const { bootstrapAssetRef, isLoading } = useAssetBootstrap({
     docsRef,
-    activeIdRef,
     addDocument,
     releaseDocument,
     patchDocument,
@@ -257,6 +296,12 @@ export function QuickAccess() {
     toastTimerRef.current = setTimeout(() => setToast(null), 3000);
   }, []);
 
+  const resetDragState = useCallback(() => {
+    setDragSourceId(null);
+    setDropTargetId(null);
+    setBlockedTargetId(null);
+  }, []);
+
   const applyActiveCanvasDocumentSync = useCallback((nextCanvas: ScreenshotDocument["canvas"]) => {
     const selected = getSelectedCanvasImage(nextCanvas);
     if (!selected) return;
@@ -299,6 +344,111 @@ export function QuickAccess() {
       console.error("Thumbnail refresh failed after canvas update", error);
     }
   }, [applyActiveCanvasDocumentSync, patchActiveDocument]);
+
+  const loadDocumentIntoShell = useCallback((doc: ScreenshotDocument) => {
+    setPreset(doc.preset);
+    setImage(getSelectedCanvasImage(doc.canvas)?.image ?? doc.image);
+    useAnnotationStore.getState().restoreSnapshot(doc.annotation);
+    setCropBounds(doc.cropBounds);
+    undoStackRef.current = [...doc.undoStack];
+    redoStackRef.current = [...doc.redoStack];
+  }, [redoStackRef, setCropBounds, setImage, setPreset, undoStackRef]);
+
+  const handleDocumentPointerDown = useCallback((id: string, event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0) return;
+    pendingSessionDragRef.current = {
+      sourceId: id,
+      startX: event.clientX,
+      startY: event.clientY,
+    };
+    setDropTargetId(null);
+    setBlockedTargetId(null);
+  }, []);
+
+  const handleDocumentPointerEnter = useCallback((targetId: string) => {
+    if (!dragSourceId) return;
+    const failureReason = getMergeFailureReason(dragSourceId, targetId);
+    if (failureReason) {
+      setDropTargetId(null);
+      setBlockedTargetId(targetId);
+      return;
+    }
+    setBlockedTargetId(null);
+    setDropTargetId(targetId);
+  }, [dragSourceId, getMergeFailureReason]);
+
+  const handleDocumentPointerLeave = useCallback((targetId: string) => {
+    setDropTargetId((current) => (current === targetId ? null : current));
+    setBlockedTargetId((current) => (current === targetId ? null : current));
+  }, []);
+
+  useEffect(() => {
+    const handlePointerMove = (event: PointerEvent) => {
+      const pending = pendingSessionDragRef.current;
+      if (!pending || dragSourceId) return;
+      const dx = event.clientX - pending.startX;
+      const dy = event.clientY - pending.startY;
+      if (Math.hypot(dx, dy) < SESSION_DRAG_THRESHOLD_PX) return;
+      flushActiveDocument();
+      suppressSelectionClickRef.current = true;
+      setDragSourceId(pending.sourceId);
+      setDropTargetId(null);
+      setBlockedTargetId(null);
+    };
+
+    const handlePointerUp = () => {
+      pendingSessionDragRef.current = null;
+      const sourceId = dragSourceId;
+      const targetId = dropTargetId;
+      resetDragState();
+
+      if (!sourceId || !targetId) return;
+
+      const finalizeMerge = async () => {
+        const result = mergeDocuments(sourceId, targetId);
+        if (!result.ok) {
+          showToast(getMergeRejectionMessage(result.reason), "error");
+          return;
+        }
+
+        if (result.nextActiveId === result.targetId) {
+          loadDocumentIntoShell(result.mergedDocument);
+        }
+
+        try {
+          const selected = getSelectedCanvasImage(result.mergedDocument.canvas);
+          if (selected) {
+            const thumb = await generateDocumentThumbnail({
+              image: selected.image,
+              canvas: result.mergedDocument.canvas,
+              preset: result.mergedDocument.preset,
+            });
+            patchDocument(result.targetId, { thumbnailSrc: thumb });
+          }
+        } catch (error) {
+          console.error("Thumbnail refresh failed after merge", error);
+        }
+      };
+
+      void finalizeMerge();
+    };
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+    };
+  }, [
+    dragSourceId,
+    dropTargetId,
+    flushActiveDocument,
+    loadDocumentIntoShell,
+    mergeDocuments,
+    patchDocument,
+    resetDragState,
+    showToast,
+  ]);
 
   useKeyboardShortcuts({
     onUndo: () => void handleUndo(),
@@ -539,6 +689,9 @@ export function QuickAccess() {
         documents={documents}
         activeDocumentId={activeDocumentId}
         activeDoc={activeDoc}
+        dragSourceId={dragSourceId}
+        dropTargetId={dropTargetId}
+        blockedTargetId={blockedTargetId}
         image={image}
         canvasDocument={activeDoc?.canvas ?? null}
         isLoading={isLoading}
@@ -562,13 +715,16 @@ export function QuickAccess() {
         canvasRef={canvasRef}
         stageRef={stageRef}
         onCollapsedChange={setIsLeftPanelCollapsed}
-        onSelectDocument={handleSwitchDocument}
+        onSelectDocument={handleSelectDocument}
         onToggleCheckbox={(id) => {
           const doc = docsRef.current.find((d) => d.id === id);
           if (doc) updateCheckbox(id, !doc.isExportChecked);
         }}
         onDeleteDocument={handleDeleteDocument}
         onRenameDocument={handleRenameDocument}
+        onPointerDownDocument={handleDocumentPointerDown}
+        onPointerEnterDocument={handleDocumentPointerEnter}
+        onPointerLeaveDocument={handleDocumentPointerLeave}
         onPresetChange={setPreset}
         onCropBoundsChange={setCropBounds}
         onCanvasDocumentChange={(canvasDocument) => { void applyActiveCanvasDocument(canvasDocument); }}

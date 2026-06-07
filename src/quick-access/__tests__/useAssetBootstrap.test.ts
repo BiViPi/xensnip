@@ -1,8 +1,7 @@
 import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { useAssetBootstrap } from '../useAssetBootstrap';
-import { createMockImage, createScreenshotDocument } from '../../test/builders/screenshotDocument';
-import { DEFAULT_PRESET } from '../../compose/preset';
+import { createScreenshotDocument } from '../../test/builders/screenshotDocument';
 
 // Mock Image global since JSDOM might not trigger onload correctly
 class MockImage {
@@ -26,10 +25,6 @@ vi.mock('../../ipc/index', () => ({
 vi.mock('../../editor/generateThumbnail', () => ({
   generateThumbnail: vi.fn().mockResolvedValue('data:thumb'),
   generateDocumentThumbnail: vi.fn().mockResolvedValue('data:doc-thumb'),
-}));
-
-vi.mock('../../editor/historyBridge', () => ({
-  recordHistorySnapshot: vi.fn(),
 }));
 
 describe('useAssetBootstrap Redo support', () => {
@@ -80,7 +75,9 @@ describe('useAssetBootstrap Redo support', () => {
     deps.docsRef.current = [
       {
         id: 'doc-1',
-        assetId: 'asset-existing',
+        canvas: {
+          images: [{ assetId: 'asset-existing' }],
+        },
       } as any,
     ];
 
@@ -98,7 +95,9 @@ describe('useAssetBootstrap Redo support', () => {
     deps.docsRef.current = [
       {
         id: 'doc-1',
-        assetId: 'asset-existing',
+        canvas: {
+          images: [{ assetId: 'asset-existing' }],
+        },
       } as any,
     ];
 
@@ -128,15 +127,9 @@ describe('useAssetBootstrap Redo support', () => {
     expect(assetRelease).toHaveBeenCalledWith('asset-bad', 'quick_access_ui');
   });
 
-  it('adds capture 2 into the active canvas and demotes studio mode', async () => {
+  it('always creates a new document for capture 2 instead of appending into the active canvas', async () => {
     const deps = createMockDeps();
-    const activeDoc = createScreenshotDocument('doc-1', {
-      image: createMockImage('img-1'),
-      preset: {
-        ...DEFAULT_PRESET,
-        presentation_mode: 'studio',
-      },
-    });
+    const activeDoc = createScreenshotDocument('doc-1');
     deps.docsRef.current = [activeDoc];
     deps.activeIdRef.current = activeDoc.id;
 
@@ -146,23 +139,13 @@ describe('useAssetBootstrap Redo support', () => {
       await result.current.bootstrapAsset('asset-2');
     });
 
-    expect(deps.addDocument).not.toHaveBeenCalled();
-    expect(deps.patchDocument).toHaveBeenCalledWith(
+    expect(deps.addDocument).toHaveBeenCalledTimes(1);
+    expect(deps.patchDocument).not.toHaveBeenCalledWith(
       activeDoc.id,
       expect.objectContaining({
-        assetId: undefined,
-        preset: expect.objectContaining({ presentation_mode: 'flat' }),
-        canvas: expect.objectContaining({
-          images: expect.arrayContaining([
-            expect.objectContaining({ blobUrl: expect.any(String) }),
-            expect.objectContaining({ assetId: 'asset-2' }),
-          ]),
-        }),
+        canvas: expect.anything(),
       }),
     );
-    expect(deps.setActiveDocumentId).toHaveBeenCalledWith(activeDoc.id);
-    expect(deps.setPreset).toHaveBeenCalledWith(
-      expect.objectContaining({ presentation_mode: 'flat' })
-    );
+    expect(deps.setActiveDocumentId).toHaveBeenCalledWith(expect.any(String));
   });
 });

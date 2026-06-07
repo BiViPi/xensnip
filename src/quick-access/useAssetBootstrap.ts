@@ -8,17 +8,15 @@ import {
 } from "../ipc/index";
 import { DEFAULT_PRESET, EditorPreset, normalizeEditorPreset } from "../compose/preset";
 import { autoBalance } from "../editor/autoBalance";
-import { generateDocumentThumbnail, generateThumbnail } from "../editor/generateThumbnail";
+import { generateThumbnail } from "../editor/generateThumbnail";
 import { ScreenshotDocument, DocumentUndoSnapshot } from "../editor/useScreenshotDocuments";
 import { useAnnotationStore } from "../annotate/state/store";
 import { CropBounds } from "../editor/useCropTool";
 import { Settings } from "../ipc/types";
-import { addCanvasImage, createCanvasDocument, createCanvasImageObject, getSelectedCanvasImage } from "../editor/canvasDocument";
-import { recordHistorySnapshot } from "../editor/historyBridge";
+import { createCanvasDocument, createCanvasImageObject } from "../editor/canvasDocument";
 
 interface UseAssetBootstrapDeps {
   docsRef: React.MutableRefObject<ScreenshotDocument[]>;
-  activeIdRef: React.MutableRefObject<string | null>;
   addDocument: (doc: ScreenshotDocument) => ScreenshotDocument[];
   releaseDocument: (doc: ScreenshotDocument) => void;
   patchDocument: (id: string, patch: Partial<ScreenshotDocument>) => void;
@@ -76,7 +74,6 @@ export function useAssetBootstrap(deps: UseAssetBootstrapDeps): {
 } {
   const {
     docsRef,
-    activeIdRef,
     addDocument,
     releaseDocument,
     patchDocument,
@@ -95,8 +92,10 @@ export function useAssetBootstrap(deps: UseAssetBootstrapDeps): {
 
   const bootstrapAsset = useCallback(async (nextAssetId: string, captureContext?: BootstrapCaptureContext) => {
     // Check if we already have this asset using stable docsRef
-    if (docsRef.current.some((d) => d.assetId === nextAssetId)) {
-      const existing = docsRef.current.find((d) => d.assetId === nextAssetId)!;
+    const existing = docsRef.current.find((doc) =>
+      doc.canvas.images.some((imageObject) => imageObject.assetId === nextAssetId)
+    );
+    if (existing) {
       handleSwitchDocument(existing.id);
       return;
     }
@@ -156,49 +155,6 @@ export function useAssetBootstrap(deps: UseAssetBootstrapDeps): {
       void perfLog(
         `Image decode took ${Math.round(performance.now() - decodeStart)}ms (${img.naturalWidth}x${img.naturalHeight})`
       );
-
-      const activeDoc = activeIdRef.current
-        ? docsRef.current.find((doc) => doc.id === activeIdRef.current) ?? null
-        : null;
-
-      if (activeDoc && activeDoc.canvas.images.length < activeDoc.canvas.maxImages) {
-        recordHistorySnapshot();
-        const nextCanvas = addCanvasImage(activeDoc.canvas, {
-          image: img,
-          blobUrl: url,
-          assetId: nextAssetId,
-        });
-        const selected = getSelectedCanvasImage(nextCanvas);
-        const nextPreset =
-          activeDoc.preset.presentation_mode === "studio"
-            ? { ...activeDoc.preset, presentation_mode: "flat" as const }
-            : activeDoc.preset;
-        patchDocument(activeDoc.id, {
-          canvas: nextCanvas,
-          image: selected?.image ?? img,
-          blobUrl: selected?.blobUrl ?? url,
-          assetId: undefined,
-          preset: nextPreset,
-        });
-        setImage(selected?.image ?? img);
-        setActiveDocumentId(activeDoc.id);
-        setPreset(nextPreset);
-        setCropBounds(null);
-        setTimeout(async () => {
-          try {
-            const thumb = await generateDocumentThumbnail({
-              image: selected?.image ?? img,
-              canvas: nextCanvas,
-              preset: nextPreset,
-            });
-            patchDocument(activeDoc.id, { thumbnailSrc: thumb });
-          } catch (error) {
-            console.error("Deferred multi-image thumbnail generation failed", error);
-          }
-        }, 0);
-        setIsLoading(false);
-        return;
-      }
 
       const newDoc: ScreenshotDocument = {
         id: crypto.randomUUID(),
@@ -285,7 +241,6 @@ export function useAssetBootstrap(deps: UseAssetBootstrapDeps): {
     }
   }, [
     docsRef,
-    activeIdRef,
     addDocument,
     releaseDocument,
     handleSwitchDocument,

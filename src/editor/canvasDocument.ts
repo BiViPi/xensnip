@@ -157,3 +157,25 @@ export function addCanvasImage(
     selectedImageId: nextImage.id,
   };
 }
+
+export function addCanvasImageObject(
+  canvas: CanvasDocument,
+  imageObject: CanvasImageObject
+): CanvasDocument {
+  const rightMost = canvas.images.reduce(
+    (max, image) => Math.max(max, image.x + image.width),
+    0
+  );
+  const anchorY = canvas.images[0]?.y ?? 0;
+  const nextImage: CanvasImageObject = {
+    ...imageObject,
+    x: rightMost + DEFAULT_GAP,
+    y: anchorY,
+    sourceCrop: imageObject.sourceCrop ? { ...imageObject.sourceCrop } : null,
+  };
+  return {
+    ...canvas,
+    images: [...canvas.images, nextImage],
+    selectedImageId: nextImage.id,
+  };
+}

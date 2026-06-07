@@ -62,6 +62,7 @@ export function LeftPanelFilenameBadge({
   const badgeContent = (
     <div 
       className="xs-left-filename-badge"
+      data-no-drag="true"
       onClick={(e) => {
         e.stopPropagation();
         if (!isEditing) setIsEditing(true);
@@ -72,6 +73,7 @@ export function LeftPanelFilenameBadge({
         <input
           ref={inputRef}
           className="xs-left-filename-input"
+          data-no-drag="true"
           value={localName}
           onChange={(e) => {
             setLocalName(e.target.value);
