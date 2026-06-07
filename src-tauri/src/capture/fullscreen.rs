@@ -163,8 +163,11 @@ pub fn capture_current_monitor(app: &AppHandle) -> Result<(), CaptureError> {
         ));
     }
 
-    app.emit("capture.result", serde_json::json!({ "asset_id": asset_id }))
-        .ok();
+    app.emit(
+        "capture.result",
+        serde_json::json!({ "asset_id": asset_id }),
+    )
+    .ok();
 
     crate::quick_access::emit_show(
         app,

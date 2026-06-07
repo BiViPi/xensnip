@@ -37,8 +37,7 @@ pub fn capture_start_current_monitor(app_handle: AppHandle) -> Result<(), String
     let _guard = session
         .start(crate::capture::CaptureIntent::CurrentMonitor)
         .map_err(|e| format!("{:?}", e))?;
-    crate::capture::fullscreen::capture_current_monitor(&app_handle)
-        .map_err(|e| format!("{:?}", e))
+    crate::capture::fullscreen::capture_current_monitor(&app_handle).map_err(|e| format!("{:?}", e))
 }
 
 fn show_delay_window(app_handle: &AppHandle, delay_seconds: u32) {
