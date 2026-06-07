@@ -10,7 +10,7 @@ It lives in the system tray, captures regions or the active window with global h
 
 ### Drag to Merge
 
-<video src="src/assets/merge-by-drag.mp4" controls muted playsinline></video>
+[![Drag to Merge demo](src/assets/readme/merge-by-drag-poster.png)](https://github.com/BiViPi/xensnip/releases/download/v0.5.0/merge-by-drag.mp4)
 
 ### 2.5D Perspective Frame
 
