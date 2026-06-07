@@ -10,6 +10,9 @@ It lives in the system tray, captures regions or the active window with global h
 
 ### Drag to Merge
 
+Hold and drag thumbnail B onto thumbnail A to merge the two sessions into one canvas.
+Click the preview image below to download the tutorial video.
+
 [![Drag to Merge demo](src/assets/readme/merge-by-drag-poster.png)](https://github.com/BiViPi/xensnip/releases/download/v0.5.0/merge-by-drag.mp4)
 
 ### 2.5D Perspective Frame
