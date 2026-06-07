@@ -196,6 +196,18 @@ body {
   padding: 10px 14px;
 }
 
+.xs-settings-row-stacked {
+  align-items: flex-start;
+}
+
+.xs-settings-stack {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .xs-divider {
   height: 1px;
   background: var(--border-subtle);
@@ -535,6 +547,10 @@ input:checked+.xs-slider:before {
   gap: 4px;
   border: 1px solid var(--border-subtle);
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06); /* Recessed effect */
+}
+
+.xs-segmented-control-compact {
+  align-self: flex-start;
 }
 
 [data-theme='light'] .xs-hotkey-input,

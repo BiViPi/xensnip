@@ -106,9 +106,7 @@ export function QuickAccessCanvasArea({
           transform: `translateX(${previewCenterOffsetX}px)`,
         }}
       >
-        {/* Composite key forces canvas remount on ratio / dimension / scale change */}
         <canvas
-          key={`${preset.ratio}-${dims.canvasW}-${dims.canvasH}-${previewRenderScale}`}
           ref={canvasRef}
           className="xs-canvas"
           style={{ width: "100%", height: "100%" }}
