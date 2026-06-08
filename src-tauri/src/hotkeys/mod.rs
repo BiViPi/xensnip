@@ -90,7 +90,6 @@ pub fn register_hotkeys(
 
     let region_shortcut: Result<Shortcut, _> = settings.hotkeys.region.parse();
     let window_shortcut: Result<Shortcut, _> = settings.hotkeys.active_window.parse();
-    let print_screen_shortcut: Result<Shortcut, _> = PRINT_SCREEN_SHORTCUT.parse();
 
     match region_shortcut {
         Ok(shortcut) => {
@@ -106,6 +105,7 @@ pub fn register_hotkeys(
                 warnings.push(crate::settings::HotkeyWarning {
                     field: "region".to_string(),
                     shortcut: settings.hotkeys.region.clone(),
+                    code: None,
                 });
             }
         }
@@ -129,6 +129,7 @@ pub fn register_hotkeys(
                 warnings.push(crate::settings::HotkeyWarning {
                     field: "active_window".to_string(),
                     shortcut: settings.hotkeys.active_window.clone(),
+                    code: None,
                 });
             }
         }
@@ -138,7 +139,7 @@ pub fn register_hotkeys(
     }
 
     if settings.print_screen_capture_enabled {
-        match print_screen_shortcut {
+        match PRINT_SCREEN_SHORTCUT.parse::<Shortcut>() {
             Ok(shortcut) => {
                 if let Err(err) =
                     app.global_shortcut()
@@ -152,11 +153,17 @@ pub fn register_hotkeys(
                     warnings.push(crate::settings::HotkeyWarning {
                         field: "print_screen".to_string(),
                         shortcut: PRINT_SCREEN_SHORTCUT.to_string(),
+                        code: None,
                     });
                 }
             }
             Err(err) => {
-                log::error!(target: "hotkeys", "Invalid Print Screen shortcut '{}': {:?}", PRINT_SCREEN_SHORTCUT, err);
+                log::error!(
+                    target: "hotkeys",
+                    "Invalid Print Screen shortcut '{}': {:?}",
+                    PRINT_SCREEN_SHORTCUT,
+                    err
+                );
             }
         }
     }

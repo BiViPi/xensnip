@@ -25,6 +25,10 @@ export async function settingsSave(settings: Settings): Promise<SettingsSaveResu
   return await invoke<SettingsSaveResult>("settings_save", { newSettings: settings });
 }
 
+export async function openPrintScreenKeyboardSettings(): Promise<void> {
+  return await invoke<void>("open_print_screen_keyboard_settings");
+}
+
 // ─── Capture commands (keep IPC names stable) ────────────────────────────────
 
 export async function captureStartRegion(): Promise<void> {

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { settingsLoad, settingsSave, selectExportFolder } from "../ipc/index";
+import { openPrintScreenKeyboardSettings, settingsLoad, settingsSave, selectExportFolder } from "../ipc/index";
 import { Settings as SettingsType, SettingsSaveError, ThemeMode } from "../ipc/types";
 import { applyTheme } from "../styles/applyTheme";
 import { emit, listen } from "@tauri-apps/api/event";
@@ -21,6 +21,7 @@ export function Settings() {
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [printScreenConflict, setPrintScreenConflict] = useState(false);
   const toastTimerRef = useRef<number | null>(null);
   const loadedRef = useRef<SettingsType | null>(null);
 
@@ -40,6 +41,7 @@ export function Settings() {
         if (!isMounted) return;
         loadedRef.current = nextSettings;
         setDraft(nextSettings);
+        setPrintScreenConflict(false);
         applyTheme(nextSettings.theme);
         setLoadError(null);
       })
@@ -69,15 +71,20 @@ export function Settings() {
 
     setIsSaving(true);
     setErrors({});
-      try {
-        const result = await settingsSave(draft);
-      loadedRef.current = draft;
-      applyTheme(draft.theme);
-      await emit("theme-changed", draft.theme);
-      await emit("settings-updated", draft);
+    try {
+      const result = await settingsSave(draft);
+      loadedRef.current = result.settings;
+      setDraft(result.settings);
+      applyTheme(result.settings.theme);
+      await emit("theme-changed", result.settings.theme);
+      await emit("settings-updated", result.settings);
+      let hasPrintScreenConflict = false;
       if (result.warnings.length > 0) {
         for (const w of result.warnings) {
-          if (w.field === "print_screen") {
+          if (w.field === "print_screen" && w.code === "windows_snipping_conflict") {
+            hasPrintScreenConflict = true;
+            showToast("Print Screen stays off because Windows screen snipping is currently using this key.", "error");
+          } else if (w.field === "print_screen") {
             showToast("Saved. Print Screen could not be activated. Windows or another app is still using this key.", "error");
           } else {
             showToast(`Saved. Shortcut '${w.shortcut}' could not be activated.`, "error");
@@ -86,6 +93,7 @@ export function Settings() {
       } else {
         showToast("Settings saved successfully.");
       }
+      setPrintScreenConflict(hasPrintScreenConflict);
     } catch (err: unknown) {
       const saveError = err as SettingsSaveError;
       if (saveError && saveError.code === "InvalidHotkey") {
@@ -96,6 +104,14 @@ export function Settings() {
       }
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleOpenKeyboardSettings = async () => {
+    try {
+      await openPrintScreenKeyboardSettings();
+    } catch (err) {
+      showToast("Failed to open Windows Keyboard settings.", "error");
     }
   };
 
@@ -337,11 +353,31 @@ export function Settings() {
                     <input
                       type="checkbox"
                       checked={draft.print_screen_capture_enabled}
-                      onChange={(e) => setDraft({ ...draft, print_screen_capture_enabled: e.target.checked })}
+                      onChange={(e) => {
+                        setDraft({ ...draft, print_screen_capture_enabled: e.target.checked });
+                        if (!e.target.checked) setPrintScreenConflict(false);
+                      }}
                     />
                     <span className="xs-slider"></span>
                   </label>
                 </div>
+                {printScreenConflict && (
+                  <>
+                    <div className="xs-settings-inline-warning">
+                      <div className="xs-settings-inline-warning-text">
+                        Windows is currently using Print Screen for screen snipping. Turn off <strong>Use the Print Screen button to open screen snipping</strong> in Windows Keyboard settings, then enable this toggle again.
+                      </div>
+                      <button
+                        type="button"
+                        className="xs-btn-inline-link"
+                        onClick={() => { void handleOpenKeyboardSettings(); }}
+                      >
+                        Open Keyboard Settings
+                      </button>
+                    </div>
+                    <div className="xs-divider" />
+                  </>
+                )}
                 <div className="xs-divider" />
                 <div className="xs-settings-row xs-settings-row-stacked">
                   <div className="xs-icon-circle">

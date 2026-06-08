@@ -107,8 +107,10 @@ export type SettingsSaveError =
 export interface HotkeyWarning {
   field: string;
   shortcut: string;
+  code?: string | null;
 }
 
 export interface SettingsSaveResult {
   warnings: HotkeyWarning[];
+  settings: Settings;
 }

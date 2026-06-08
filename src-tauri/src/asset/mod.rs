@@ -146,56 +146,6 @@ impl AssetRegistry {
         }
     }
 
-    pub fn release_consumer_all(&self, consumer: &str) -> usize {
-        let mut map = self.inner.lock().unwrap();
-        let mut released_ids = Vec::new();
-        let mut dropped_ids = Vec::new();
-
-        for (asset_id, asset) in map.iter_mut() {
-            if !asset.consumers.remove(consumer) {
-                continue;
-            }
-
-            asset.ref_count = asset.consumers.len() as u32;
-            released_ids.push((asset_id.clone(), asset.ref_count));
-            if asset.ref_count == 0 {
-                dropped_ids.push(asset_id.clone());
-            }
-        }
-
-        for (asset_id, ref_count) in &released_ids {
-            log::info!(
-                target: "asset",
-                r#"{{"event":"asset.released","asset_id":"{}","ref_count":{},"consumer":"{}"}}"#,
-                asset_id,
-                ref_count,
-                consumer
-            );
-        }
-
-        for asset_id in &dropped_ids {
-            map.remove(asset_id);
-            log::info!(
-                target: "asset",
-                r#"{{"event":"asset.dropped","asset_id":"{}","ref_count":0,"consumer":"{}"}}"#,
-                asset_id,
-                consumer
-            );
-        }
-
-        if !released_ids.is_empty() {
-            log::info!(
-                target: "asset",
-                r#"{{"event":"asset.release_consumer_all","consumer":"{}","released_count":{},"dropped_count":{}}}"#,
-                consumer,
-                released_ids.len(),
-                dropped_ids.len()
-            );
-        }
-
-        released_ids.len()
-    }
-
     pub fn get_data(&self, asset_id: &str) -> Option<Arc<Vec<u8>>> {
         let map = self.inner.lock().unwrap();
         map.get(asset_id).map(|asset| asset.data.clone())
@@ -293,38 +243,5 @@ mod tests {
         let registry = AssetRegistry::new();
         let err = registry.resolve("nonexistent", "qa_ui").unwrap_err();
         assert_eq!(err.code, "asset_missing");
-    }
-
-    #[test]
-    fn release_consumer_all_releases_matching_assets_only() {
-        let registry = AssetRegistry::new();
-        registry.insert(make_asset("a1"));
-        registry.insert(make_asset("a2"));
-        registry.resolve("a1", "qa_ui").unwrap();
-        registry.resolve("a2", "qa_ui").unwrap();
-        registry.resolve("a2", "pin-1").unwrap();
-
-        let released = registry.release_consumer_all("qa_ui");
-
-        assert_eq!(released, 2);
-        let map = registry.inner.lock().unwrap();
-        assert_eq!(map["a1"].ref_count, 1);
-        assert_eq!(map["a2"].ref_count, 2);
-        assert!(!map["a1"].consumers.contains("qa_ui"));
-        assert!(!map["a2"].consumers.contains("qa_ui"));
-        assert!(map["a2"].consumers.contains("pin-1"));
-    }
-
-    #[test]
-    fn release_consumer_all_drops_assets_at_zero() {
-        let registry = AssetRegistry::new();
-        registry.insert_with_consumer(make_asset("a1"), "qa_ui");
-        registry.insert_with_consumer(make_asset("a2"), "qa_ui");
-
-        let released = registry.release_consumer_all("qa_ui");
-
-        assert_eq!(released, 2);
-        assert!(registry.get_data("a1").is_none());
-        assert!(registry.get_data("a2").is_none());
     }
 }

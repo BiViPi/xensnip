@@ -1,7 +1,7 @@
 {
   "name": "xensnip",
   "private": true,
-  "version": "0.5.0",
+  "version": "0.5.1",
   "packageManager": "pnpm@11.0.9",
   "license": "MIT",
   "type": "module",

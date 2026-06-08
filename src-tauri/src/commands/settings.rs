@@ -10,12 +10,11 @@ pub fn settings_save(
 
     log::info!(
         target: "settings",
-        "settings_save requested: region={:?}, active_window={:?}, launch_at_startup={}, capture_delay_seconds={}, print_screen_capture_enabled={}",
+        "settings_save requested: region={:?}, active_window={:?}, launch_at_startup={}, capture_delay_seconds={}",
         new_settings.hotkeys.region,
         new_settings.hotkeys.active_window,
         new_settings.launch_at_startup,
         new_settings.capture_delay_seconds,
-        new_settings.print_screen_capture_enabled,
     );
 
     // 1. Validate hotkeys
@@ -35,13 +34,24 @@ pub fn settings_save(
             }
         })?;
 
+    let mut warnings = Vec::new();
+
+    if new_settings.print_screen_capture_enabled
+        && crate::settings::is_windows_print_screen_snipping_enabled()
+    {
+        new_settings.print_screen_capture_enabled = false;
+        warnings.push(crate::settings::HotkeyWarning {
+            field: "print_screen".to_string(),
+            shortcut: "PrintScreen".to_string(),
+            code: Some("windows_snipping_conflict".to_string()),
+        });
+    }
+
     // 2. Load old settings for change detection (logging only)
     let old_settings = crate::settings::load_or_create_default(&app_handle);
     let hotkeys_changed = old_settings.hotkeys.region != new_settings.hotkeys.region
         || old_settings.hotkeys.active_window != new_settings.hotkeys.active_window;
     let autostart_changed = old_settings.launch_at_startup != new_settings.launch_at_startup;
-    let print_screen_changed =
-        old_settings.print_screen_capture_enabled != new_settings.print_screen_capture_enabled;
 
     // 3. Write to file
     crate::settings::save_settings(&app_handle, &new_settings).map_err(|e| {
@@ -52,7 +62,7 @@ pub fn settings_save(
     })?;
 
     // 4. Re-register hotkeys
-    let warnings = crate::hotkeys::re_register(&app_handle, &new_settings);
+    warnings.extend(crate::hotkeys::re_register(&app_handle, &new_settings));
 
     // 5. Sync autostart
     crate::autostart::sync(&app_handle, new_settings.launch_at_startup);
@@ -60,14 +70,25 @@ pub fn settings_save(
     // 6. Log success
     log::info!(
         target: "settings",
-        "settings.saved {{ version: {}, hotkeys_changed: {}, autostart_changed: {}, print_screen_changed: {} }}",
+        "settings.saved {{ version: {}, hotkeys_changed: {}, autostart_changed: {} }}",
         new_settings.version,
         hotkeys_changed,
-        autostart_changed,
-        print_screen_changed,
+        autostart_changed
     );
 
-    Ok(crate::settings::SettingsSaveResult { warnings })
+    Ok(crate::settings::SettingsSaveResult {
+        warnings,
+        settings: new_settings,
+    })
+}
+
+#[tauri::command]
+pub fn open_print_screen_keyboard_settings() -> Result<(), String> {
+    std::process::Command::new("explorer.exe")
+        .arg("ms-settings:easeofaccess-keyboard")
+        .spawn()
+        .map(|_| ())
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]

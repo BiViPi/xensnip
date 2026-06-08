@@ -4,6 +4,8 @@ use std::io;
 use std::path::PathBuf;
 use tauri::AppHandle;
 use tauri::Manager;
+use winreg::enums::HKEY_CURRENT_USER;
+use winreg::RegKey;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Hotkeys {
@@ -41,6 +43,10 @@ fn default_capture_delay_seconds() -> u32 {
     0
 }
 
+fn default_print_screen_capture_enabled() -> bool {
+    false
+}
+
 pub fn normalize_capture_delay_seconds(value: u32) -> u32 {
     match value {
         0 | 3 | 5 | 10 => value,
@@ -65,7 +71,7 @@ pub struct Settings {
     pub export_format: String,
     #[serde(default = "default_true")]
     pub capture_all_monitors: bool,
-    #[serde(default)]
+    #[serde(default = "default_print_screen_capture_enabled")]
     pub print_screen_capture_enabled: bool,
     #[serde(default)]
     pub saved_presets: Vec<SavedPreset>,
@@ -179,6 +185,33 @@ fn migrate_settings_if_needed(settings: &mut Settings) -> bool {
     changed
 }
 
+pub fn is_windows_print_screen_snipping_enabled() -> bool {
+    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+    let keyboard = match hkcu.open_subkey("Control Panel\\Keyboard") {
+        Ok(key) => key,
+        Err(err) => {
+            log::warn!(
+                target: "settings",
+                "failed to open keyboard settings registry key: {}",
+                err
+            );
+            return false;
+        }
+    };
+
+    match keyboard.get_value::<u32, _>("PrintScreenKeyForSnippingEnabled") {
+        Ok(value) => value == 1,
+        Err(err) => {
+            log::warn!(
+                target: "settings",
+                "failed to read PrintScreenKeyForSnippingEnabled: {}",
+                err
+            );
+            false
+        }
+    }
+}
+
 pub fn get_settings_path(app_handle: &AppHandle) -> Result<PathBuf, io::Error> {
     let mut path = app_handle
         .path()
@@ -204,11 +237,13 @@ pub enum SettingsSaveError {
 pub struct HotkeyWarning {
     pub field: String,
     pub shortcut: String,
+    pub code: Option<String>,
 }
 
 #[derive(Debug, serde::Serialize)]
 pub struct SettingsSaveResult {
     pub warnings: Vec<HotkeyWarning>,
+    pub settings: Settings,
 }
 
 pub fn load_or_create_default(app_handle: &AppHandle) -> Settings {

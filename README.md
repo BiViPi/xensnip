@@ -13,7 +13,7 @@ It lives in the system tray, captures regions or the active window with global h
 Hold and drag thumbnail B onto thumbnail A to merge the two sessions into one canvas.
 Click the preview image below to download the tutorial video.
 
-[![Drag to Merge demo](src/assets/readme/merge-by-drag-poster.png)](https://github.com/BiViPi/xensnip/releases/download/v0.5.0/merge-by-drag.mp4)
+[![Drag to Merge demo](src/assets/readme/merge-by-drag-poster.png)](https://github.com/BiViPi/xensnip/releases/download/v0.5.1/merge-by-drag.mp4)
 
 ### 2.5D Perspective Frame
 
@@ -29,7 +29,7 @@ Click the preview image below to download the tutorial video.
 
 ## Version
 
-Current release: `0.5.0`
+Current release: `0.5.1`
 
 ## What XenSnip Does
 
@@ -58,7 +58,7 @@ For normal use, download the latest Windows installer from GitHub Releases:
 - Release page: [GitHub Releases](https://github.com/BiViPi/xensnip/releases)
 - Landing page: [XenSnip landing page](https://xensnip-landing-page.vercel.app/)
 
-The `0.5.0` release is intended to be distributed as installer packages rather than as a source-only package.
+The `0.5.1` release is intended to be distributed as installer packages rather than as a source-only package.
 
 Release package formats:
 
@@ -81,6 +81,7 @@ Windows 11 normally includes WebView2 already. On Windows 10, the Tauri installe
 | Current monitor capture | `Print Screen` when enabled |
 
 The region and active-window shortcuts can be changed in the Settings window. `Print Screen` is an opt-in fixed shortcut for current-monitor capture.
+If Windows screen snipping already owns `Print Screen`, turn off `Use the Print Screen button to open screen snipping` in Windows Keyboard settings before enabling the XenSnip toggle.
 
 ## Typical Workflow
 
