@@ -13,6 +13,7 @@ import {
 } from '../state/types';
 import { DrawingStart } from '../state/drawingTypes';
 import { AnnotationDefaults } from '../../compose/preset';
+import { computeCenteredMagnifySource } from '../renderers/MagnifyRenderer';
 
 export function createDragAnnotationObject(
   type: DrawingStart['type'],
@@ -86,19 +87,36 @@ export function createDragAnnotationObject(
       return spotlight;
     }
     case 'magnify': {
+      const loupeW = w * 1.8;
+      const loupeH = h * 1.8;
+      const centeredX = left - (loupeW - w) / 2;
+      const centeredY = top - (loupeH - h) / 2;
       const magnify: MagnifyObject = {
-        id, type: 'magnify', x: left, y: top,
-        sourceX: left, sourceY: top, sourceWidth: w, sourceHeight: h,
-        rotation: 0, width: w * 1.8, height: h * 1.8, zoom: 1.8,
-        cornerRadius: 20, borderOpacity: 0.8, draggable: true,
+        id,
+        type: 'magnify',
+        x: centeredX,
+        y: centeredY,
+        ...computeCenteredMagnifySource(centeredX, centeredY, loupeW, loupeH, 1.8),
+        rotation: 0,
+        width: loupeW,
+        height: loupeH,
+        cornerRadius: 20,
+        borderOpacity: 0.8,
+        draggable: true,
       };
       return magnify;
     }
     case 'simplify_ui': {
       const simplifyUi: SimplifyUiObject = {
         id, type: 'simplify_ui', x: left, y: top, rotation: 0,
-        width: w, height: h, dimOpacity: 0.52, blurRadius: 4,
-        saturation: 0.35, cornerRadius: 24, draggable: true,
+        width: w, height: h,
+        dimOpacity: 0.52,
+        blockOpacity: 0.52,
+        blurRadius: 4,
+        detailLevel: 50,
+        saturation: 0.35,
+        cornerRadius: 16,
+        draggable: true,
       };
       return simplifyUi;
     }

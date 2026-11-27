@@ -1,11 +1,26 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::io;
-use std::path::PathBuf;
+use std::io::{self, Write};
+use std::path::{Path, PathBuf};
+use std::sync::{Mutex, MutexGuard};
+use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::AppHandle;
 use tauri::Manager;
 use winreg::enums::HKEY_CURRENT_USER;
 use winreg::RegKey;
+
+#[derive(Default)]
+pub struct SettingsLock(Mutex<()>);
+
+impl SettingsLock {
+    pub fn new() -> Self {
+        Self(Mutex::new(()))
+    }
+
+    pub fn lock(&self) -> MutexGuard<'_, ()> {
+        self.0.lock().unwrap_or_else(|e| e.into_inner())
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Hotkeys {
@@ -43,10 +58,6 @@ fn default_capture_delay_seconds() -> u32 {
     0
 }
 
-fn default_print_screen_capture_enabled() -> bool {
-    false
-}
-
 pub fn normalize_capture_delay_seconds(value: u32) -> u32 {
     match value {
         0 | 3 | 5 | 10 => value,
@@ -71,7 +82,7 @@ pub struct Settings {
     pub export_format: String,
     #[serde(default = "default_true")]
     pub capture_all_monitors: bool,
-    #[serde(default = "default_print_screen_capture_enabled")]
+    #[serde(default)]
     pub print_screen_capture_enabled: bool,
     #[serde(default)]
     pub saved_presets: Vec<SavedPreset>,
@@ -129,56 +140,46 @@ fn migrate_settings_if_needed(settings: &mut Settings) -> bool {
 
     if settings.version < 3 {
         settings.version = 3;
-        // Serde default handlers will have already populated the struct with default values during parsing
         changed = true;
     }
 
     if settings.version < 4 {
         settings.version = 4;
-        // v4: no data migration needed; serde defaults cover new fields
         changed = true;
     }
 
     if settings.version < 5 {
         settings.version = 5;
-        // v5: no data migration needed; serde defaults cover new fields
         changed = true;
     }
 
     if settings.version < 6 {
         settings.version = 6;
-        // v6: no data migration needed; serde defaults cover new fields
         changed = true;
     }
 
     if settings.version < 7 {
         settings.version = 7;
-        // v7: no data migration needed; serde defaults cover new fields
         changed = true;
     }
 
     if settings.version < 8 {
         settings.version = 8;
-        // v8: frame_style and view_angle added to EditorPreset on the TS side;
-        // serde_json::Value storage means no Rust schema change is required
         changed = true;
     }
 
     if settings.version < 9 {
         settings.version = 9;
-        // v9: default_presentation_mode added; serde default covers new field
         changed = true;
     }
 
     if settings.version < 10 {
         settings.version = 10;
-        // v10: capture_delay_seconds added; serde default covers new field
         changed = true;
     }
 
     if settings.version < 11 {
         settings.version = 11;
-        // v11: print_screen_capture_enabled added; serde default covers new field
         changed = true;
     }
 
@@ -246,29 +247,68 @@ pub struct SettingsSaveResult {
     pub settings: Settings,
 }
 
-pub fn load_or_create_default(app_handle: &AppHandle) -> Settings {
-    let path = match get_settings_path(app_handle) {
-        Ok(p) => p,
-        Err(e) => {
-            log::error!(target: "settings", "failed to resolve settings path: {}", e);
-            return Settings::default();
+pub fn save_settings_at_path(path: &Path, settings: &Settings) -> Result<(), io::Error> {
+    if let Some(parent) = path.parent() {
+        if !parent.exists() {
+            fs::create_dir_all(parent)?;
         }
-    };
+    }
+    let content = serde_json::to_string_pretty(settings)
+        .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e.to_string()))?;
+    let tmp_path = path.with_file_name("settings.json.tmp");
+    {
+        let mut tmp_file = fs::File::create(&tmp_path)?;
+        tmp_file.write_all(content.as_bytes())?;
+        tmp_file.sync_all()?;
+    }
+    fs::rename(&tmp_path, path)?;
+    Ok(())
+}
 
+pub fn load_or_create_default_at_path(path: &Path) -> Settings {
     if path.exists() {
-        match fs::read_to_string(&path) {
+        match fs::read_to_string(path) {
             Ok(content) => match serde_json::from_str::<Settings>(&content) {
                 Ok(mut settings) => {
                     if migrate_settings_if_needed(&mut settings) {
-                        let _ = save_settings(app_handle, &settings).map_err(|e| {
+                        let _ = save_settings_at_path(path, &settings).map_err(|e| {
                             log::error!(target: "settings", "failed to save migrated settings: {}", e);
                         });
                     }
                     settings
                 }
-                Err(_) => {
+                Err(parse_err) => {
+                    log::error!(
+                        target: "settings",
+                        "failed to parse settings file '{}': {}",
+                        path.display(),
+                        parse_err
+                    );
+                    let unix_secs = SystemTime::now()
+                        .duration_since(UNIX_EPOCH)
+                        .unwrap_or_default()
+                        .as_secs();
+                    let bak_path =
+                        path.with_file_name(format!("settings.corrupt-{unix_secs}.json.bak"));
+                    if let Err(rename_err) = fs::rename(path, &bak_path) {
+                        log::warn!(
+                            target: "settings",
+                            "failed to rename corrupt settings file to '{}': {}",
+                            bak_path.display(),
+                            rename_err
+                        );
+                        if let Err(copy_err) = fs::copy(path, &bak_path) {
+                            log::warn!(
+                                target: "settings",
+                                "failed to copy corrupt settings file to '{}': {}",
+                                bak_path.display(),
+                                copy_err
+                            );
+                        }
+                    }
+
                     let defaults = Settings::default();
-                    let _ = save_settings(app_handle, &defaults).map_err(|e| {
+                    let _ = save_settings_at_path(path, &defaults).map_err(|e| {
                         log::error!(target: "settings", "failed to save default settings after parse error: {}", e);
                     });
                     defaults
@@ -281,19 +321,43 @@ pub fn load_or_create_default(app_handle: &AppHandle) -> Settings {
         }
     } else {
         let defaults = Settings::default();
-        let _ = save_settings(app_handle, &defaults).map_err(|e| {
+        let _ = save_settings_at_path(path, &defaults).map_err(|e| {
             log::error!(target: "settings", "failed to save initial default settings: {}", e);
         });
         defaults
     }
 }
 
-pub fn save_settings(app_handle: &AppHandle, settings: &Settings) -> Result<(), io::Error> {
+pub fn load_or_create_default_unlocked(app_handle: &AppHandle) -> Settings {
+    let path = match get_settings_path(app_handle) {
+        Ok(p) => p,
+        Err(e) => {
+            log::error!(target: "settings", "failed to resolve settings path: {}", e);
+            return Settings::default();
+        }
+    };
+    load_or_create_default_at_path(&path)
+}
+
+pub fn save_settings_unlocked(
+    app_handle: &AppHandle,
+    settings: &Settings,
+) -> Result<(), io::Error> {
     let path = get_settings_path(app_handle)?;
-    let content = serde_json::to_string_pretty(settings)
-        .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e.to_string()))?;
-    fs::write(path, content)?;
-    Ok(())
+    save_settings_at_path(&path, settings)
+}
+
+pub fn load_or_create_default(app_handle: &AppHandle) -> Settings {
+    let lock_state = app_handle.try_state::<SettingsLock>();
+    let _guard = lock_state.as_ref().map(|s| s.lock());
+    load_or_create_default_unlocked(app_handle)
+}
+
+#[allow(dead_code)]
+pub fn save_settings(app_handle: &AppHandle, settings: &Settings) -> Result<(), io::Error> {
+    let lock_state = app_handle.try_state::<SettingsLock>();
+    let _guard = lock_state.as_ref().map(|s| s.lock());
+    save_settings_unlocked(app_handle, settings)
 }
 
 #[cfg(test)]
@@ -405,5 +469,79 @@ mod tests {
         assert_eq!(s.default_presentation_mode, "flat");
         assert_eq!(s.capture_delay_seconds, 0);
         assert!(!s.print_screen_capture_enabled);
+    }
+
+    #[test]
+    fn normalize_capture_delay_seconds_accepts_allowed_values_and_clamps_others() {
+        assert_eq!(normalize_capture_delay_seconds(0), 0);
+        assert_eq!(normalize_capture_delay_seconds(3), 3);
+        assert_eq!(normalize_capture_delay_seconds(5), 5);
+        assert_eq!(normalize_capture_delay_seconds(10), 10);
+        assert_eq!(normalize_capture_delay_seconds(1), 0);
+        assert_eq!(normalize_capture_delay_seconds(7), 0);
+        assert_eq!(normalize_capture_delay_seconds(30), 0);
+    }
+
+    #[test]
+    fn settings_save_result_serializes_warnings_and_settings() {
+        let settings = Settings::default();
+        let result = SettingsSaveResult {
+            warnings: vec![
+                HotkeyWarning {
+                    field: "print_screen".to_string(),
+                    shortcut: "PrintScreen".to_string(),
+                    code: Some("windows_snipping_conflict".to_string()),
+                },
+                HotkeyWarning {
+                    field: "region".to_string(),
+                    shortcut: "Ctrl+Shift+S".to_string(),
+                    code: None,
+                },
+            ],
+            settings,
+        };
+
+        let json = serde_json::to_value(&result).unwrap();
+        assert_eq!(json["settings"]["version"], 11);
+        assert_eq!(json["warnings"][0]["field"], "print_screen");
+        assert_eq!(json["warnings"][0]["code"], "windows_snipping_conflict");
+        assert_eq!(json["warnings"][1]["field"], "region");
+        assert!(json["warnings"][1]["code"].is_null());
+    }
+
+    #[test]
+    fn load_or_create_default_backs_up_corrupt_settings_and_writes_atomically() {
+        let dir = std::env::temp_dir().join(format!("xensnip_settings_{}", uuid::Uuid::new_v4()));
+        fs::create_dir_all(&dir).unwrap();
+        let settings_path = dir.join("settings.json");
+
+        fs::write(&settings_path, b"{corrupt json").unwrap();
+
+        let loaded = load_or_create_default_at_path(&settings_path);
+        assert_eq!(loaded.version, 11);
+        assert!(settings_path.exists());
+        assert!(!dir.join("settings.json.tmp").exists());
+
+        let backups: Vec<_> = fs::read_dir(&dir)
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .filter(|e| {
+                let name = e.file_name().to_string_lossy().into_owned();
+                name.starts_with("settings.corrupt-") && name.ends_with(".json.bak")
+            })
+            .collect();
+        assert_eq!(backups.len(), 1);
+        assert_eq!(fs::read(backups[0].path()).unwrap(), b"{corrupt json");
+
+        let mut updated = loaded.clone();
+        updated.theme = "light".to_string();
+        save_settings_at_path(&settings_path, &updated).unwrap();
+        assert!(!dir.join("settings.json.tmp").exists());
+        assert_eq!(
+            load_or_create_default_at_path(&settings_path).theme,
+            "light"
+        );
+
+        let _ = fs::remove_dir_all(&dir);
     }
 }

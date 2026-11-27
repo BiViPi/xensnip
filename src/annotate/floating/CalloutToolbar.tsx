@@ -6,6 +6,7 @@ import { RadiusToggle } from './RadiusToggle';
 import { SliderToggle } from './SliderToggle';
 import { Type, MousePointer2, ChevronRight, ChevronLeft } from 'lucide-react';
 import { useState } from 'react';
+import { ToolbarActions } from './ToolbarActions';
 
 interface Props {
   anchor: { left: number; top: number; width: number; height: number };
@@ -112,6 +113,7 @@ export function CalloutToolbar({ anchor, obj }: Props) {
               isOpen={activePopover === 'radius'}
               onToggle={toggle('radius')}
             />
+            <ToolbarActions obj={obj} />
           </div>
         </>
       )}

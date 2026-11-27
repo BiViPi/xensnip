@@ -1,11 +1,17 @@
-import type { StudioRenderConfig, ViewMode } from '../../types';
+import type { StudioExportHandle, StudioRenderConfig, ViewMode } from '../../types';
 
-export class StudioRenderer {
+export class StudioRenderer implements StudioExportHandle {
   constructor(_canvas: HTMLCanvasElement) {}
+
+  get isReady(): boolean {
+    return false;
+  }
 
   applyConfig(_config: StudioRenderConfig): void {}
 
-  resize(_width: number, _height: number): void {}
+  resize(width: number, height: number): void {
+    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return;
+  }
 
   setViewMode(_mode: ViewMode): void {}
 

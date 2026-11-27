@@ -1,4 +1,4 @@
-import { getCompositionCoordinates } from '../../measure/coordinates';
+import { getCanvasRenderScale, getCompositionCoordinates } from '../../measure/coordinates';
 import { extractTextFromCanvas } from '../../measure/ocr';
 import { isTesseractWorkerReady } from '../../ocr/tesseractWorker';
 import { DrawingOcr } from '../state/drawingTypes';
@@ -17,6 +17,8 @@ interface OcrSelectionStartDeps {
 interface OcrSelectionCompleteDeps extends OcrSelectionStartDeps {
   compositionCanvas: HTMLCanvasElement | null;
   ocrRequestIdRef: { current: number };
+  stageWidth?: number;
+  stageHeight?: number;
   extractText?: typeof extractTextFromCanvas;
 }
 
@@ -55,7 +57,7 @@ export function completeOcrSelection(
   }
 
   deps.setOcrRegion(selection);
-  
+
   if (!isTesseractWorkerReady()) {
     deps.setOcrStatus('loading');
     deps.setOcrProgress(0);
@@ -67,9 +69,15 @@ export function completeOcrSelection(
   deps.setOcrError(null);
 
   const reqId = ++deps.ocrRequestIdRef.current;
-  const region = getCompositionCoordinates(selection.x, selection.y, canvas.width, canvas.height);
-  const regionWidth = Math.max(1, Math.min(canvas.width - region.x, Math.ceil(selection.width)));
-  const regionHeight = Math.max(1, Math.min(canvas.height - region.y, Math.ceil(selection.height)));
+  const { scaleX, scaleY } = getCanvasRenderScale(canvas, deps.stageWidth, deps.stageHeight);
+  const region = getCompositionCoordinates(
+    selection.x * scaleX,
+    selection.y * scaleY,
+    canvas.width,
+    canvas.height
+  );
+  const regionWidth = Math.max(1, Math.min(canvas.width - region.x, Math.ceil(selection.width * scaleX)));
+  const regionHeight = Math.max(1, Math.min(canvas.height - region.y, Math.ceil(selection.height * scaleY)));
   const requestText = deps.extractText ?? extractTextFromCanvas;
 
   return requestText(canvas, {

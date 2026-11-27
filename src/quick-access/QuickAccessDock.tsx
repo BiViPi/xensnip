@@ -25,6 +25,7 @@ interface QuickAccessDockProps {
   onFlush: () => void;
   onPresentationModeChange: (m: PresentationMode) => void;
   studioExportHandle: StudioExportHandle | null;
+  isStudioBaking?: boolean;
 }
 
 export function QuickAccessDock({
@@ -47,6 +48,7 @@ export function QuickAccessDock({
   onFlush,
   onPresentationModeChange,
   studioExportHandle,
+  isStudioBaking = false,
 }: QuickAccessDockProps) {
   if (!activeDoc || !image) return null;
 
@@ -75,6 +77,7 @@ export function QuickAccessDock({
         studioDisabled={activeDoc.canvas.images.length > 1}
         onPresentationModeChange={onPresentationModeChange}
         studioExportHandle={studioExportHandle}
+        isStudioBaking={isStudioBaking}
       />
     </div>
   );

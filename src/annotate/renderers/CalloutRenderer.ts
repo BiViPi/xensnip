@@ -1,5 +1,6 @@
 import Konva from 'konva';
 import { CalloutObject } from '../state/types';
+import { getCalloutAttachmentPoint } from './calloutGeometry';
 
 export function createCalloutNode(obj: CalloutObject): Konva.Group {
   const group = new Konva.Group({
@@ -10,18 +11,8 @@ export function createCalloutNode(obj: CalloutObject): Konva.Group {
 
   const relTargetX = obj.targetX - obj.x;
   const relTargetY = obj.targetY - obj.y;
-
-  const getAttachmentPoint = () => {
-    let ax = obj.width / 2;
-    let ay = obj.height / 2;
-    if (relTargetX < 0) ax = 0;
-    else if (relTargetX > obj.width) ax = obj.width;
-    if (relTargetY < 0) ay = 0;
-    else if (relTargetY > obj.height) ay = obj.height;
-    return { x: ax, y: ay };
-  };
-
-  const attachment = getAttachmentPoint();
+  const attachment = getCalloutAttachmentPoint(obj.width, obj.height, relTargetX, relTargetY);
+  const clippedRadius = Math.max(0, Math.min(obj.cornerRadius, obj.width / 2, obj.height / 2));
 
   const line = new Konva.Line({
     points: [attachment.x, attachment.y, relTargetX, relTargetY],
@@ -43,7 +34,7 @@ export function createCalloutNode(obj: CalloutObject): Konva.Group {
     fill: obj.fill,
     stroke: obj.stroke,
     strokeWidth: 1,
-    cornerRadius: obj.cornerRadius,
+    cornerRadius: clippedRadius,
   });
 
   const text = new Konva.Text({

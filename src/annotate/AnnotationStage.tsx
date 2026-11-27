@@ -6,19 +6,26 @@ import { useAnnotationStore } from './state/store';
 import { ObjectsLayer } from './ObjectsLayer';
 import { SelectionTransformer } from './SelectionTransformer';
 import { getSpotlightCornerRadius } from './renderers/spotlightLayout';
+import type { SpotlightMaskItem } from './renderers/SpotlightRenderer';
 import { useMeasureStore } from '../measure/store';
 import { GridOverlay } from '../measure/GridOverlay';
+import { GridToolbar } from '../measure/GridToolbar';
 import { OCRResultToolbar } from '../measure/OCRResultToolbar';
 import { usePrivacyStore } from '../privacy/store';
 import { SmartRedactToolbar } from '../privacy/SmartRedactToolbar';
 import { SmartRedactOverlay } from '../privacy/SmartRedactOverlay';
 import { useAnnotationPointerHandlers } from './useAnnotationPointerHandlers';
+import {
+  findDraggableAnnotationTarget,
+  isTransformerNode,
+} from './pointer/targetPredicates';
 import { TextInlineEditor } from './TextInlineEditor';
 
 interface AnnotationStageProps {
   width: number;
   height: number;
   scale: number;
+  canvasRevision?: number;
   compositionCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   stageRef: React.RefObject<Konva.Stage | null>;
   image: HTMLImageElement | null;
@@ -45,10 +52,21 @@ const TOOL_CURSOR: Record<string, string> = {
   canvas: 'default',
 };
 
-export function AnnotationStage({ width, height, scale, compositionCanvasRef, stageRef, image, preset }: AnnotationStageProps) {
-  const { activeTool, objects, editingTextId, setEditingTextId, updateObject } = useAnnotationStore();
+export function AnnotationStage({
+  width,
+  height,
+  scale,
+  canvasRevision = 0,
+  compositionCanvasRef,
+  stageRef,
+  image,
+  preset,
+}: AnnotationStageProps) {
+  const { activeTool, objects, editingTextId, setEditingTextId, updateObject, annotationDefaults } =
+    useAnnotationStore();
   const {
     activeUtility,
+    currentSample,
     setCurrentSample,
     colorPickerFrozen,
     setColorPickerFrozen,
@@ -98,16 +116,21 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
 
   const closeTextEditor = (value: string) => {
     if (!editingTextId) return;
-    updateObject(editingTextId, { text: value || 'Type here...' });
+    const edited = objects.find((o) => o.id === editingTextId);
+    const fallback = edited?.type === 'callout' ? 'Callout' : 'Type here...';
+    updateObject(editingTextId, { text: value.trim() === '' ? fallback : value });
     setEditingTextId(null);
   };
 
   const { handleMouseDown, handleMouseMove, handleMouseUp, drawingObject } =
     useAnnotationPointerHandlers({
       scale,
+      stageWidth,
+      stageHeight,
       stageRef,
       compositionCanvasRef,
       activeUtility,
+      currentSample,
       setCurrentSample,
       colorPickerFrozen,
       setColorPickerFrozen,
@@ -123,6 +146,22 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
       resetPrivacy,
     });
 
+  const baseCursor = activeUtility === 'color_picker' ? 'crosshair' : (TOOL_CURSOR[activeTool] ?? 'default');
+
+  const previewSpotlight: SpotlightMaskItem | null =
+    drawingObject?.type === 'spotlight'
+      ? {
+          x: Math.min(drawingObject.start.x, drawingObject.end.x),
+          y: Math.min(drawingObject.start.y, drawingObject.end.y),
+          width: Math.abs(drawingObject.end.x - drawingObject.start.x),
+          height: Math.abs(drawingObject.end.y - drawingObject.start.y),
+          opacity: annotationDefaults?.spotlight?.opacity ?? preset.annotation_defaults?.spotlight?.opacity ?? 0.58,
+          cornerRadius:
+            annotationDefaults?.spotlight?.cornerRadius ?? preset.annotation_defaults?.spotlight?.cornerRadius ?? 24,
+          rotation: 0,
+        }
+      : null;
+
   return (
     <>
       <Stage
@@ -133,22 +172,38 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
+        onMouseOver={(e) => {
+          const stage = e.target.getStage();
+          if (!stage) return;
+          if (!activeUtility && !isTransformerNode(e.target) && findDraggableAnnotationTarget(e.target).isDraggable) {
+            stage.container().style.cursor = 'move';
+          }
+        }}
+        onMouseOut={(e) => {
+          const stage = e.target.getStage();
+          if (!stage) return;
+          if (!isTransformerNode(e.target) && findDraggableAnnotationTarget(e.target).isDraggable) {
+            stage.container().style.cursor = baseCursor;
+          }
+        }}
         ref={stageRef}
         style={{
           position: 'absolute',
           top: 0,
           left: 0,
           pointerEvents: 'auto',
-          cursor: activeUtility === 'color_picker' ? 'crosshair' : (TOOL_CURSOR[activeTool] ?? 'default'),
+          cursor: baseCursor,
         }}
       >
-        <GridOverlay width={stageWidth} height={stageHeight} />
+        <GridOverlay width={stageWidth} height={stageHeight} scale={scale} />
         <Layer>
           <ObjectsLayer
             compositionCanvasRef={compositionCanvasRef}
             stageWidth={stageWidth}
             stageHeight={stageHeight}
             scale={scale}
+            canvasRevision={canvasRevision}
+            previewSpotlight={previewSpotlight}
           />
           <SelectionTransformer />
 
@@ -228,63 +283,21 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
             />
           )}
 
-          {drawingObject?.type === 'spotlight' && (
-            <>
-              <Rect
-                x={0}
-                y={0}
-                width={stageWidth}
-                height={stageHeight}
-                fill="rgba(2, 6, 23, 0.58)"
-                listening={false}
-              />
-              <Rect
-                x={Math.min(drawingObject.start.x, drawingObject.end.x)}
-                y={Math.min(drawingObject.start.y, drawingObject.end.y)}
-                width={Math.abs(drawingObject.end.x - drawingObject.start.x)}
-                height={Math.abs(drawingObject.end.y - drawingObject.start.y)}
-                cornerRadius={getSpotlightCornerRadius({
-                  id: 'spotlight-preview',
-                  type: 'spotlight',
-                  x: 0,
-                  y: 0,
-                  rotation: 0,
-                  width: Math.abs(drawingObject.end.x - drawingObject.start.x),
-                  height: Math.abs(drawingObject.end.y - drawingObject.start.y),
-                  opacity: 0.58,
-                  cornerRadius: 24,
-                  draggable: false,
-                })}
-                fill="#000"
-                globalCompositeOperation="destination-out"
-                listening={false}
-              />
-              <Rect
-                x={Math.min(drawingObject.start.x, drawingObject.end.x)}
-                y={Math.min(drawingObject.start.y, drawingObject.end.y)}
-                width={Math.abs(drawingObject.end.x - drawingObject.start.x)}
-                height={Math.abs(drawingObject.end.y - drawingObject.start.y)}
-                cornerRadius={getSpotlightCornerRadius({
-                  id: 'spotlight-preview',
-                  type: 'spotlight',
-                  x: 0,
-                  y: 0,
-                  rotation: 0,
-                  width: Math.abs(drawingObject.end.x - drawingObject.start.x),
-                  height: Math.abs(drawingObject.end.y - drawingObject.start.y),
-                  opacity: 0.58,
-                  cornerRadius: 24,
-                  draggable: false,
-                })}
-                fill="rgba(255,255,255,0.001)"
-                stroke="#818cf8"
-                strokeWidth={2}
-                shadowColor="#22d3ee"
-                shadowBlur={18}
-                shadowOpacity={0.28}
-                listening={false}
-              />
-            </>
+          {previewSpotlight && (
+            <Rect
+              x={previewSpotlight.x}
+              y={previewSpotlight.y}
+              width={previewSpotlight.width}
+              height={previewSpotlight.height}
+              cornerRadius={getSpotlightCornerRadius(previewSpotlight)}
+              fill="rgba(255,255,255,0.001)"
+              stroke="#818cf8"
+              strokeWidth={2}
+              shadowColor="#22d3ee"
+              shadowBlur={18}
+              shadowOpacity={0.28}
+              listening={false}
+            />
           )}
           {drawingObject?.type === 'select_box' && (
             <Rect
@@ -324,6 +337,7 @@ export function AnnotationStage({ width, height, scale, compositionCanvasRef, st
         onCancel={() => setEditingTextId(null)}
       />
       <OCRResultToolbar onDismiss={dismissOcrResult} scale={scale} />
+      <GridToolbar />
       {activeUtility === 'smart_redact_ai' && (
         <>
           <SmartRedactToolbar compositionCanvasRef={compositionCanvasRef} image={image} preset={preset} />

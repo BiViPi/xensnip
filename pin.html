@@ -23,35 +23,10 @@
         user-select: none;
         -webkit-user-select: none;
       }
-      #pin-debug-fallback {
-        position: fixed;
-        inset: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 16px;
-        border: 1px solid rgba(15, 23, 42, 0.18);
-        background: rgba(248, 250, 252, 0.96);
-        color: #0f172a;
-        font-size: 13px;
-        line-height: 1.5;
-        text-align: center;
-        padding: 16px;
-        box-sizing: border-box;
-      }
     </style>
   </head>
   <body>
-    <div id="pin-debug-fallback">pin.html loaded; waiting for pin module...</div>
     <div id="root"></div>
-    <script>
-      window.__pinHtmlLoadedAt = Date.now();
-      const fallback = document.getElementById("pin-debug-fallback");
-      if (fallback) {
-        fallback.textContent = "pin.html inline script ran; waiting for main.tsx...";
-      }
-      console.log("[PIN_HTML] inline script ran", window.location.href);
-    </script>
     <script type="module" src="/src/pin/main.tsx"></script>
   </body>
 </html>

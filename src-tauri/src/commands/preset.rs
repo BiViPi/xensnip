@@ -1,8 +1,13 @@
-use crate::settings::{load_or_create_default, SavedPreset};
+use crate::settings::{
+    load_or_create_default_unlocked, save_settings_unlocked, SavedPreset, SettingsLock,
+};
 use serde::Serialize;
 use std::collections::HashMap;
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 use tauri_plugin_dialog::DialogExt;
+
+const MAX_IMPORT_FILE_BYTES: u64 = 5 * 1024 * 1024;
+const MAX_IMPORT_COUNT: usize = 100;
 
 #[derive(Serialize)]
 pub struct PresetImportResult {
@@ -11,6 +16,24 @@ pub struct PresetImportResult {
 }
 
 // ── Private helpers ──────────────────────────────────────────────────────────
+
+fn sanitize_preset_filename(name: &str) -> String {
+    let sanitized: String = name
+        .trim()
+        .chars()
+        .map(|c| match c {
+            '\\' | '/' | ':' | '*' | '?' | '"' | '<' | '>' | '|' => '_',
+            c if c.is_control() => '_',
+            _ => c,
+        })
+        .collect();
+    let trimmed = sanitized.trim_matches(['.', ' ']);
+    if trimmed.is_empty() {
+        "preset".to_string()
+    } else {
+        trimmed.to_string()
+    }
+}
 
 fn preset_name_exists(
     saved_presets: &[SavedPreset],
@@ -59,7 +82,10 @@ fn next_import_name(saved_presets: &[SavedPreset], source_name: &str) -> String 
 
 #[tauri::command]
 pub fn preset_save(app_handle: AppHandle, mut saved_preset: SavedPreset) -> Result<(), String> {
-    let mut settings = load_or_create_default(&app_handle);
+    let lock = app_handle.state::<SettingsLock>();
+    let _guard = lock.lock();
+
+    let mut settings = load_or_create_default_unlocked(&app_handle);
     let preset_name = saved_preset.name.trim().to_string();
 
     if preset_name.is_empty() {
@@ -82,7 +108,7 @@ pub fn preset_save(app_handle: AppHandle, mut saved_preset: SavedPreset) -> Resu
         settings.saved_presets.push(saved_preset);
     }
 
-    crate::settings::save_settings(&app_handle, &settings).map_err(|e| e.to_string())?;
+    save_settings_unlocked(&app_handle, &settings).map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -92,7 +118,10 @@ pub fn preset_rename(
     preset_id: String,
     new_name: String,
 ) -> Result<(), String> {
-    let mut settings = load_or_create_default(&app_handle);
+    let lock = app_handle.state::<SettingsLock>();
+    let _guard = lock.lock();
+
+    let mut settings = load_or_create_default_unlocked(&app_handle);
     let new_name = new_name.trim();
     if new_name.is_empty() {
         return Err("Name cannot be empty".to_string());
@@ -109,7 +138,7 @@ pub fn preset_rename(
     {
         p.name = new_name.to_string();
         p.updated_at = chrono::Utc::now().to_rfc3339();
-        crate::settings::save_settings(&app_handle, &settings).map_err(|e| e.to_string())?;
+        save_settings_unlocked(&app_handle, &settings).map_err(|e| e.to_string())?;
         Ok(())
     } else {
         Err("Preset not found".to_string())
@@ -118,7 +147,10 @@ pub fn preset_rename(
 
 #[tauri::command]
 pub fn preset_duplicate(app_handle: AppHandle, preset_id: String) -> Result<(), String> {
-    let mut settings = load_or_create_default(&app_handle);
+    let lock = app_handle.state::<SettingsLock>();
+    let _guard = lock.lock();
+
+    let mut settings = load_or_create_default_unlocked(&app_handle);
     let maybe_preset = settings
         .saved_presets
         .iter()
@@ -130,7 +162,7 @@ pub fn preset_duplicate(app_handle: AppHandle, preset_id: String) -> Result<(), 
         p.name = next_copy_name(&settings.saved_presets, &p.name);
         p.updated_at = chrono::Utc::now().to_rfc3339();
         settings.saved_presets.push(p);
-        crate::settings::save_settings(&app_handle, &settings).map_err(|e| e.to_string())?;
+        save_settings_unlocked(&app_handle, &settings).map_err(|e| e.to_string())?;
         Ok(())
     } else {
         Err("Preset not found".to_string())
@@ -139,7 +171,10 @@ pub fn preset_duplicate(app_handle: AppHandle, preset_id: String) -> Result<(), 
 
 #[tauri::command]
 pub fn preset_reorder(app_handle: AppHandle, preset_ids: Vec<String>) -> Result<(), String> {
-    let mut settings = load_or_create_default(&app_handle);
+    let lock = app_handle.state::<SettingsLock>();
+    let _guard = lock.lock();
+
+    let mut settings = load_or_create_default_unlocked(&app_handle);
     if preset_ids.len() != settings.saved_presets.len() {
         return Err("Preset reorder payload is incomplete".to_string());
     }
@@ -163,26 +198,32 @@ pub fn preset_reorder(app_handle: AppHandle, preset_ids: Vec<String>) -> Result<
     }
 
     settings.saved_presets = new_list;
-    crate::settings::save_settings(&app_handle, &settings).map_err(|e| e.to_string())?;
+    save_settings_unlocked(&app_handle, &settings).map_err(|e| e.to_string())?;
     Ok(())
 }
 
 #[tauri::command]
 pub fn preset_set_default(app_handle: AppHandle, preset_id: Option<String>) -> Result<(), String> {
-    let mut settings = load_or_create_default(&app_handle);
+    let lock = app_handle.state::<SettingsLock>();
+    let _guard = lock.lock();
+
+    let mut settings = load_or_create_default_unlocked(&app_handle);
     if let Some(id) = preset_id.as_ref() {
         if !settings.saved_presets.iter().any(|preset| preset.id == *id) {
             return Err("Preset not found".to_string());
         }
     }
     settings.default_preset_id = preset_id;
-    crate::settings::save_settings(&app_handle, &settings).map_err(|e| e.to_string())?;
+    save_settings_unlocked(&app_handle, &settings).map_err(|e| e.to_string())?;
     Ok(())
 }
 
 #[tauri::command]
 pub fn preset_delete(app_handle: AppHandle, preset_id: String) -> Result<(), String> {
-    let mut settings = load_or_create_default(&app_handle);
+    let lock = app_handle.state::<SettingsLock>();
+    let _guard = lock.lock();
+
+    let mut settings = load_or_create_default_unlocked(&app_handle);
     settings.saved_presets.retain(|p| p.id != preset_id);
 
     // Cleanup default pointer if needed
@@ -190,7 +231,7 @@ pub fn preset_delete(app_handle: AppHandle, preset_id: String) -> Result<(), Str
         settings.default_preset_id = None;
     }
 
-    crate::settings::save_settings(&app_handle, &settings).map_err(|e| e.to_string())?;
+    save_settings_unlocked(&app_handle, &settings).map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -199,7 +240,7 @@ pub async fn preset_export_pack(
     app_handle: AppHandle,
     preset_ids: Vec<String>,
 ) -> Result<bool, String> {
-    let settings = load_or_create_default(&app_handle);
+    let settings = crate::settings::load_or_create_default(&app_handle);
     let to_export: Vec<SavedPreset> = settings
         .saved_presets
         .iter()
@@ -213,61 +254,88 @@ pub async fn preset_export_pack(
 
     let is_single = to_export.len() == 1;
     let default_name = if is_single {
-        format!("{}.xensnip-preset.json", to_export[0].name)
+        format!(
+            "{}.xensnip-preset.json",
+            sanitize_preset_filename(&to_export[0].name)
+        )
     } else {
         "presets-pack.xensnip-presets.json".to_string()
     };
 
-    let maybe_path = app_handle
-        .dialog()
-        .file()
-        .set_file_name(&default_name)
-        .add_filter(
-            "XenSnip Presets",
-            if is_single {
-                &["xensnip-preset.json"]
-            } else {
-                &["xensnip-presets.json"]
-            },
-        )
-        .blocking_save_file();
+    tauri::async_runtime::spawn_blocking(move || {
+        let maybe_path = app_handle
+            .dialog()
+            .file()
+            .set_file_name(&default_name)
+            .add_filter(
+                "XenSnip Presets",
+                if is_single {
+                    &["xensnip-preset.json"]
+                } else {
+                    &["xensnip-presets.json"]
+                },
+            )
+            .blocking_save_file();
 
-    if let Some(path) = maybe_path {
-        let export_data = serde_json::json!({
-            "schema_version": 1,
-            "kind": if is_single { "single" } else { "pack" },
-            "app": "xensnip",
-            "exported_at": chrono::Utc::now().to_rfc3339(),
-            "presets": to_export
-        });
+        if let Some(path) = maybe_path {
+            let export_data = serde_json::json!({
+                "schema_version": 1,
+                "kind": if is_single { "single" } else { "pack" },
+                "app": "xensnip",
+                "exported_at": chrono::Utc::now().to_rfc3339(),
+                "presets": to_export
+            });
 
-        let content = serde_json::to_string_pretty(&export_data).map_err(|e| e.to_string())?;
-        std::fs::write(
-            path.into_path().map_err(|_| "Invalid path".to_string())?,
-            content,
-        )
-        .map_err(|e| e.to_string())?;
-        Ok(true)
-    } else {
-        Ok(false)
-    }
+            let content = serde_json::to_string_pretty(&export_data).map_err(|e| e.to_string())?;
+            std::fs::write(
+                path.into_path().map_err(|_| "Invalid path".to_string())?,
+                content,
+            )
+            .map_err(|e| e.to_string())?;
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
 pub async fn preset_import(app_handle: AppHandle) -> Result<PresetImportResult, String> {
-    let maybe_path = app_handle
-        .dialog()
-        .file()
-        .add_filter(
-            "XenSnip Presets",
-            &["xensnip-preset.json", "xensnip-presets.json"],
-        )
-        .blocking_pick_file();
+    let dialog_app = app_handle.clone();
+    let maybe_content =
+        tauri::async_runtime::spawn_blocking(move || -> Result<Option<String>, String> {
+            let maybe_path = dialog_app
+                .dialog()
+                .file()
+                .add_filter(
+                    "XenSnip Presets",
+                    &["xensnip-preset.json", "xensnip-presets.json"],
+                )
+                .blocking_pick_file();
 
-    if let Some(path) = maybe_path {
-        let content =
-            std::fs::read_to_string(path.into_path().map_err(|_| "Invalid path".to_string())?)
-                .map_err(|e| e.to_string())?;
+            let Some(path) = maybe_path else {
+                return Ok(None);
+            };
+
+            let resolved = path.into_path().map_err(|_| "Invalid path".to_string())?;
+            let meta = std::fs::metadata(&resolved).map_err(|e| e.to_string())?;
+            if meta.len() > MAX_IMPORT_FILE_BYTES {
+                return Err(format!(
+                    "Preset file too large ({} bytes); maximum allowed is {} bytes",
+                    meta.len(),
+                    MAX_IMPORT_FILE_BYTES
+                ));
+            }
+
+            let content = std::fs::read_to_string(&resolved).map_err(|e| e.to_string())?;
+            Ok(Some(content))
+        })
+        .await
+        .map_err(|e| e.to_string())??;
+
+    if let Some(content) = maybe_content {
         let data: serde_json::Value =
             serde_json::from_str(&content).map_err(|e| format!("Invalid JSON: {}", e))?;
 
@@ -279,7 +347,6 @@ pub async fn preset_import(app_handle: AppHandle) -> Result<PresetImportResult, 
             .as_array()
             .ok_or("Invalid file format: missing presets array")?;
 
-        const MAX_IMPORT_COUNT: usize = 100;
         if presets_val.len() > MAX_IMPORT_COUNT {
             return Err(format!(
                 "Preset pack too large: contains {} presets, maximum is {}",
@@ -288,7 +355,9 @@ pub async fn preset_import(app_handle: AppHandle) -> Result<PresetImportResult, 
             ));
         }
 
-        let mut settings = load_or_create_default(&app_handle);
+        let lock = app_handle.state::<SettingsLock>();
+        let _guard = lock.lock();
+        let mut settings = load_or_create_default_unlocked(&app_handle);
         let mut imported_count = 0;
         let mut skipped_count = 0;
 
@@ -312,7 +381,7 @@ pub async fn preset_import(app_handle: AppHandle) -> Result<PresetImportResult, 
         }
 
         if imported_count > 0 {
-            crate::settings::save_settings(&app_handle, &settings).map_err(|e| e.to_string())?;
+            save_settings_unlocked(&app_handle, &settings).map_err(|e| e.to_string())?;
         }
 
         Ok(PresetImportResult {
@@ -351,9 +420,7 @@ mod tests {
     #[test]
     fn preset_name_exists_excludes_the_given_id() {
         let presets = vec![make_preset("a", "Alpha")];
-        // Excluding "a" means a rename to the same name should be allowed.
         assert!(!preset_name_exists(&presets, "Alpha", Some("a")));
-        // But excluding a different id still finds the conflict.
         assert!(preset_name_exists(&presets, "Alpha", Some("b")));
     }
 
@@ -402,5 +469,14 @@ mod tests {
     fn next_import_name_trims_whitespace() {
         let presets: Vec<SavedPreset> = vec![];
         assert_eq!(next_import_name(&presets, "  Alpha  "), "Alpha");
+    }
+
+    #[test]
+    fn sanitize_preset_filename_strips_windows_reserved_chars() {
+        assert_eq!(
+            sanitize_preset_filename("My: Cool/Preset?*"),
+            "My_ Cool_Preset__"
+        );
+        assert_eq!(sanitize_preset_filename("  ...  "), "preset");
     }
 }

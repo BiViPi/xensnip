@@ -3,6 +3,7 @@ import { AnnotateObject, ToolId } from './types';
 import { recordHistorySnapshot } from '../../editor/historyBridge';
 import { AnnotationDefaults } from '../../compose/preset';
 import { DEFAULT_ANNOTATION_DEFAULTS, sanitizeAnnotationDefaults } from './defaults';
+import { syncMagnifyForDrag } from '../renderers/MagnifyRenderer';
 
 export interface AnnotationSnapshot {
   activeTool: ToolId;
@@ -34,6 +35,7 @@ interface AnnotationState {
   clearAll: () => void;
   restoreSnapshot: (snapshot: AnnotationSnapshot) => void;
   nudgeObject: (id: string, dx: number, dy: number) => void;
+  renumberSteps: () => void;
   
   getToolDefaults: () => AnnotationDefaults;
   setToolDefaults: (defaults: AnnotationDefaults) => void;
@@ -64,7 +66,34 @@ export const useAnnotationStore = create<AnnotationState>((set, get) => ({
   nudgeObject: (id, dx, dy) => {
     const target = get().objects.find((o) => o.id === id);
     if (!target) return;
+    if (target.type === 'magnify') {
+      get().updateObject(id, syncMagnifyForDrag(target, target.x + dx, target.y + dy));
+      return;
+    }
     get().updateObject(id, { x: target.x + dx, y: target.y + dy });
+  },
+  renumberSteps: () => {
+    const current = get().objects;
+    let expected = 1;
+    let needsUpdate = false;
+    for (const obj of current) {
+      if (obj.type === 'numbered') {
+        if (obj.displayNumber !== expected) {
+          needsUpdate = true;
+          break;
+        }
+        expected++;
+      }
+    }
+    if (!needsUpdate) return;
+
+    recordHistorySnapshot();
+    let nextNum = 1;
+    set({
+      objects: current.map((o) =>
+        o.type === 'numbered' ? { ...o, displayNumber: nextNum++ } : o
+      ),
+    });
   },
   removeObject: (id) => set((state) => {
     recordHistorySnapshot();

@@ -1,51 +1,59 @@
 import { PixelRulerObject } from '../../annotate/state/types';
+import { addRulerPillPath, getRulerLabelLayout } from './pixelRulerLayout';
 
 export function renderPixelRuler(ctx: CanvasRenderingContext2D, obj: PixelRulerObject) {
   const dx = obj.points[2] - obj.points[0];
   const dy = obj.points[3] - obj.points[1];
-  const distance = Math.round(Math.sqrt(dx * dx + dy * dy));
-  
+
   ctx.save();
-  ctx.translate(obj.x, obj.y);
-  
-  // Draw Line
-  ctx.beginPath();
-  ctx.moveTo(obj.points[0], obj.points[1]);
-  ctx.lineTo(obj.points[2], obj.points[3]);
-  ctx.strokeStyle = obj.stroke;
-  ctx.lineWidth = obj.strokeWidth;
-  ctx.stroke();
+  try {
+    ctx.translate(obj.x, obj.y);
+    if (obj.rotation !== 0) {
+      ctx.rotate((obj.rotation * Math.PI) / 180);
+    }
 
-  // Draw Arrows (simplified for canvas)
-  drawArrowHead(ctx, obj.points[2], obj.points[3], Math.atan2(dy, dx), obj.stroke);
-  drawArrowHead(ctx, obj.points[0], obj.points[1], Math.atan2(-dy, -dx), obj.stroke);
+    // Draw line shaft
+    ctx.beginPath();
+    ctx.moveTo(obj.points[0], obj.points[1]);
+    ctx.lineTo(obj.points[2], obj.points[3]);
+    ctx.strokeStyle = obj.stroke;
+    ctx.lineWidth = obj.strokeWidth;
+    ctx.stroke();
 
-  // Draw Label
-  const centerX = (obj.points[0] + obj.points[2]) / 2;
-  const centerY = (obj.points[1] + obj.points[3]) / 2;
-  const label = `${distance}px`;
-  
-  ctx.font = '12px sans-serif';
-  const metrics = ctx.measureText(label);
-  const padding = 4;
-  const rectW = metrics.width + padding * 2;
-  const rectH = 16;
+    // Draw both arrowheads
+    const angleRad = Math.atan2(dy, dx);
+    drawArrowHead(ctx, obj.points[2], obj.points[3], angleRad, obj.stroke);
+    drawArrowHead(ctx, obj.points[0], obj.points[1], Math.atan2(-dy, -dx), obj.stroke);
 
-  ctx.translate(centerX, centerY);
-  const angle = Math.atan2(dy, dx);
-  ctx.rotate(angle);
+    // Measure label & compute upright layout
+    ctx.font = '12px sans-serif';
+    const prelimLayout = getRulerLabelLayout(obj.points, undefined, 1);
+    const metrics = ctx.measureText(prelimLayout.label);
+    const layout = getRulerLabelLayout(obj.points, metrics.width, 1);
 
-  if (obj.showBackground) {
-    ctx.fillStyle = 'rgba(0,0,0,0.6)';
-    ctx.roundRect(-rectW / 2, -rectH - 4, rectW, rectH, 4);
-    ctx.fill();
+    ctx.translate(layout.centerX, layout.centerY);
+    ctx.rotate(layout.displayAngleRad);
+
+    if (obj.showBackground) {
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.78)';
+      addRulerPillPath(
+        ctx,
+        -layout.pillWidth / 2,
+        layout.pillOffsetY - layout.pillHeight / 2,
+        layout.pillWidth,
+        layout.pillHeight,
+        layout.pillRadius
+      );
+      ctx.fill();
+    }
+
+    ctx.fillStyle = obj.labelFill;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(layout.label, 0, layout.pillOffsetY);
+  } finally {
+    ctx.restore();
   }
-
-  ctx.fillStyle = obj.labelFill;
-  ctx.textAlign = 'center';
-  ctx.fillText(label, 0, -rectH / 2 - 4);
-
-  ctx.restore();
 }
 
 function drawArrowHead(ctx: CanvasRenderingContext2D, x: number, y: number, angle: number, color: string) {

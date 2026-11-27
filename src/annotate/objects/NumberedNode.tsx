@@ -1,6 +1,7 @@
 import Konva from 'konva';
 import { Group, Circle, Text } from 'react-konva';
 import { NumberedObject, AnnotationObjectPatch } from '../state/types';
+import { getContrastInkColor } from '../renderers/NumberedRenderer';
 
 interface NumberedNodeProps {
   obj: NumberedObject;
@@ -10,6 +11,8 @@ interface NumberedNodeProps {
 }
 
 export function NumberedNode({ obj, isSelected, onSelect, onUpdate }: NumberedNodeProps) {
+  const ink = getContrastInkColor(obj.fill);
+
   const handleWheel = (e: Konva.KonvaEventObject<WheelEvent>) => {
     if (!isSelected) return;
 
@@ -41,14 +44,15 @@ export function NumberedNode({ obj, isSelected, onSelect, onUpdate }: NumberedNo
       <Circle
         radius={obj.radius}
         fill={obj.fill}
-        stroke="#fff"
+        stroke={ink}
         strokeWidth={2}
+        hitStrokeWidth={12}
       />
       <Text
         text={obj.displayNumber.toString()}
         fontSize={obj.radius}
         fontFamily="Inter, sans-serif"
-        fill="#fff"
+        fill={ink}
         align="center"
         verticalAlign="middle"
         width={obj.radius * 2}

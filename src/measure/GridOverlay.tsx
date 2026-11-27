@@ -1,41 +1,62 @@
-import { Layer, Line } from 'react-konva';
+import { Layer, Shape } from 'react-konva';
 import { useMeasureStore } from './store';
 
 interface Props {
   width: number;
   height: number;
+  scale?: number;
 }
 
-export function GridOverlay({ width, height }: Props) {
+/**
+ * Dual-tone high-contrast alignment grid rendered inside a single Konva Shape
+ * with 1/scale stroke width compensation so lines stay crisp on both light and dark UIs.
+ */
+export function GridOverlay({ width, height, scale = 1 }: Props) {
   const { gridVisible, gridSpacing, gridOpacity } = useMeasureStore();
 
-  if (!gridVisible) return null;
+  if (!gridVisible || gridSpacing <= 0) return null;
 
-  const lines = [];
+  const safeScale = scale > 0 ? scale : 1;
+  const strokeW = 1 / safeScale;
+  const darkAlpha = Math.min(0.9, gridOpacity * 0.85);
 
-  for (let i = 0; i < width; i += gridSpacing) {
-    lines.push(
-      <Line
-        key={`v-${i}`}
-        points={[i, 0, i, height]}
-        stroke={`rgba(255, 255, 255, ${gridOpacity})`}
-        strokeWidth={1}
+  return (
+    <Layer listening={false}>
+      <Shape
         listening={false}
-      />
-    );
-  }
+        sceneFunc={(ctx) => {
+          const offset = strokeW;
 
-  for (let i = 0; i < height; i += gridSpacing) {
-    lines.push(
-      <Line
-        key={`h-${i}`}
-        points={[0, i, width, i]}
-        stroke={`rgba(255, 255, 255, ${gridOpacity})`}
-        strokeWidth={1}
-        listening={false}
-      />
-    );
-  }
+          // Dark shadow pass for visibility over light/white areas
+          ctx.save();
+          ctx.strokeStyle = `rgba(15, 23, 42, ${darkAlpha})`;
+          ctx.lineWidth = strokeW;
+          ctx.beginPath();
+          for (let x = 0; x <= width; x += gridSpacing) {
+            ctx.moveTo(x + offset, 0);
+            ctx.lineTo(x + offset, height);
+          }
+          for (let y = 0; y <= height; y += gridSpacing) {
+            ctx.moveTo(0, y + offset);
+            ctx.lineTo(width, y + offset);
+          }
+          ctx.stroke();
 
-  return <Layer listening={false}>{lines}</Layer>;
+          // Light primary pass for visibility over dark areas
+          ctx.strokeStyle = `rgba(255, 255, 255, ${gridOpacity})`;
+          ctx.beginPath();
+          for (let x = 0; x <= width; x += gridSpacing) {
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, height);
+          }
+          for (let y = 0; y <= height; y += gridSpacing) {
+            ctx.moveTo(0, y);
+            ctx.lineTo(width, y);
+          }
+          ctx.stroke();
+          ctx.restore();
+        }}
+      />
+    </Layer>
+  );
 }

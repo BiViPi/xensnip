@@ -10,6 +10,8 @@ export interface TextEditableContract {
   fontSize: number;
   fontFamily: string;
   textColor: string;
+  textAlign: 'left' | 'center' | 'right';
+  placeholderText: string;
   currentText: string;
 }
 
@@ -27,12 +29,14 @@ export function getTextEditableContract(obj: AnnotateObject | null): TextEditabl
         id: t.id,
         overlayX: t.x,
         overlayY: t.y,
-        overlayWidth: 120, // Portal minimum width for raw text
+        overlayWidth: 120,
         overlayHeight: t.fontSize * 1.2,
         fixedSize: false,
         fontSize: t.fontSize,
         fontFamily: t.fontFamily,
         textColor: t.fill,
+        textAlign: t.align ?? 'left',
+        placeholderText: 'Type here...',
         currentText: t.text,
       };
     }
@@ -49,6 +53,8 @@ export function getTextEditableContract(obj: AnnotateObject | null): TextEditabl
         fontSize: s.fontSize,
         fontFamily: s.fontFamily,
         textColor: s.textColor,
+        textAlign: 'center',
+        placeholderText: 'Type here...',
         currentText: s.text,
       };
     }
@@ -65,6 +71,8 @@ export function getTextEditableContract(obj: AnnotateObject | null): TextEditabl
         fontSize: c.fontSize,
         fontFamily: c.fontFamily,
         textColor: c.textColor,
+        textAlign: 'center',
+        placeholderText: 'Callout',
         currentText: c.text,
       };
     }

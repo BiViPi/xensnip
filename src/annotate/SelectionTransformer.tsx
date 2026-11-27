@@ -3,6 +3,7 @@ import Konva from 'konva';
 import { Transformer } from 'react-konva';
 import { useAnnotationStore } from './state/store';
 import { recordHistorySnapshot, withHistorySuspended } from '../editor/historyBridge';
+import { syncMagnifyForResize } from './renderers/MagnifyRenderer';
 
 export function SelectionTransformer() {
   const { selectedIds, updateObject, objects, editingTextId } = useAnnotationStore();
@@ -51,6 +52,7 @@ export function SelectionTransformer() {
       transformerRef.current.enabledAnchors([]);
     }
 
+    transformerRef.current.forceUpdate();
     const finalLayer = transformerRef.current.getLayer();
     if (finalLayer) finalLayer.batchDraw();
   }, [selectedIds, objects, editingTextId]);
@@ -104,8 +106,8 @@ export function SelectionTransformer() {
             x: node.x(),
             y: node.y(),
             rotation,
-            width: obj.width * scaleX,
-            height: obj.height * scaleY,
+            width: Math.max(20, obj.width * scaleX),
+            height: Math.max(20, obj.height * scaleY),
             tailX: obj.tailX * scaleX,
             tailY: obj.tailY * scaleY,
           });
@@ -116,18 +118,25 @@ export function SelectionTransformer() {
             x: node.x(),
             y: node.y(),
             rotation,
-            width: obj.width * scaleX,
-            height: obj.height * scaleY,
+            width: Math.max(20, obj.width * scaleX),
+            height: Math.max(20, obj.height * scaleY),
             targetX: node.x() + relTargetX * scaleX,
             targetY: node.y() + relTargetY * scaleY,
           });
-        } else if (obj.type === 'rectangle' || obj.type === 'blur' || obj.type === 'spotlight' || obj.type === 'magnify' || obj.type === 'simplify_ui' || obj.type === 'pixelate' || obj.type === 'opaque_redact') {
+        } else if (obj.type === 'magnify') {
+          const nextW = Math.max(20, (node.width() || obj.width) * scaleX);
+          const nextH = Math.max(20, (node.height() || obj.height) * scaleY);
+          updateObject(
+            node.id(),
+            syncMagnifyForResize(obj, node.x(), node.y(), nextW, nextH, rotation)
+          );
+        } else if (obj.type === 'rectangle' || obj.type === 'blur' || obj.type === 'spotlight' || obj.type === 'simplify_ui' || obj.type === 'pixelate' || obj.type === 'opaque_redact') {
           updateObject(node.id(), {
             x: node.x(),
             y: node.y(),
             rotation,
-            width: node.width() * scaleX,
-            height: node.height() * scaleY,
+            width: Math.max(20, (node.width() || obj.width) * scaleX),
+            height: Math.max(20, (node.height() || obj.height) * scaleY),
           });
         }
       });

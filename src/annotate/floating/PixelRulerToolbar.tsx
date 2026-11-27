@@ -5,6 +5,7 @@ import { PixelRulerObject } from '../state/types';
 import { ChevronRight, ChevronLeft, Square } from 'lucide-react';
 import { PaletteIcon, StrokeWidthIcon } from './ToolbarIcons';
 import { SliderToggle } from './SliderToggle';
+import { ToolbarActions } from './ToolbarActions';
 
 interface Props {
   anchor: { left: number; top: number; width: number; height: number };
@@ -106,6 +107,8 @@ export function PixelRulerToolbar({ anchor, obj }: Props) {
           >
             <Square size={16} fill={obj.showBackground ? 'currentColor' : 'none'} />
           </button>
+
+          <ToolbarActions obj={obj} />
         </div>
       )}
     </div>,

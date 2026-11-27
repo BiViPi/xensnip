@@ -41,6 +41,7 @@ export function RectangleNode({ obj, isSelected, onSelect, onUpdate }: Rectangle
         height={obj.height}
         stroke={obj.stroke}
         strokeWidth={obj.strokeWidth}
+        hitStrokeWidth={20}
         draggable={obj.draggable}
         strokeScaleEnabled={false}
         lineCap="round"
@@ -69,6 +70,7 @@ export function RectangleNode({ obj, isSelected, onSelect, onUpdate }: Rectangle
       height={obj.height}
       stroke={obj.stroke}
       strokeWidth={obj.strokeWidth}
+      hitStrokeWidth={20}
       cornerRadius={obj.cornerRadius}
       draggable={obj.draggable}
       strokeScaleEnabled={false}

@@ -17,7 +17,7 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
     server: {
       deps: {
         // Allow node-canvas (native .node module) to run without transform

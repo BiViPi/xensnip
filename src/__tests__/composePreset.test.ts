@@ -1,5 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { DEFAULT_PRESET, normalizeEditorPreset } from '../compose/preset';
+
+import { drawComposition, getCompositionDimensions } from '../compose/core';
+import { renderBlur } from '../annotate/renderers/BlurRenderer';
+import { renderPixelate } from '../annotate/renderers/PixelateRenderer';
+
 
 describe('DEFAULT_PRESET', () => {
   it('has shadow_enabled: true', () => {
@@ -126,5 +131,113 @@ describe('normalizeEditorPreset', () => {
     const normalized = normalizeEditorPreset(raw);
     expect(normalized.placed_annotations?.objects).toHaveLength(1);
     expect(normalized.placed_annotations?.objects[0]).toMatchObject({ id: 'obj-2' });
+  });
+});
+
+describe('canvas composition and effect renderer guards', () => {
+  it('drawComposition handles single-stop Gradient without NaN addColorStop', () => {
+    const addColorStop = vi.fn();
+    const ctx = {
+      setTransform: vi.fn(),
+      clearRect: vi.fn(),
+      createLinearGradient: vi.fn(() => ({ addColorStop })),
+      createRadialGradient: vi.fn(() => ({ addColorStop })),
+      fillRect: vi.fn(),
+      save: vi.fn(),
+      restore: vi.fn(),
+      beginPath: vi.fn(),
+      moveTo: vi.fn(),
+      lineTo: vi.fn(),
+      quadraticCurveTo: vi.fn(),
+      closePath: vi.fn(),
+      clip: vi.fn(),
+      drawImage: vi.fn(),
+      fill: vi.fn(),
+      stroke: vi.fn(),
+      fillStyle: '',
+      strokeStyle: '',
+      lineWidth: 1,
+      imageSmoothingEnabled: true,
+    } as unknown as CanvasRenderingContext2D;
+
+    const singleStopPreset = {
+      ...DEFAULT_PRESET,
+      bg_mode: 'Gradient' as const,
+      bg_colors: ['#ff5500'],
+      border_width: 0,
+      shadow_enabled: false,
+      radius: 0,
+    };
+    const img = { width: 100, height: 80 } as HTMLImageElement;
+    const dims = getCompositionDimensions(100, 80, singleStopPreset);
+
+    expect(() => drawComposition(ctx, img, singleStopPreset, dims)).not.toThrow();
+    expect(addColorStop).toHaveBeenCalledWith(0, '#ff5500');
+    expect(addColorStop).toHaveBeenCalledWith(1, '#ff5500');
+  });
+
+  it('renderBlur returns early when expanded capture bounds have zero or negative area', () => {
+    const ctx = {
+      save: vi.fn(),
+      restore: vi.fn(),
+    } as unknown as CanvasRenderingContext2D;
+    const source = { width: 100, height: 100 } as HTMLCanvasElement;
+
+    expect(() =>
+      renderBlur(
+        ctx,
+        {
+          id: 'b1',
+          type: 'blur',
+          x: 200,
+          y: 200,
+          width: 40,
+          height: 40,
+          blurRadius: 5,
+          rotation: 0,
+          draggable: false,
+        },
+        source,
+      ),
+    ).not.toThrow();
+    expect(ctx.save).not.toHaveBeenCalled();
+  });
+
+  it('renderPixelate restores context symmetrically if temp canvas context fails', () => {
+    const save = vi.fn();
+    const restore = vi.fn();
+    const ctx = { save, restore } as unknown as CanvasRenderingContext2D;
+    const source = { width: 100, height: 100 } as HTMLCanvasElement;
+    const origCreateElement = document.createElement.bind(document);
+    const spy = vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+      if (tag === 'canvas') {
+        return { width: 0, height: 0, getContext: () => null } as unknown as HTMLCanvasElement;
+      }
+      return origCreateElement(tag);
+    });
+
+    try {
+      renderPixelate(
+        ctx,
+        {
+          id: 'p1',
+          type: 'pixelate',
+          x: 10,
+          y: 10,
+          width: 40,
+          height: 40,
+          pixelSize: 8,
+          rotation: 0,
+          borderColor: '#000',
+          borderWidth: 0,
+          draggable: false,
+        },
+        source,
+      );
+      expect(save).toHaveBeenCalledTimes(1);
+      expect(restore).toHaveBeenCalledTimes(1);
+    } finally {
+      spy.mockRestore();
+    }
   });
 });

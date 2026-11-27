@@ -2,6 +2,10 @@ use tauri::AppHandle;
 use winreg::enums::*;
 use winreg::RegKey;
 
+pub(crate) fn format_autostart_value(exe_path: &str) -> String {
+    format!("\"{}\"", exe_path.trim_matches('"'))
+}
+
 /**
  * Syncs the application's autostart state with the Windows Registry.
  * Uses winreg as a fallback because tauri-plugin-autostart v2 trait resolution
@@ -30,9 +34,10 @@ pub fn sync(_app: &AppHandle, enabled: bool) {
         return;
     };
     let app_exe_str = app_exe.to_string_lossy().to_string();
+    let quoted_exe = format_autostart_value(&app_exe_str);
 
     if enabled {
-        if let Err(e) = key.set_value("XenSnip", &app_exe_str) {
+        if let Err(e) = key.set_value("XenSnip", &quoted_exe) {
             log::warn!(target: "settings", "autostart.sync_failed {{ enabled: true, error: \"{:?}\" }}", e);
         } else {
             log::info!(target: "settings", "autostart.enabled in registry");
@@ -46,5 +51,26 @@ pub fn sync(_app: &AppHandle, enabled: bool) {
                 log::info!(target: "settings", "autostart.disabled in registry");
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::format_autostart_value;
+
+    #[test]
+    fn wraps_spaced_executable_path_in_double_quotes() {
+        assert_eq!(
+            format_autostart_value(r"C:\Program Files\XenSnip\xensnip.exe"),
+            "\"C:\\Program Files\\XenSnip\\xensnip.exe\""
+        );
+    }
+
+    #[test]
+    fn preserves_single_pair_of_quotes_if_already_quoted() {
+        assert_eq!(
+            format_autostart_value("\"C:\\Program Files\\XenSnip\\xensnip.exe\""),
+            "\"C:\\Program Files\\XenSnip\\xensnip.exe\""
+        );
     }
 }

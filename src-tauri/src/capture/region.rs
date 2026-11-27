@@ -138,10 +138,15 @@ pub fn finish_region_capture(
         image::codecs::png::CompressionType::Fast,
         image::codecs::png::FilterType::NoFilter,
     );
-    final_image.write_with_encoder(encoder).map_err(|e| {
-        log::error!(target: "capture", "PNG encode failed: {:?}", e);
-        CaptureError::WgcFailure()
-    })?;
+    if let Err(e) = encode_or_reset_session(app, || {
+        final_image.write_with_encoder(encoder).map_err(|err| {
+            log::error!(target: "capture", "PNG encode failed: {:?}", err);
+            CaptureError::WgcFailure()
+        })
+    }) {
+        emit_failure(app, &e, &start_time, capture_method.clone());
+        return Err(e);
+    }
 
     let png_bytes = Arc::new(cursor.into_inner());
     log::info!(target: "perf", "PNG encoding (Fast) took {}ms", encode_start.elapsed().as_millis());
@@ -354,4 +359,51 @@ fn emit_failure(
     };
     crate::diagnostics::log_capture_event(app, &meta);
     app.emit("capture.failure", err).ok();
+}
+
+fn encode_or_reset_session<F>(app: &AppHandle, encode_fn: F) -> Result<(), CaptureError>
+where
+    F: FnOnce() -> Result<(), CaptureError>,
+{
+    let session = app.try_state::<crate::capture::CaptureSession>();
+    encode_or_reset_capture_session(session.as_deref(), encode_fn)
+}
+
+fn encode_or_reset_capture_session<F>(
+    session: Option<&crate::capture::CaptureSession>,
+    encode_fn: F,
+) -> Result<(), CaptureError>
+where
+    F: FnOnce() -> Result<(), CaptureError>,
+{
+    match encode_fn() {
+        Ok(()) => Ok(()),
+        Err(err) => {
+            if let Some(session) = session {
+                session.finish();
+            }
+            Err(err)
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::capture::{CaptureIntent, CaptureSession};
+
+    #[test]
+    fn png_encode_failure_resets_capture_session_to_none() {
+        let session = CaptureSession::new();
+        session.start_persistent(CaptureIntent::Region).unwrap();
+        {
+            let mut intent = session.intent.lock().unwrap();
+            *intent = CaptureIntent::RegionConfirming;
+        }
+
+        let res =
+            encode_or_reset_capture_session(Some(&session), || Err(CaptureError::WgcFailure()));
+        assert!(res.is_err());
+        assert_eq!(*session.intent.lock().unwrap(), CaptureIntent::None);
+    }
 }

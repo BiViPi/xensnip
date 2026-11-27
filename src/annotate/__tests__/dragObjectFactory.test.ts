@@ -57,11 +57,17 @@ describe('createDragAnnotationObject', () => {
     expect(obj).toMatchObject({ type: 'spotlight', opacity: 0.58, cornerRadius: 24 });
   });
 
-  it('creates a magnify object with 1.8x zoom', () => {
+  it('creates a magnify object centered over the dragged region with 1.8x zoom', () => {
     const obj = createDragAnnotationObject('magnify', start, end, 'id-7');
     expect(obj).toMatchObject({
       type: 'magnify',
       zoom: 1.8,
+      x: 10 - (180 - 100) / 2,
+      y: 20 - (90 - 50) / 2,
+      sourceX: 10,
+      sourceY: 20,
+      sourceWidth: 100,
+      sourceHeight: 50,
       width: 100 * 1.8,
       height: 50 * 1.8,
     });
@@ -69,7 +75,13 @@ describe('createDragAnnotationObject', () => {
 
   it('creates a simplify_ui object', () => {
     const obj = createDragAnnotationObject('simplify_ui', start, end, 'id-8');
-    expect(obj).toMatchObject({ type: 'simplify_ui', dimOpacity: 0.52 });
+    expect(obj).toMatchObject({
+      type: 'simplify_ui',
+      dimOpacity: 0.52,
+      blockOpacity: 0.52,
+      detailLevel: 50,
+      cornerRadius: 16,
+    });
   });
 
   it('creates a pixel_ruler with absolute start position', () => {

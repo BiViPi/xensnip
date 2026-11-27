@@ -2,17 +2,21 @@ import { create } from 'zustand';
 
 export type MeasureUtilityToolId = 'grid_overlay' | 'color_picker' | 'ocr_extract' | 'smart_redact_ai';
 
+export interface ColorSample {
+  x: number;
+  y: number;
+  hex: string;
+  rgb: [number, number, number];
+  /** Optional 7x7 RGBA hex grid around cursor for zoomed Color Picker loupe */
+  patch?: string[][];
+}
+
 interface MeasureStore {
   activeUtility: MeasureUtilityToolId | null;
   gridVisible: boolean;
   gridSpacing: number;
   gridOpacity: number;
-  currentSample: {
-    x: number;
-    y: number;
-    hex: string;
-    rgb: [number, number, number];
-  } | null;
+  currentSample: ColorSample | null;
   colorPickerFrozen: boolean;
   ocrRegion: { x: number; y: number; width: number; height: number } | null;
   ocrText: string;
@@ -24,7 +28,7 @@ interface MeasureStore {
   setGridVisible: (visible: boolean) => void;
   setGridSpacing: (spacing: number) => void;
   setGridOpacity: (opacity: number) => void;
-  setCurrentSample: (sample: MeasureStore['currentSample']) => void;
+  setCurrentSample: (sample: ColorSample | null) => void;
   setColorPickerFrozen: (frozen: boolean) => void;
   setOcrRegion: (region: MeasureStore['ocrRegion']) => void;
   setOcrText: (text: string) => void;

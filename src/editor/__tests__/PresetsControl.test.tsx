@@ -5,32 +5,34 @@ import type { EditorPreset } from '../../compose/preset';
 import type { Settings } from '../../ipc/types';
 import type { ArrowObject } from '../../annotate/state/types';
 
-const presetSave = vi.fn();
-
-const baseArrow: ArrowObject = {
-  id: 'obj-1',
-  type: 'arrow',
-  x: 10,
-  y: 20,
-  rotation: 0,
-  draggable: true,
-  points: [0, 0, 20, 30],
-  stroke: '#ef4444',
-  strokeWidth: 4,
-  pointerLength: 12,
-  pointerWidth: 12,
-  style: 'solid',
-};
-
-const storeState = {
-  annotationDefaults: { schema_version: 1 as const },
-  objects: [baseArrow],
-};
-
-const useAnnotationStoreMock = Object.assign(
-  () => storeState,
-  { getState: () => storeState }
-);
+const { presetSave, baseArrow, useAnnotationStoreMock } = vi.hoisted(() => {
+  const arrow: ArrowObject = {
+    id: 'obj-1',
+    type: 'arrow',
+    x: 10,
+    y: 20,
+    rotation: 0,
+    draggable: true,
+    points: [0, 0, 20, 30],
+    stroke: '#ef4444',
+    strokeWidth: 4,
+    pointerLength: 12,
+    pointerWidth: 12,
+    style: 'solid',
+  };
+  const storeState = {
+    annotationDefaults: { schema_version: 1 as const },
+    objects: [arrow],
+  };
+  return {
+    presetSave: vi.fn(),
+    baseArrow: arrow,
+    useAnnotationStoreMock: Object.assign(
+      () => storeState,
+      { getState: () => storeState }
+    ),
+  };
+});
 
 vi.mock('../../ipc/index', () => ({
   presetSave,

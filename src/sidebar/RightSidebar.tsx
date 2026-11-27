@@ -38,6 +38,7 @@ const STUDIO_HIDDEN_FEATURES: FeatureId[] = [
   'crop_canvas',
   'steps_callouts',
   'focus_polish',
+  'measure_extract',
 ];
 
 interface BaseFeatureToolItem {
@@ -61,6 +62,10 @@ type FeatureToolItem = AnnotationFeatureToolItem | UtilityFeatureToolItem;
 
 export function RightSidebar({ presentationMode = 'flat' }: { presentationMode?: PresentationMode }) {
   const { activeFeatureId, collapsed, toggle, openFeature, closeFeature } = useSidebarStore();
+  const activeUtility = useMeasureStore((s) => s.activeUtility);
+  const gridVisible = useMeasureStore((s) => s.gridVisible);
+  const setActiveUtility = useMeasureStore((s) => s.setActiveUtility);
+  const setGridVisible = useMeasureStore((s) => s.setGridVisible);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const railRef = useRef<HTMLDivElement | null>(null);
   const featureRefs = useRef<Partial<Record<FeatureId, HTMLButtonElement | null>>>({});
@@ -70,10 +75,18 @@ export function RightSidebar({ presentationMode = 'flat' }: { presentationMode?:
     : FEATURES;
 
   useEffect(() => {
-    if (presentationMode === 'studio' && activeFeatureId && STUDIO_HIDDEN_FEATURES.includes(activeFeatureId)) {
-      closeFeature();
+    if (presentationMode === 'studio') {
+      if (activeFeatureId && STUDIO_HIDDEN_FEATURES.includes(activeFeatureId)) {
+        closeFeature();
+      }
+      if (activeUtility) {
+        setActiveUtility(null);
+      }
+      if (gridVisible) {
+        setGridVisible(false);
+      }
     }
-  }, [activeFeatureId, closeFeature, presentationMode]);
+  }, [activeFeatureId, activeUtility, closeFeature, gridVisible, presentationMode, setActiveUtility, setGridVisible]);
 
   const handleFeatureClick = (id: FeatureId, locked?: boolean) => {
     if (locked) {
@@ -137,6 +150,10 @@ export function RightSidebar({ presentationMode = 'flat' }: { presentationMode?:
       window.removeEventListener('keydown', handleKeyDown, true);
     };
   }, [activeFeatureId, collapsed, closeFeature]);
+
+  if (visibleFeatures.length === 0) {
+    return null;
+  }
 
   return (
     <div className="xs-sidebar-root" ref={rootRef}>

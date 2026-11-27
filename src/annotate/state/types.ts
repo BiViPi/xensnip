@@ -83,7 +83,9 @@ export interface SimplifyUiObject extends BaseObject {
   width: number;
   height: number;
   dimOpacity: number;
+  blockOpacity?: number;
   blurRadius: number;
+  detailLevel?: number;
   saturation: number;
   cornerRadius: number;
 }
@@ -176,4 +178,3 @@ export type AnnotateObject =
   | OpaqueRedactObject;
 
 export type AnnotationObjectPatch = Partial<AnnotateObject>;
-

@@ -1,5 +1,8 @@
 import type { EditorPreset } from '../compose/preset';
 import { getCompositionDimensions } from '../compose/core';
+import { getCanvasDocumentDimensions } from '../compose/canvasDocument';
+import type { CanvasDocument } from '../editor/canvasDocument';
+import type { SmartRedactCandidate } from './store';
 
 export interface SmartRedactRegion {
   x: number;
@@ -98,4 +101,35 @@ export function resolveSmartRedactRegion({
     canvasWidth,
     canvasHeight
   );
+}
+
+export function unscaleSmartRedactCandidates(
+  candidates: SmartRedactCandidate[],
+  canvasWidth: number,
+  canvasHeight: number,
+  image: HTMLImageElement | null,
+  preset: EditorPreset,
+  canvasDocument?: CanvasDocument | null
+): SmartRedactCandidate[] {
+  if (canvasWidth <= 0 || canvasHeight <= 0 || !image) {
+    return candidates;
+  }
+
+  const dims = canvasDocument
+    ? getCanvasDocumentDimensions(canvasDocument, preset)
+    : getCompositionDimensions(image.width, image.height, preset);
+  const scaleX = dims.canvasW / canvasWidth;
+  const scaleY = dims.canvasH / canvasHeight;
+
+  if (scaleX === 1 && scaleY === 1) {
+    return candidates;
+  }
+
+  return candidates.map((candidate) => ({
+    ...candidate,
+    x: candidate.x * scaleX,
+    y: candidate.y * scaleY,
+    width: Math.max(1, candidate.width * scaleX),
+    height: Math.max(1, candidate.height * scaleY),
+  }));
 }

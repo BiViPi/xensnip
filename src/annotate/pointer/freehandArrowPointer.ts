@@ -20,3 +20,34 @@ export function shouldAddFreehandPoint(
   const lastY = points[points.length - 1];
   return (dx - lastX) ** 2 + (dy - lastY) ** 2 > FREEHAND_POINT_DISTANCE_SQ;
 }
+
+/**
+ * Collapses terminal micro-segments shorter than `minChord` at the end of a freehand stroke
+ * so brief pointer-up release jitter does not flick the arrowhead direction sideways.
+ */
+export function stabilizeFreehandTail(points: number[], minChord = 14): number[] {
+  if (points.length < 6) {
+    return [...points];
+  }
+
+  const endX = points[points.length - 2];
+  const endY = points[points.length - 1];
+
+  let keepPairCount = Math.floor(points.length / 2) - 1;
+  while (keepPairCount > 1) {
+    const anchorX = points[(keepPairCount - 1) * 2];
+    const anchorY = points[(keepPairCount - 1) * 2 + 1];
+    const chord = Math.hypot(endX - anchorX, endY - anchorY);
+    if (chord >= minChord) {
+      break;
+    }
+    keepPairCount--;
+  }
+
+  const out: number[] = [];
+  for (let i = 0; i < keepPairCount * 2; i++) {
+    out.push(points[i]);
+  }
+  out.push(endX, endY);
+  return out;
+}

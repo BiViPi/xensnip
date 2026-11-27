@@ -1,4 +1,4 @@
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 
 #[tauri::command]
 pub fn settings_save(
@@ -10,11 +10,12 @@ pub fn settings_save(
 
     log::info!(
         target: "settings",
-        "settings_save requested: region={:?}, active_window={:?}, launch_at_startup={}, capture_delay_seconds={}",
+        "settings_save requested: region={:?}, active_window={:?}, launch_at_startup={}, capture_delay_seconds={}, print_screen_capture_enabled={}",
         new_settings.hotkeys.region,
         new_settings.hotkeys.active_window,
         new_settings.launch_at_startup,
         new_settings.capture_delay_seconds,
+        new_settings.print_screen_capture_enabled,
     );
 
     // 1. Validate hotkeys
@@ -35,7 +36,6 @@ pub fn settings_save(
         })?;
 
     let mut warnings = Vec::new();
-
     if new_settings.print_screen_capture_enabled
         && crate::settings::is_windows_print_screen_snipping_enabled()
     {
@@ -47,19 +47,28 @@ pub fn settings_save(
         });
     }
 
-    // 2. Load old settings for change detection (logging only)
-    let old_settings = crate::settings::load_or_create_default(&app_handle);
-    let hotkeys_changed = old_settings.hotkeys.region != new_settings.hotkeys.region
-        || old_settings.hotkeys.active_window != new_settings.hotkeys.active_window;
-    let autostart_changed = old_settings.launch_at_startup != new_settings.launch_at_startup;
+    // 2. Serialize read-modify-write against concurrent preset/settings mutations
+    let (hotkeys_changed, autostart_changed, print_screen_changed) = {
+        let lock = app_handle.state::<crate::settings::SettingsLock>();
+        let _guard = lock.lock();
 
-    // 3. Write to file
-    crate::settings::save_settings(&app_handle, &new_settings).map_err(|e| {
-        log::error!(target: "settings", "settings_save write failure: {}", e);
-        crate::settings::SettingsSaveError::WriteError {
-            message: e.to_string(),
-        }
-    })?;
+        let old_settings = crate::settings::load_or_create_default_unlocked(&app_handle);
+        let hotkeys_changed = old_settings.hotkeys.region != new_settings.hotkeys.region
+            || old_settings.hotkeys.active_window != new_settings.hotkeys.active_window;
+        let autostart_changed = old_settings.launch_at_startup != new_settings.launch_at_startup;
+        let print_screen_changed =
+            old_settings.print_screen_capture_enabled != new_settings.print_screen_capture_enabled;
+
+        // 3. Write to file
+        crate::settings::save_settings_unlocked(&app_handle, &new_settings).map_err(|e| {
+            log::error!(target: "settings", "settings_save write failure: {}", e);
+            crate::settings::SettingsSaveError::WriteError {
+                message: e.to_string(),
+            }
+        })?;
+
+        (hotkeys_changed, autostart_changed, print_screen_changed)
+    };
 
     // 4. Re-register hotkeys
     warnings.extend(crate::hotkeys::re_register(&app_handle, &new_settings));
@@ -70,10 +79,11 @@ pub fn settings_save(
     // 6. Log success
     log::info!(
         target: "settings",
-        "settings.saved {{ version: {}, hotkeys_changed: {}, autostart_changed: {} }}",
+        "settings.saved {{ version: {}, hotkeys_changed: {}, autostart_changed: {}, print_screen_changed: {} }}",
         new_settings.version,
         hotkeys_changed,
-        autostart_changed
+        autostart_changed,
+        print_screen_changed,
     );
 
     Ok(crate::settings::SettingsSaveResult {
@@ -96,8 +106,10 @@ pub fn settings_update_last_preset(
     app_handle: AppHandle,
     preset: serde_json::Value,
 ) -> Result<(), String> {
-    let mut settings = crate::settings::load_or_create_default(&app_handle);
+    let lock = app_handle.state::<crate::settings::SettingsLock>();
+    let _guard = lock.lock();
+    let mut settings = crate::settings::load_or_create_default_unlocked(&app_handle);
     settings.last_preset = Some(preset);
-    crate::settings::save_settings(&app_handle, &settings).map_err(|e| e.to_string())?;
+    crate::settings::save_settings_unlocked(&app_handle, &settings).map_err(|e| e.to_string())?;
     Ok(())
 }

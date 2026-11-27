@@ -30,6 +30,7 @@ interface QuickAccessViewportProps {
   dropTargetId: string | null;
   blockedTargetId: string | null;
   image: HTMLImageElement | null;
+  studioScreenImage?: HTMLImageElement | null;
   canvasDocument: CanvasDocument | null;
   isLoading: boolean;
   isLeftPanelCollapsed: boolean;
@@ -75,6 +76,7 @@ export function QuickAccessViewport({
   dropTargetId,
   blockedTargetId,
   image,
+  studioScreenImage,
   canvasDocument,
   isLoading,
   isLeftPanelCollapsed,
@@ -155,7 +157,7 @@ export function QuickAccessViewport({
             >
               <StudioCanvas
                 preset={preset}
-                image={image}
+                image={studioScreenImage ?? image}
                 onExportHandleChange={onExportHandleChange}
                 onPresetChange={onPresetChange}
               />

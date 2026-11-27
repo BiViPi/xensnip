@@ -19,6 +19,7 @@ import { CalloutToolbar } from './CalloutToolbar';
 import { FreehandArrowToolbar } from './FreehandArrowToolbar';
 import { PixelateToolbar } from './PixelateToolbar';
 import { OpaqueRedactToolbar } from './OpaqueRedactToolbar';
+import { MoveHandleBadge } from './MoveHandleBadge';
 
 interface Props {
   scale: number;
@@ -29,73 +30,58 @@ export function FloatingToolbarManager({ scale, stageRef }: Props) {
   const { selectedIds, objects, editingTextId } = useAnnotationStore();
   const { activeUtility, currentSample, colorPickerFrozen } = useMeasureStore();
   const anchor = useObjectAnchor(scale, stageRef);
-  
+
   if (activeUtility === 'color_picker' && currentSample) {
     const cpAnchor = { x: currentSample.x * scale, y: currentSample.y * scale };
     return <ColorPickerToolbar sample={currentSample} anchor={cpAnchor} frozen={colorPickerFrozen} />;
   }
 
-  if (selectedIds.length !== 1 || !anchor || editingTextId === selectedIds[0]) return null;
-  const selectedId = selectedIds[0];
-
-  const selectedObject = objects.find(o => o.id === selectedId);
-  if (!selectedObject) return null;
-
-  if (selectedObject.type === 'arrow') {
-    return <ArrowToolbar anchor={anchor} obj={selectedObject} />;
-  }
-  
-  if (selectedObject.type === 'rectangle') {
-    return <RectangleToolbar anchor={anchor} obj={selectedObject} />;
+  if (selectedIds.length === 0 || !anchor || (editingTextId && selectedIds.includes(editingTextId))) {
+    return null;
   }
 
-  if (selectedObject.type === 'text') {
-    return <TextToolbar anchor={anchor} obj={selectedObject} />;
+  const selectedObjects = objects.filter((o) => selectedIds.includes(o.id) && o.draggable !== false);
+  const selectedObject = selectedIds.length === 1 ? objects.find((o) => o.id === selectedIds[0]) : null;
+
+  let toolbar: React.ReactElement | null = null;
+  if (selectedObject) {
+    if (selectedObject.type === 'arrow') {
+      toolbar = <ArrowToolbar anchor={anchor} obj={selectedObject} />;
+    } else if (selectedObject.type === 'rectangle') {
+      toolbar = <RectangleToolbar anchor={anchor} obj={selectedObject} />;
+    } else if (selectedObject.type === 'text') {
+      toolbar = <TextToolbar anchor={anchor} obj={selectedObject} />;
+    } else if (selectedObject.type === 'blur') {
+      toolbar = <BlurToolbar anchor={anchor} obj={selectedObject} />;
+    } else if (selectedObject.type === 'numbered') {
+      toolbar = <NumberedToolbar anchor={anchor} obj={selectedObject} />;
+    } else if (selectedObject.type === 'spotlight') {
+      toolbar = <SpotlightToolbar anchor={anchor} obj={selectedObject} />;
+    } else if (selectedObject.type === 'magnify') {
+      toolbar = <MagnifyToolbar anchor={anchor} obj={selectedObject} />;
+    } else if (selectedObject.type === 'simplify_ui') {
+      toolbar = <SimplifyUiToolbar anchor={anchor} obj={selectedObject} />;
+    } else if (selectedObject.type === 'pixel_ruler') {
+      toolbar = <PixelRulerToolbar anchor={anchor} obj={selectedObject} />;
+    } else if (selectedObject.type === 'speech_bubble') {
+      toolbar = <SpeechBubbleToolbar anchor={anchor} obj={selectedObject} />;
+    } else if (selectedObject.type === 'callout') {
+      toolbar = <CalloutToolbar anchor={anchor} obj={selectedObject} />;
+    } else if (selectedObject.type === 'freehand_arrow') {
+      toolbar = <FreehandArrowToolbar anchor={anchor} obj={selectedObject} />;
+    } else if (selectedObject.type === 'pixelate') {
+      toolbar = <PixelateToolbar anchor={anchor} obj={selectedObject} />;
+    } else if (selectedObject.type === 'opaque_redact') {
+      toolbar = <OpaqueRedactToolbar anchor={anchor} obj={selectedObject} />;
+    }
   }
 
-  if (selectedObject.type === 'blur') {
-    return <BlurToolbar anchor={anchor} obj={selectedObject} />;
-  }
-
-  if (selectedObject.type === 'numbered') {
-    return <NumberedToolbar anchor={anchor} obj={selectedObject} />;
-  }
-
-  if (selectedObject.type === 'spotlight') {
-    return <SpotlightToolbar anchor={anchor} obj={selectedObject} />;
-  }
-
-  if (selectedObject.type === 'magnify') {
-    return <MagnifyToolbar anchor={anchor} obj={selectedObject} />;
-  }
-
-  if (selectedObject.type === 'simplify_ui') {
-    return <SimplifyUiToolbar anchor={anchor} obj={selectedObject} />;
-  }
-
-  if (selectedObject.type === 'pixel_ruler') {
-    return <PixelRulerToolbar anchor={anchor} obj={selectedObject} />;
-  }
-
-  if (selectedObject.type === 'speech_bubble') {
-    return <SpeechBubbleToolbar anchor={anchor} obj={selectedObject} />;
-  }
-
-  if (selectedObject.type === 'callout') {
-    return <CalloutToolbar anchor={anchor} obj={selectedObject} />;
-  }
-
-  if (selectedObject.type === 'freehand_arrow') {
-    return <FreehandArrowToolbar anchor={anchor} obj={selectedObject} />;
-  }
-  
-  if (selectedObject.type === 'pixelate') {
-    return <PixelateToolbar anchor={anchor} obj={selectedObject} />;
-  }
-
-  if (selectedObject.type === 'opaque_redact') {
-    return <OpaqueRedactToolbar anchor={anchor} obj={selectedObject} />;
-  }
-
-  return null;
+  return (
+    <>
+      {toolbar}
+      {selectedObjects.length > 0 && (
+        <MoveHandleBadge anchor={anchor} scale={scale} objects={selectedObjects} />
+      )}
+    </>
+  );
 }

@@ -7,6 +7,7 @@ import { CloudLineIcon, DashedLineIcon, PaletteIcon, SolidLineIcon } from './Too
 import { SliderToggle } from './SliderToggle';
 import { RadiusToggle } from './RadiusToggle';
 import { Tooltip } from '../../editor/Tooltip';
+import { ToolbarActions } from './ToolbarActions';
 
 interface Props {
   anchor: { left: number; top: number; width: number; height: number };
@@ -40,7 +41,7 @@ export function RectangleToolbar({ anchor, obj }: Props) {
   const top = anchor.top - 40;
 
   return createPortal(
-    <div 
+    <div
       className={`xs-floating-toolbar ${toolbarCollapsed ? 'collapsed' : ''}`}
       style={{
         position: 'absolute',
@@ -51,7 +52,7 @@ export function RectangleToolbar({ anchor, obj }: Props) {
       }}
     >
       <Tooltip text={toolbarCollapsed ? "Expand Toolbar" : "Collapse Toolbar"} position="top">
-        <button 
+        <button
           className="xs-toolbar-btn xs-toolbar-toggle"
           onClick={() => setToolbarCollapsed(!toolbarCollapsed)}
         >
@@ -140,6 +141,8 @@ export function RectangleToolbar({ anchor, obj }: Props) {
               />
             </>
           )}
+
+          <ToolbarActions obj={obj} />
         </div>
       )}
     </div>,

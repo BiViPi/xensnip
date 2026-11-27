@@ -1,79 +1,96 @@
 import { Image } from 'react-konva';
 import { BlurObject, AnnotationObjectPatch } from '../state/types';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Konva from 'konva';
+import { getCanvasRenderScale } from '../../measure/coordinates';
+import { createBlurredCanvas } from '../renderers/BlurRenderer';
 
 interface BlurNodeProps {
   obj: BlurObject;
   onSelect: (id: string, e: Konva.KonvaEventObject<any>) => void;
   onUpdate: (id: string, patch: AnnotationObjectPatch) => void;
   compositionCanvasRef: React.RefObject<HTMLCanvasElement | null>;
+  stageWidth?: number;
+  stageHeight?: number;
+  canvasRevision?: number;
 }
 
 /**
- * BlurNode — explicit snapshot-based blur.
- * 
- * On mount and on bounds/blur change, we:
- * 1. Take a snapshot of the composition canvas region into an offscreen canvas.
- * 2. Feed the snapshot (not the live canvas) to a Konva Image node.
- * 3. Apply Konva.Filters.Blur on top of the snapshot.
- * 
- * This avoids fragile live-canvas pass-through and produces reliable on-screen blur.
+ * BlurNode — HiDPI-aware Gaussian snapshot blur matching export rendering 1:1.
+ *
+ * Samples the expanded region from compositionCanvasRef using the backing canvas's
+ * render scale (e.g. 1.5x or 2x on HiDPI displays) and runs the shared separable
+ * premultiplied Gaussian blur without edge-bleed halos.
  */
-export function BlurNode({ obj, onSelect, onUpdate, compositionCanvasRef }: BlurNodeProps) {
-  const imageRef = useRef<Konva.Image>(null);
-  const [snapshot, setSnapshot] = useState<HTMLCanvasElement | null>(null);
+export function BlurNode({
+  obj,
+  onSelect,
+  onUpdate,
+  compositionCanvasRef,
+  stageWidth,
+  stageHeight,
+  canvasRevision = 0,
+}: BlurNodeProps) {
+  const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null);
 
-  // Rebuild snapshot whenever position/size/blurRadius changes
   useEffect(() => {
+    setDragPos(null);
+  }, [obj.x, obj.y]);
+
+  const effectiveX = dragPos?.x ?? obj.x;
+  const effectiveY = dragPos?.y ?? obj.y;
+
+  const snapshot = useMemo(() => {
     const src = compositionCanvasRef.current;
-    if (!src) return;
+    if (!src) return null;
 
-    // The composition canvas is drawn at its native resolution.
-    // obj coords are in composition-space (unscaled), so we can sample directly.
-    const snap = document.createElement('canvas');
-    snap.width = Math.max(1, obj.width);
-    snap.height = Math.max(1, obj.height);
-    const ctx = snap.getContext('2d');
-    if (!ctx) return;
-
-    ctx.drawImage(
+    const { scaleX, scaleY } = getCanvasRenderScale(src, stageWidth, stageHeight);
+    return createBlurredCanvas(
       src,
-      obj.x, obj.y, obj.width, obj.height,  // source region (composition space)
-      0, 0, obj.width, obj.height            // dest (fills snapshot canvas)
+      {
+        x: effectiveX * scaleX,
+        y: effectiveY * scaleY,
+        width: obj.width * scaleX,
+        height: obj.height * scaleY,
+      },
+      obj.width,
+      obj.height,
+      obj.blurRadius
     );
-
-    setSnapshot(snap);
-  }, [compositionCanvasRef, obj.x, obj.y, obj.width, obj.height]);
-
-  // Re-cache whenever snapshot or blurRadius changes
-  useEffect(() => {
-    if (imageRef.current && snapshot) {
-      imageRef.current.cache();
-      imageRef.current.getLayer()?.batchDraw();
-    }
-  }, [snapshot, obj.blurRadius]);
-
-  if (!snapshot) return null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    compositionCanvasRef,
+    effectiveX,
+    effectiveY,
+    obj.width,
+    obj.height,
+    obj.blurRadius,
+    stageWidth,
+    stageHeight,
+    canvasRevision,
+  ]);
 
   return (
     <Image
-      ref={imageRef}
       id={obj.id}
-      x={obj.x}
-      y={obj.y}
+      x={effectiveX}
+      y={effectiveY}
       rotation={obj.rotation}
       width={obj.width}
       height={obj.height}
-      image={snapshot}
+      image={snapshot ?? undefined}
       draggable={obj.draggable}
-      filters={[Konva.Filters.Blur]}
-      blurRadius={obj.blurRadius}
       onClick={(e) => onSelect(obj.id, e)}
       onTap={(e) => onSelect(obj.id, e)}
       hitStrokeWidth={20}
+      onDragMove={(e) => {
+        setDragPos({ x: e.target.x(), y: e.target.y() });
+      }}
       onDragEnd={(e) => {
-        onUpdate(obj.id, { x: e.target.x(), y: e.target.y() });
+        const nextX = e.target.x();
+        const nextY = e.target.y();
+        setDragPos(null);
+        onUpdate(obj.id, { x: nextX, y: nextY });
       }}
       name="selectable-object"
     />

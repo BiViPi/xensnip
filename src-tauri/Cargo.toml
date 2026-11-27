@@ -1,6 +1,6 @@
 [package]
 name = "xensnip"
-version = "0.5.1"
+version = "0.6.0"
 description = "Screenshot capture and polish tool for Windows"
 authors = ["Phu Bui"]
 license = "MIT"
@@ -45,4 +45,3 @@ windows = { version = "0.62.2", features = [
 ] }
 winreg = "0.10.1"
 uuid = { version = "1", features = ["v4", "serde"] }
-urlencoding = "2.1"

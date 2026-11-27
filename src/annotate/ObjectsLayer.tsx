@@ -1,4 +1,6 @@
+import { Fragment, useCallback, useMemo, useState } from 'react';
 import Konva from 'konva';
+import { Image } from 'react-konva';
 import { useAnnotationStore } from './state/store';
 import { ArrowNode } from './objects/ArrowNode';
 import { RectangleNode } from './objects/RectangleNode';
@@ -14,16 +16,39 @@ import { CalloutNode } from './objects/CalloutNode';
 import { FreehandArrowNode } from './objects/FreehandArrowNode';
 import { PixelateNode } from './objects/PixelateNode';
 import { OpaqueRedactNode } from './objects/OpaqueRedactNode';
+import { renderSpotlightMaskCanvas, type SpotlightMaskItem } from './renderers/SpotlightRenderer';
 
 interface Props {
   compositionCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   stageWidth: number;
   stageHeight: number;
   scale: number;
+  canvasRevision?: number;
+  previewSpotlight?: SpotlightMaskItem | null;
 }
 
-export function ObjectsLayer({ compositionCanvasRef, stageWidth, stageHeight, scale }: Props) {
-  const { objects, select, toggleSelect, updateObject, selectedIds } = useAnnotationStore();
+export function ObjectsLayer({
+  compositionCanvasRef,
+  stageWidth,
+  stageHeight,
+  scale,
+  canvasRevision = 0,
+  previewSpotlight = null,
+}: Props) {
+  const { objects, select, toggleSelect, updateObject, selectedIds, activeTool } = useAnnotationStore();
+  const [spotlightDragMap, setSpotlightDragMap] = useState<Record<string, { x: number; y: number }>>({});
+
+  const handleSpotlightDragPreview = useCallback((id: string, pos: { x: number; y: number } | null) => {
+    setSpotlightDragMap((prev) => {
+      if (!pos) {
+        if (!(id in prev)) return prev;
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      }
+      return { ...prev, [id]: pos };
+    });
+  }, []);
 
   const handleSelect = (id: string | null, e?: Konva.KonvaEventObject<any>) => {
     if (!id) {
@@ -37,9 +62,33 @@ export function ObjectsLayer({ compositionCanvasRef, stageWidth, stageHeight, sc
     }
   };
 
+  let lastSpotlightIndex = -1;
+  const effectiveSpotlights: SpotlightMaskItem[] = [];
+  for (let i = 0; i < objects.length; i++) {
+    const item = objects[i];
+    if (item.type === 'spotlight') {
+      lastSpotlightIndex = i;
+      const dragOverride = spotlightDragMap[item.id];
+      effectiveSpotlights.push(
+        dragOverride
+          ? { ...item, x: dragOverride.x, y: dragOverride.y }
+          : item
+      );
+    }
+  }
+  if (previewSpotlight) {
+    effectiveSpotlights.push(previewSpotlight);
+  }
+
+  const spotlightMaskCanvas = useMemo(
+    () => renderSpotlightMaskCanvas(effectiveSpotlights, stageWidth, stageHeight),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [stageWidth, stageHeight, JSON.stringify(effectiveSpotlights)]
+  );
+
   return (
     <>
-      {objects.map((obj) => {
+      {objects.map((obj, idx) => {
         if (obj.type === 'arrow') {
           return (
             <ArrowNode
@@ -81,6 +130,9 @@ export function ObjectsLayer({ compositionCanvasRef, stageWidth, stageHeight, sc
               onSelect={handleSelect}
               onUpdate={updateObject}
               compositionCanvasRef={compositionCanvasRef}
+              stageWidth={stageWidth}
+              stageHeight={stageHeight}
+              canvasRevision={canvasRevision}
             />
           );
         }
@@ -96,16 +148,30 @@ export function ObjectsLayer({ compositionCanvasRef, stageWidth, stageHeight, sc
           );
         }
         if (obj.type === 'spotlight') {
+          const showSharedMaskHere =
+            (!previewSpotlight && idx === lastSpotlightIndex && spotlightMaskCanvas);
+          const isSelected = selectedIds.includes(obj.id);
           return (
-            <SpotlightNode
-              key={obj.id}
-              obj={obj}
-              isSelected={selectedIds.includes(obj.id)}
-              stageWidth={stageWidth}
-              stageHeight={stageHeight}
-              onSelect={handleSelect}
-              onUpdate={updateObject}
-            />
+            <Fragment key={obj.id}>
+              {showSharedMaskHere && (
+                <Image
+                  listening={false}
+                  x={0}
+                  y={0}
+                  width={stageWidth}
+                  height={stageHeight}
+                  image={spotlightMaskCanvas}
+                />
+              )}
+              <SpotlightNode
+                obj={obj}
+                isSelected={isSelected}
+                interiorInteractive={isSelected || activeTool === 'select'}
+                onSelect={handleSelect}
+                onUpdate={updateObject}
+                onDragPreview={handleSpotlightDragPreview}
+              />
+            </Fragment>
           );
         }
         if (obj.type === 'magnify') {
@@ -117,6 +183,9 @@ export function ObjectsLayer({ compositionCanvasRef, stageWidth, stageHeight, sc
               onSelect={handleSelect}
               onUpdate={updateObject}
               compositionCanvasRef={compositionCanvasRef}
+              stageWidth={stageWidth}
+              stageHeight={stageHeight}
+              canvasRevision={canvasRevision}
             />
           );
         }
@@ -128,6 +197,7 @@ export function ObjectsLayer({ compositionCanvasRef, stageWidth, stageHeight, sc
               isSelected={selectedIds.includes(obj.id)}
               stageWidth={stageWidth}
               stageHeight={stageHeight}
+              canvasRevision={canvasRevision}
               onSelect={handleSelect}
               onUpdate={updateObject}
               compositionCanvasRef={compositionCanvasRef}
@@ -185,6 +255,9 @@ export function ObjectsLayer({ compositionCanvasRef, stageWidth, stageHeight, sc
               onSelect={handleSelect}
               onUpdate={updateObject}
               compositionCanvasRef={compositionCanvasRef}
+              stageWidth={stageWidth}
+              stageHeight={stageHeight}
+              canvasRevision={canvasRevision}
             />
           );
         }
@@ -200,6 +273,16 @@ export function ObjectsLayer({ compositionCanvasRef, stageWidth, stageHeight, sc
         }
         return null;
       })}
+      {previewSpotlight && spotlightMaskCanvas && (
+        <Image
+          listening={false}
+          x={0}
+          y={0}
+          width={stageWidth}
+          height={stageHeight}
+          image={spotlightMaskCanvas}
+        />
+      )}
     </>
   );
 }

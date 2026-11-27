@@ -12,6 +12,7 @@ dist
 src-tauri/target/
 src-tauri/gen/
 dist-ssr
+coverage/
 *.local
 .env
 .env.*

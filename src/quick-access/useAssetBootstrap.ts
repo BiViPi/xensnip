@@ -17,6 +17,7 @@ import { createCanvasDocument, createCanvasImageObject } from "../editor/canvasD
 
 interface UseAssetBootstrapDeps {
   docsRef: React.MutableRefObject<ScreenshotDocument[]>;
+  activeIdRef: React.MutableRefObject<string | null>;
   addDocument: (doc: ScreenshotDocument) => ScreenshotDocument[];
   releaseDocument: (doc: ScreenshotDocument) => void;
   patchDocument: (id: string, patch: Partial<ScreenshotDocument>) => void;
@@ -74,6 +75,7 @@ export function useAssetBootstrap(deps: UseAssetBootstrapDeps): {
 } {
   const {
     docsRef,
+    activeIdRef,
     addDocument,
     releaseDocument,
     patchDocument,
@@ -109,8 +111,6 @@ export function useAssetBootstrap(deps: UseAssetBootstrapDeps): {
       const bootstrapStart = performance.now();
 
       const resolveStart = performance.now();
-      // Acquire ref-count for this consumer. URI is unused here;
-      // image bytes are read via assetReadPng() on the IPC path.
       await assetResolve(nextAssetId, "quick_access_ui");
       uiAssetAcquired = true;
       void perfLog(`Asset resolve ref-count took ${Math.round(performance.now() - resolveStart)}ms`);
@@ -133,6 +133,7 @@ export function useAssetBootstrap(deps: UseAssetBootstrapDeps): {
         img.onerror = () => reject(new Error("Failed to load blob image"));
       });
 
+      let documentUrl = url;
       if (captureContext?.captureKind === "window" && img.naturalWidth > 4 && img.naturalHeight > 4) {
         const cropStart = performance.now();
         // Use 2px inset to safely clear DWM borders on both 100% and high-DPI displays
@@ -146,8 +147,14 @@ export function useAssetBootstrap(deps: UseAssetBootstrapDeps): {
           const croppedUrl = cropCanvas.toDataURL("image/png");
           const croppedImg = new Image();
           croppedImg.src = croppedUrl;
-          await new Promise((resolve) => { croppedImg.onload = resolve; });
+          await new Promise((resolve, reject) => {
+            croppedImg.onload = resolve;
+            croppedImg.onerror = () => reject(new Error("Failed to load cropped window image"));
+          });
           img = croppedImg;
+          documentUrl = croppedUrl;
+          URL.revokeObjectURL(url);
+          bootstrapUrl = null;
         }
         void perfLog(`Window inset crop (${insetPx}px) took ${Math.round(performance.now() - cropStart)}ms`);
       }
@@ -161,12 +168,12 @@ export function useAssetBootstrap(deps: UseAssetBootstrapDeps): {
         image: img,
         canvas: createCanvasDocument(createCanvasImageObject({
           image: img,
-          blobUrl: url,
+          blobUrl: documentUrl,
           assetId: nextAssetId,
         })),
-        blobUrl: url,
+        blobUrl: documentUrl,
         assetId: nextAssetId,
-        thumbnailSrc: "", // Placeholder initially
+        thumbnailSrc: "",
         preset: resolveBootstrapPreset(null, img.width, img.height),
         annotation: {
           activeTool: "select",
@@ -176,7 +183,7 @@ export function useAssetBootstrap(deps: UseAssetBootstrapDeps): {
           toolbarCollapsed: false,
         },
         cropBounds: null,
-        isExportChecked: true, // Default to checked for export
+        isExportChecked: true,
         undoStack: [],
         redoStack: [],
         createdAt: Date.now(),
@@ -187,13 +194,14 @@ export function useAssetBootstrap(deps: UseAssetBootstrapDeps): {
 
       // Set as active
       setImage(newDoc.image);
+      activeIdRef.current = newDoc.id;
       setActiveDocumentId(newDoc.id);
       useAnnotationStore.getState().clearAll();
       setCropBounds(null);
       undoStackRef.current = [];
       redoStackRef.current = [];
 
-      setIsLoading(false); // UI becomes usable here immediately after image is ready
+      setIsLoading(false);
 
       requestAnimationFrame(() => {
         const totalFE = Math.round(performance.now() - bootstrapStart);
@@ -210,7 +218,9 @@ export function useAssetBootstrap(deps: UseAssetBootstrapDeps): {
 
         const bootstrapPreset = resolveBootstrapPreset(currentSettings, img.width, img.height);
         patchDocument(newDoc.id, { preset: bootstrapPreset });
-        setPreset(bootstrapPreset);
+        if (activeIdRef.current === newDoc.id) {
+          setPreset(bootstrapPreset);
+        }
       }
 
       // Defer thumbnail generation
@@ -234,13 +244,13 @@ export function useAssetBootstrap(deps: UseAssetBootstrapDeps): {
         void assetRelease(nextAssetId, "quick_access_ui").catch(() => {});
       }
       console.error("Bootstrap failed", e);
-      // Surface error to caller; QuickAccess.tsx shows toast
       throw e;
     } finally {
       setIsLoading(false);
     }
   }, [
     docsRef,
+    activeIdRef,
     addDocument,
     releaseDocument,
     handleSwitchDocument,

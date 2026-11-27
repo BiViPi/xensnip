@@ -14,6 +14,8 @@ import { CaptureFailure, QuickAccessShowPayload, Settings, ThemeMode } from "../
 import { applyTheme } from "../styles/applyTheme";
 import { DEFAULT_PRESET, EditorPreset, type PresentationMode } from "../compose/preset";
 import { preloadWallpaper, getOrLoadWallpaper } from "../compose/core";
+import { composeAnnotatedScreenImage } from "../compose/composeWithAnnotations";
+import { flushEditingText } from "../annotate/TextInlineEditor";
 import { Toast } from "../editor/Toast";
 import { TitleBar } from "../editor/TitleBar";
 import { PresetManager } from "../editor/controls/PresetManager";
@@ -33,6 +35,7 @@ import { useQuickAccessSessionController } from "./useQuickAccessSessionControll
 import { QuickAccessViewport } from "./QuickAccessViewport";
 import { QuickAccessDock } from "./QuickAccessDock";
 import { CloseGuardModal } from "./CloseGuardModal";
+import { hasAnyUnsavedSessionChanges } from "./unsavedChanges";
 import { getSelectedCanvasImage, removeCanvasImage } from "../editor/canvasDocument";
 import "./QuickAccess.css";
 
@@ -58,7 +61,7 @@ function getMergeRejectionMessage(reason: MergeDocumentsFailureReason): string {
     case "source_not_single_image":
       return "Only single-image sessions can be merged into another session.";
     case "source_has_annotations":
-      return "Annotated sessions cannot be merged in v0.5.0.";
+      return "Annotated sessions cannot be merged.";
     case "source_crop_pending":
     case "target_crop_pending":
       return "Finish or cancel crop before merging sessions.";
@@ -98,6 +101,10 @@ export function QuickAccess() {
   } | null>(null);
   const suppressSelectionClickRef = useRef(false);
   const [studioExportHandle, setStudioExportHandle] = useState<StudioExportHandle | null>(null);
+  const [studioScreenImage, setStudioScreenImage] = useState<HTMLImageElement | null>(null);
+  const [isStudioBaking, setIsStudioBaking] = useState(false);
+  const studioBakeTokenRef = useRef(0);
+  const studioBakedBlobUrlRef = useRef<string | null>(null);
   const studioExportHandleRef = useRef<StudioExportHandle | null>(null);
   const onExportHandleChange = useCallback((h: StudioExportHandle | null) => {
     studioExportHandleRef.current = h;
@@ -147,7 +154,61 @@ export function QuickAccess() {
   }, []);
 
   // ── 2. Crop tool ────────────────────────────────────────────────────────
+  // ── 2. Crop tool ────────────────────────────────────────────────────────
   const { activeTool, setActiveTool, objects } = useAnnotationStore();
+
+  const selectedCanvasImage = getSelectedCanvasImage(activeDoc?.canvas);
+  const needsStudioBake =
+    preset.presentation_mode === "studio" &&
+    Boolean(image) &&
+    (activeDoc?.canvas.images.length ?? 0) <= 1 &&
+    (objects.length > 0 || Boolean(selectedCanvasImage?.sourceCrop));
+
+  useEffect(() => {
+    const token = ++studioBakeTokenRef.current;
+
+    if (!needsStudioBake || !image) {
+      setStudioScreenImage(null);
+      setIsStudioBaking(false);
+      if (studioBakedBlobUrlRef.current) {
+        revokeManagedUrl(studioBakedBlobUrlRef.current);
+        studioBakedBlobUrlRef.current = null;
+      }
+      return;
+    }
+
+    setIsStudioBaking(true);
+    void composeAnnotatedScreenImage(image, preset, objects, activeDoc?.canvas)
+      .then((bakedImg) => {
+        if (studioBakeTokenRef.current !== token) {
+          revokeManagedUrl(bakedImg.src);
+          return;
+        }
+        const prevUrl = studioBakedBlobUrlRef.current;
+        studioBakedBlobUrlRef.current = bakedImg.src?.startsWith("blob:") ? bakedImg.src : null;
+        setStudioScreenImage(bakedImg);
+        setIsStudioBaking(false);
+        if (prevUrl && prevUrl !== studioBakedBlobUrlRef.current) {
+          revokeManagedUrl(prevUrl);
+        }
+      })
+      .catch((err) => {
+        if (studioBakeTokenRef.current !== token) return;
+        console.error("Failed to bake Studio screen image", err);
+        setStudioScreenImage(null);
+        setIsStudioBaking(false);
+      });
+  }, [needsStudioBake, image, preset, objects, activeDoc?.canvas]);
+
+  useEffect(() => {
+    return () => {
+      studioBakeTokenRef.current += 1;
+      if (studioBakedBlobUrlRef.current) {
+        revokeManagedUrl(studioBakedBlobUrlRef.current);
+        studioBakedBlobUrlRef.current = null;
+      }
+    };
+  }, []);
   const setActiveUtility = useMeasureStore((s) => s.setActiveUtility);
   const closeSidebarFeature = useSidebarStore((s) => s.closeFeature);
   const {
@@ -171,7 +232,7 @@ export function QuickAccess() {
     });
     if (nextPreset !== preset) {
       setPreset(nextPreset);
-      showToast("Studio mode is unavailable for multi-image layouts in v0.5.0.", "error");
+      showToast("Studio mode is unavailable for multi-image layouts.", "error");
     }
     try {
       const thumb = await generateDocumentThumbnail({
@@ -247,6 +308,7 @@ export function QuickAccess() {
   // ── 5. Asset bootstrap ──────────────────────────────────────────────────
   const { bootstrapAssetRef, isLoading } = useAssetBootstrap({
     docsRef,
+    activeIdRef,
     addDocument,
     releaseDocument,
     patchDocument,
@@ -321,7 +383,7 @@ export function QuickAccess() {
     setImage(selected.image);
     if (nextPreset !== preset) {
       setPreset(nextPreset);
-      showToast("Studio mode is unavailable for multi-image layouts in v0.5.0.", "error");
+      showToast("Studio mode is unavailable for multi-image layouts.", "error");
     }
   }, [patchActiveDocument, preset, setPreset, showToast]);
 
@@ -573,11 +635,22 @@ export function QuickAccess() {
   }, [preset.bg_mode, preset.bg_value]);
 
   const hasUnsavedChanges = useCallback(() => {
+    return hasAnyUnsavedSessionChanges(
+      {
+        objectsLength: useAnnotationStore.getState().objects.length,
+        cropBounds,
+        undoLength: undoStackRef.current?.length ?? 0,
+        redoLength: redoStackRef.current?.length ?? 0,
+      },
+      docsRef.current,
+    );
+    /*
     return objects.length > 0
       || cropBounds !== null
       || (undoStackRef.current?.length ?? 0) > 0
       || (redoStackRef.current?.length ?? 0) > 0;
-  }, [objects.length, cropBounds, undoStackRef, redoStackRef]);
+    */
+  }, [documents, objects.length, cropBounds, undoStackRef, redoStackRef, docsRef]);
 
   // Sync preset annotation defaults to Zustand store
   useEffect(() => {
@@ -601,6 +674,7 @@ export function QuickAccess() {
   }, [clearAll, releaseDocument, preset]);
 
   const handleDismiss = useCallback(async () => {
+    flushEditingText();
     const isDirty = hasUnsavedChanges();
     if (isDirty) {
       setShowCloseGuard(true);
@@ -614,6 +688,7 @@ export function QuickAccess() {
   }, [closeWindow]);
 
   const handlePresentationModeChange = useCallback((nextMode: PresentationMode) => {
+    flushEditingText();
     setActivePop(null);
     setActiveTool("select");
     setActiveUtility(null);
@@ -642,6 +717,8 @@ export function QuickAccess() {
   useEffect(() => {
     const unlisten = getCurrentWindow().onCloseRequested(async (event) => {
       event.preventDefault();
+      event.preventDefault();
+      flushEditingText();
       if (hasUnsavedChanges()) {
         event.preventDefault();
         setShowCloseGuard(true);
@@ -693,6 +770,8 @@ export function QuickAccess() {
         dropTargetId={dropTargetId}
         blockedTargetId={blockedTargetId}
         image={image}
+
+        studioScreenImage={studioScreenImage}
         canvasDocument={activeDoc?.canvas ?? null}
         isLoading={isLoading}
         isLeftPanelCollapsed={isLeftPanelCollapsed}
@@ -736,6 +815,7 @@ export function QuickAccess() {
       <QuickAccessDock
         activeDoc={activeDoc}
         image={image}
+
         documents={documents}
         preset={preset}
         settings={settings}
@@ -753,6 +833,7 @@ export function QuickAccess() {
         onFlush={flushActiveDocument}
         onPresentationModeChange={handlePresentationModeChange}
         studioExportHandle={studioExportHandle}
+        isStudioBaking={isStudioBaking}
       />
 
       {isPresetManagerOpen && (

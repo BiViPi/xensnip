@@ -29,7 +29,7 @@ Click the preview image below to download the tutorial video.
 
 ## Version
 
-Current release: `0.5.1`
+Current release: `0.6.0`
 
 ## What XenSnip Does
 
@@ -43,8 +43,9 @@ Current release: `0.5.1`
 - Switch each screenshot independently between 2D flat and 2.5D Studio presentation modes
 - Render styled presentation outputs with Browser Frame or Acrylic Block, user-controlled viewing angles, and curated studio backgrounds
 - Name each capture directly from its thumbnail card before export
-- Annotate screenshots with arrows, rectangles, text, callouts, steps, and freehand arrows
-- Hide sensitive information with blur, pixelate, or opaque redact tools
+- Annotate screenshots with arrows, rectangles, text, speech bubbles, callouts, numbered steps, freehand arrows, spotlights, and magnify loupes
+- Measure and inspect pixels with pixel rulers, dual-tone grid overlays, and a 7x7 color picker loupe
+- Hide sensitive information with blur, pixelate, simplify UI skeleton redaction, or opaque redact tools
 - Style screenshots with gradients, wallpaper backgrounds, padding, borders, and shadows
 - Pin the current composition to the screen as an always-on-top reference window
 - Copy the final result to the clipboard or export it to disk
@@ -58,7 +59,7 @@ For normal use, download the latest Windows installer from GitHub Releases:
 - Release page: [GitHub Releases](https://github.com/BiViPi/xensnip/releases)
 - Landing page: [XenSnip landing page](https://xensnip-landing-page.vercel.app/)
 
-The `0.5.1` release is intended to be distributed as installer packages rather than as a source-only package.
+The `0.6.0` release is intended to be distributed as installer packages rather than as a source-only package.
 
 Release package formats:
 

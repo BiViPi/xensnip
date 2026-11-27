@@ -26,22 +26,30 @@ export function HotkeyField({ value, onChange, error }: Props) {
         return;
       }
 
+      const hasModifier = e.ctrlKey || e.shiftKey || e.altKey || e.metaKey;
+      const isFunctionKey = /^F([1-9]|1[0-9]|2[0-4])$/i.test(e.key);
+      const isPrintScreen = e.key.toLowerCase() === "printscreen";
+
+      if (!hasModifier && !isFunctionKey && !isPrintScreen) {
+        return;
+      }
+
       const parts = [];
       if (e.ctrlKey) parts.push("Ctrl");
       if (e.shiftKey) parts.push("Shift");
       if (e.altKey) parts.push("Alt");
       if (e.metaKey) parts.push("Command");
 
-      let key = e.key.toUpperCase();
+      let key = isPrintScreen ? "PrintScreen" : e.key.toUpperCase();
       if (key === " ") key = "SPACE";
       if (key === "ARROWUP") key = "UP";
       if (key === "ARROWDOWN") key = "DOWN";
       if (key === "ARROWLEFT") key = "LEFT";
       if (key === "ARROWRIGHT") key = "RIGHT";
-      
+
       parts.push(key);
       const combo = parts.join("+");
-      
+
       onChange(combo);
       setIsListening(false);
     };
@@ -52,7 +60,7 @@ export function HotkeyField({ value, onChange, error }: Props) {
 
   return (
     <div className={`xs-hotkey-container ${error ? "has-error" : ""}`}>
-      <div 
+      <div
         className={`xs-hotkey-input ${isListening ? "listening" : ""}`}
         onClick={() => setIsListening(true)}
         tabIndex={0}

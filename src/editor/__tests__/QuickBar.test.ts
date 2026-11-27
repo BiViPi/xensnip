@@ -39,6 +39,7 @@ vi.mock('../../compose/compose', () => ({
 
 vi.mock('../../compose/composeWithAnnotations', () => ({
   composeWithAnnotations,
+  composeAnnotatedScreenImage: vi.fn(),
 }));
 
 vi.mock('../../ipc/index', () => ({
@@ -54,7 +55,10 @@ vi.mock('@studio-impl/export/exportStudio', () => ({
 
 vi.mock('../../annotate/state/store', () => ({
   useHasAnnotations: () => false,
-  useAnnotationStore: (selector: (state: typeof annotationState) => unknown) => selector(annotationState),
+  useAnnotationStore: Object.assign(
+    (selector: (state: typeof annotationState) => unknown) => selector(annotationState),
+    { getState: () => annotationState },
+  ),
 }));
 
 vi.mock('../Tooltip', () => ({
@@ -298,5 +302,48 @@ describe('QuickBar studio export integration', () => {
       expect(quickAccessSetBusy).toHaveBeenLastCalledWith('quick_access_session', false);
     });
     expect(clipboardWriteImage).toHaveBeenCalledWith(new Uint8Array([4, 5, 6]));
+  });
+
+  it('shows an error toast when clipboard copy fails', async () => {
+    const showToast = vi.fn();
+    composeToBlob.mockResolvedValue(new Uint8Array([4, 5, 6]));
+    clipboardWriteImage.mockRejectedValue(new Error('clipboard unavailable'));
+
+    renderQuickBar({ showToast });
+
+    fireEvent.click(screen.getByRole('button', { name: /copy/i }));
+
+    await vi.waitFor(() => {
+      expect(showToast).toHaveBeenCalledWith('Failed to copy image', 'error');
+    });
+    expect(quickAccessSetBusy).toHaveBeenLastCalledWith('quick_access_session', false);
+  });
+
+  it('shows an error toast and suppresses save sound when all batch export items fail', async () => {
+    const showToast = vi.fn();
+    const audioPlay = vi.fn().mockResolvedValue(undefined);
+    const AudioSpy = vi.fn().mockImplementation(function () {
+      return { play: audioPlay };
+    });
+    vi.stubGlobal('Audio', AudioSpy);
+    composeDocumentToBytes.mockRejectedValue(new Error('encode failed'));
+
+    try {
+      renderQuickBar({
+        showToast,
+        documents: [activeDocument, otherDocument],
+        settings: { ...settings, play_save_sound: true },
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /export/i }));
+
+      await vi.waitFor(() => {
+        expect(showToast).toHaveBeenCalledWith('Failed to save images', 'error');
+      });
+      expect(showToast).not.toHaveBeenCalledWith('Exported 0 items', 'success');
+      expect(AudioSpy).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

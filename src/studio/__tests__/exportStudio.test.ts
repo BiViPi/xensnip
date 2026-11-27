@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { exportStudioPng } from '@studio-impl/export/exportStudio';
+import { StudioRenderer } from '@studio-impl/renderer/StudioRenderer';
 import type { StudioExportHandle } from '../types';
 
 function makeHandle(overrides: Partial<StudioExportHandle> = {}): StudioExportHandle {
@@ -46,5 +47,73 @@ describe('exportStudioPng', () => {
     const bytes = await exportStudioPng(handle, '1:1');
     expect(bytes).toBeInstanceOf(Uint8Array);
     expect(Array.from(bytes)).toEqual([0x01, 0x02, 0x03]);
+  });
+});
+
+describe('StudioRenderer edge guards', () => {
+  it('resize returns early when width or height is zero or negative', () => {
+    const setSize = vi.fn();
+    const updateProjectionMatrix = vi.fn();
+    const markDirty = vi.fn();
+    const fakeRenderer = {
+      threeRenderer: { setSize },
+      camera: { aspect: 1.5, updateProjectionMatrix },
+      lastConfig: null,
+      scheduler: { markDirty },
+      applyFrameOffset: vi.fn(),
+      updateBgScale: vi.fn(),
+    };
+
+    StudioRenderer.prototype.resize.call(fakeRenderer as unknown as StudioRenderer, 800, 0);
+    StudioRenderer.prototype.resize.call(fakeRenderer as unknown as StudioRenderer, 0, 600);
+
+    expect(setSize).not.toHaveBeenCalled();
+    expect(updateProjectionMatrix).not.toHaveBeenCalled();
+    expect(fakeRenderer.camera.aspect).toBe(1.5);
+  });
+
+  it('exportPng restores renderer pixelRatio, size, and camera aspect even if toDataURL throws', async () => {
+    const setPixelRatio = vi.fn();
+    const setSize = vi.fn();
+    const render = vi.fn();
+    const updateProjectionMatrix = vi.fn();
+    const markDirty = vi.fn();
+    const fakeRenderer = {
+      threeRenderer: {
+        getSize: (v: { set?: (x: number, y: number) => void; x?: number; y?: number }) => {
+          v.x = 800;
+          v.y = 600;
+          return v;
+        },
+        getPixelRatio: () => 2,
+        setPixelRatio,
+        setSize,
+        render,
+        domElement: {
+          toDataURL: () => {
+            throw new Error('toDataURL failed');
+          },
+        },
+      },
+      camera: { aspect: 800 / 600, updateProjectionMatrix },
+      scene: {},
+      lastConfig: null,
+      scheduler: { markDirty },
+      applyFrameOffset: vi.fn(),
+      updateBgScale: vi.fn(),
+    };
+
+    await expect(
+      StudioRenderer.prototype.exportPng.call(
+        fakeRenderer as unknown as StudioRenderer,
+        3840,
+        2160,
+      ),
+    ).rejects.toThrow('toDataURL failed');
+
+    expect(setPixelRatio).toHaveBeenLastCalledWith(2);
+    expect(setSize).toHaveBeenLastCalledWith(800, 600, false);
+    expect(fakeRenderer.camera.aspect).toBeCloseTo(800 / 600, 5);
+    expect(markDirty).toHaveBeenCalled();
   });
 });

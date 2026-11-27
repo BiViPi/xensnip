@@ -10,17 +10,21 @@ interface FreehandArrowNodeProps {
 
 export const FreehandArrowNode = ({ obj, onSelect, onUpdate }: FreehandArrowNodeProps) => {
   const { x, y, points, stroke, strokeWidth, smoothing, pointerLength, pointerWidth, id, draggable } = obj;
+  const showArrowhead = pointerLength > 0 && pointerWidth > 0;
 
   return (
     <Arrow
       x={x}
       y={y}
+      rotation={obj.rotation}
       points={points}
       stroke={stroke}
       strokeWidth={strokeWidth}
       tension={smoothing}
+      pointerAtEnding={showArrowhead}
       pointerLength={pointerLength}
       pointerWidth={pointerWidth}
+      hitStrokeWidth={20}
       draggable={draggable}
       onClick={onSelect}
       onTap={onSelect}

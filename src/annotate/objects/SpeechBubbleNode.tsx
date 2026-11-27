@@ -2,6 +2,8 @@ import Konva from 'konva';
 import { Group, Path, Text, Circle } from 'react-konva';
 import { SpeechBubbleObject } from '../state/types';
 import { useAnnotationStore } from '../state/store';
+import { beginHistoryGesture, endHistoryGesture } from '../../editor/historyBridge';
+import { buildSpeechBubblePath } from '../renderers/speechBubbleGeometry';
 
 interface SpeechBubbleNodeProps {
   obj: SpeechBubbleObject;
@@ -13,59 +15,32 @@ interface SpeechBubbleNodeProps {
 export const SpeechBubbleNode = ({ obj, isSelected, onSelect, onUpdate }: SpeechBubbleNodeProps) => {
   const { editingTextId, setEditingTextId } = useAnnotationStore();
   const isEditing = editingTextId === obj.id;
-  const { x, y, width, height, text, fontSize, fontFamily, fill, textColor, stroke, padding, cornerRadius, tailX, tailY, id, draggable } = obj;
+  const {
+    x,
+    y,
+    width,
+    height,
+    text,
+    fontSize,
+    fontFamily,
+    fill,
+    textColor,
+    stroke,
+    padding,
+    cornerRadius,
+    tailX,
+    tailY,
+    id,
+    draggable,
+  } = obj;
 
-  const getBubblePath = () => {
-    const r = cornerRadius;
-    const w = width;
-    const h = height;
-    const spread = 12;
-
-    // Determine which side is closest to the tail tip to attach the base
-    const distT = Math.abs(tailY);
-    const distB = Math.abs(tailY - h);
-    const distL = Math.abs(tailX);
-    const distR = Math.abs(tailX - w);
-    const minDist = Math.min(distT, distB, distL, distR);
-
-    // Initial path starting at top-left corner
-    let path = `M ${r},0 `;
-
-    // Top side
-    if (minDist === distT) {
-      const bx = Math.max(r + spread, Math.min(w - r - spread, tailX));
-      path += `L ${bx - spread},0 L ${tailX},${tailY} L ${bx + spread},0 `;
-    }
-    path += `L ${w - r},0 A ${r},${r} 0 0 1 ${w},${r} `;
-
-    // Right side
-    if (minDist === distR) {
-      const by = Math.max(r + spread, Math.min(h - r - spread, tailY));
-      path += `L ${w},${by - spread} L ${tailX},${tailY} L ${w},${by + spread} `;
-    }
-    path += `L ${w},${h - r} A ${r},${r} 0 0 1 ${w - r},${h} `;
-
-    // Bottom side
-    if (minDist === distB) {
-      const bx = Math.max(r + spread, Math.min(w - r - spread, tailX));
-      path += `L ${bx + spread},${h} L ${tailX},${tailY} L ${bx - spread},${h} `;
-    }
-    path += `L ${r},${h} A ${r},${r} 0 0 1 0,${h - r} `;
-
-    // Left side
-    if (minDist === distL) {
-      const by = Math.max(r + spread, Math.min(h - r - spread, tailY));
-      path += `L 0,${by + spread} L ${tailX},${tailY} L 0,${by - spread} `;
-    }
-    path += `L 0,${r} A ${r},${r} 0 0 1 ${r},0 Z`;
-
-    return path;
-  };
+  const bubblePath = buildSpeechBubblePath(width, height, cornerRadius, tailX, tailY);
 
   return (
     <Group
       x={x}
       y={y}
+      rotation={obj.rotation}
       draggable={draggable}
       onClick={onSelect}
       onTap={onSelect}
@@ -80,11 +55,12 @@ export const SpeechBubbleNode = ({ obj, isSelected, onSelect, onUpdate }: Speech
       name="speech_bubble"
     >
       <Path
-        data={getBubblePath()}
+        data={bubblePath}
         fill={fill}
         stroke={stroke}
         strokeWidth={1}
         lineJoin="round"
+        hitStrokeWidth={12}
       />
       {/* Text Content */}
       <Text
@@ -110,10 +86,18 @@ export const SpeechBubbleNode = ({ obj, isSelected, onSelect, onUpdate }: Speech
           stroke="#fff"
           strokeWidth={2}
           draggable
+          onDragStart={(e) => {
+            e.cancelBubble = true;
+            beginHistoryGesture();
+          }}
           onDragMove={(e) => {
             e.cancelBubble = true;
             const node = e.target;
             onUpdate(id, { tailX: node.x(), tailY: node.y() });
+          }}
+          onDragEnd={(e) => {
+            e.cancelBubble = true;
+            endHistoryGesture();
           }}
           onMouseEnter={(e: Konva.KonvaEventObject<MouseEvent>) => {
             const stage = e.target.getStage();

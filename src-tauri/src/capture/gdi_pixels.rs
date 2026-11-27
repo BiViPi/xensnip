@@ -1,5 +1,5 @@
 pub fn normalize_bgra_to_rgba_opaque(buf: &mut [u8]) {
-    for px in buf.chunks_exact_mut(4) {
+    for px in buf.as_chunks_mut::<4>().0 {
         let b = px[0];
         let r = px[2];
         px[0] = r;

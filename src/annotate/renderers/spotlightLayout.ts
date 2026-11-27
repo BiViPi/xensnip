@@ -25,8 +25,36 @@ export function getSpotlightOverlayRects(
   ].filter((rect) => rect.width > 0 && rect.height > 0);
 }
 
-export function getSpotlightCornerRadius(obj: SpotlightObject) {
-  return Math.min(obj.cornerRadius, obj.width / 2, obj.height / 2);
+export function getSpotlightCornerRadius(obj: Pick<SpotlightObject, 'cornerRadius' | 'width' | 'height'>) {
+  return Math.max(0, Math.min(obj.cornerRadius, obj.width / 2, obj.height / 2));
+}
+
+/**
+ * Universal rounded-rectangle path helper compatible with both browser and headless node-canvas contexts.
+ */
+export function addSpotlightRoundedRectPath(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  cornerRadius: number
+) {
+  const r = Math.max(0, Math.min(cornerRadius, width / 2, height / 2));
+  if (r <= 0.01) {
+    ctx.rect(x, y, width, height);
+    return;
+  }
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + width - r, y);
+  ctx.arcTo(x + width, y, x + width, y + r, r);
+  ctx.lineTo(x + width, y + height - r);
+  ctx.arcTo(x + width, y + height, x + width - r, y + height, r);
+  ctx.lineTo(x + r, y + height);
+  ctx.arcTo(x, y + height, x, y + height - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
 }
 
 function clamp(value: number, min: number, max: number) {

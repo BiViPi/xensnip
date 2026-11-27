@@ -22,11 +22,6 @@ if (!rootEl) {
   throw new Error("Pin root element missing");
 }
 
-const fallbackEl = document.getElementById("pin-debug-fallback");
-if (fallbackEl) {
-  fallbackEl.textContent = "main.tsx executing; React booting...";
-}
-
 void perfLog("[PIN] root element found; starting React render").catch(console.error);
 
 ReactDOM.createRoot(rootEl).render(

@@ -4,6 +4,7 @@ import { ChevronRight, ChevronLeft, MoonStar, Focus } from 'lucide-react';
 import { useAnnotationStore } from '../state/store';
 import { SpotlightObject } from '../state/types';
 import { SliderToggle } from './SliderToggle';
+import { ToolbarActions } from './ToolbarActions';
 
 interface Props {
   anchor: { left: number; top: number; width: number; height: number };
@@ -77,6 +78,8 @@ export function SpotlightToolbar({ anchor, obj }: Props) {
             icon={<Focus size={14} />}
             title="Spotlight Radius"
           />
+
+          <ToolbarActions obj={obj} />
         </div>
       )}
     </div>,

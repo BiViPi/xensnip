@@ -41,6 +41,7 @@ export function ArrowNode({ obj, isSelected, onSelect, onUpdate }: ArrowNodeProp
       y={obj.y}
       stroke={obj.stroke}
       strokeWidth={obj.strokeWidth}
+      hitStrokeWidth={20}
       pointerLength={obj.pointerLength}
       pointerWidth={obj.pointerWidth}
       draggable={obj.draggable}

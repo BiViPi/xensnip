@@ -7,6 +7,7 @@ import { emit, listen } from "@tauri-apps/api/event";
 import { Toast } from "../editor/Toast";
 import { HotkeyField } from "./HotkeyField";
 import { TitleBar } from "../editor/TitleBar";
+import { APP_VERSION_LABEL } from "../version";
 import "./Settings.css";
 
 import {
@@ -164,7 +165,15 @@ export function Settings() {
         <>
           <main className="xs-settings-content">
             <header className="xs-settings-content-header">
-              <h2>Preferences</h2>
+              <div className="xs-settings-header-top">
+                <h2>Preferences</h2>
+                <span
+                  className="xs-passive-pill xs-settings-version-pill"
+                  data-testid="settings-version-badge"
+                >
+                  {APP_VERSION_LABEL}
+                </span>
+              </div>
               <p>Configure how XenSnip behaves on your system.</p>
             </header>
 
@@ -428,6 +437,7 @@ export function Settings() {
           </main>
 
           <footer className="xs-settings-footer">
+            <span className="xs-settings-footer-version">XenSnip {APP_VERSION_LABEL}</span>
             <button className="xs-settings-btn-secondary" onClick={() => { void handleCancel(); }} disabled={isSaving}>
               Cancel
             </button>

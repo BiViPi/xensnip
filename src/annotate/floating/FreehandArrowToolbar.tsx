@@ -6,6 +6,7 @@ import { SliderToggle } from './SliderToggle';
 import { SelectToggle } from './SelectToggle';
 import { MousePointer2, Waves, ChevronRight, ChevronLeft } from 'lucide-react';
 import { useState } from 'react';
+import { ToolbarActions } from './ToolbarActions';
 
 interface Props {
   anchor: { left: number; top: number; width: number; height: number };
@@ -35,6 +36,8 @@ export function FreehandArrowToolbar({ anchor, obj }: Props) {
     { label: 'Mid', value: 0.5 },
     { label: 'High', value: 0.8 },
   ];
+
+  const hasArrowhead = obj.pointerLength > 0 && obj.pointerWidth > 0;
 
   return createPortal(
     <div
@@ -96,11 +99,20 @@ export function FreehandArrowToolbar({ anchor, obj }: Props) {
           <div className="xs-toolbar-section">
             <button
               className="xs-toolbar-btn"
-              onClick={() => updateObject(obj.id, { pointerLength: obj.pointerLength === 0 ? 12 : 0 })}
+              aria-label="Toggle Arrowhead"
+              onClick={() =>
+                updateObject(
+                  obj.id,
+                  hasArrowhead
+                    ? { pointerLength: 0, pointerWidth: 0 }
+                    : { pointerLength: 12, pointerWidth: 12 }
+                )
+              }
               title="Toggle Arrowhead"
             >
-              <MousePointer2 size={14} style={{ opacity: obj.pointerLength > 0 ? 1 : 0.4 }} />
+              <MousePointer2 size={14} style={{ opacity: hasArrowhead ? 1 : 0.4 }} />
             </button>
+            <ToolbarActions obj={obj} />
           </div>
         </>
       )}

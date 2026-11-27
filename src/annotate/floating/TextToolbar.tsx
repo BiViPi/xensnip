@@ -4,6 +4,7 @@ import { useAnnotationStore } from '../state/store';
 import { TextObject } from '../state/types';
 import { ChevronRight, ChevronLeft, Type } from 'lucide-react';
 import { SliderToggle } from './SliderToggle';
+import { ToolbarActions } from './ToolbarActions';
 
 interface Props {
   anchor: { left: number; top: number; width: number; height: number };
@@ -27,7 +28,7 @@ export function TextToolbar({ anchor, obj }: Props) {
   const top = anchor.top - 40;
 
   return createPortal(
-    <div 
+    <div
       className={`xs-floating-toolbar ${toolbarCollapsed ? 'collapsed' : ''}`}
       style={{
         position: 'absolute',
@@ -37,7 +38,7 @@ export function TextToolbar({ anchor, obj }: Props) {
         pointerEvents: 'auto'
       }}
     >
-      <button 
+      <button
         className="xs-toolbar-btn xs-toolbar-toggle"
         onClick={() => setToolbarCollapsed(!toolbarCollapsed)}
       >
@@ -47,9 +48,9 @@ export function TextToolbar({ anchor, obj }: Props) {
       {!toolbarCollapsed && (
         <div className="xs-toolbar-section">
           <div className="xs-toolbar-divider" />
-          
+
           {COLORS.map(c => (
-            <button 
+            <button
               key={c}
               className={`xs-color-chip ${obj.fill === c ? 'active' : ''}`}
               style={{ background: c }}
@@ -69,6 +70,8 @@ export function TextToolbar({ anchor, obj }: Props) {
             isOpen={showSizes}
             onToggle={setShowSizes}
           />
+
+          <ToolbarActions obj={obj} />
         </div>
       )}
     </div>,

@@ -91,10 +91,10 @@ pub fn run() {
             commands::app_ping,
             commands::settings_load,
             commands::capture_start_window,
+            commands::capture_start_current_monitor,
             commands::capture_start_window_delayed,
             commands::capture_start_region,
             commands::capture_start_region_delayed,
-            commands::capture_start_current_monitor,
             commands::capture_cancel,
             commands::asset_resolve,
             commands::asset_release,
@@ -124,6 +124,7 @@ pub fn run() {
             commands::pin_get_asset_id,
         ])
         .setup(|app| {
+            app.manage(settings::SettingsLock::new());
             app.manage(capture::CaptureSession::new());
             app.manage(asset::AssetRegistry::new());
             app.manage(quick_access::BusyRegistry::new());
@@ -232,8 +233,8 @@ pub fn run() {
         {
             if label.starts_with("pin-") {
                 let pin_registry = _app_handle.state::<commands::PinRegistry>();
-                let mut map = pin_registry.map.lock().unwrap();
-                if let Some(asset_id) = map.remove(label) {
+
+                if let Some(asset_id) = pin_registry.remove_asset_id(label) {
                     let asset_registry = _app_handle.state::<asset::AssetRegistry>();
                     let _ = asset_registry.release(&asset_id, label);
                     log::info!(target: "pin", "Cleaned up asset for closed pin window: {}", label);
@@ -257,7 +258,7 @@ pub fn open_settings_window(app: &AppHandle) -> tauri::Result<()> {
         "settings",
         tauri::WebviewUrl::App("settings.html".into()),
     )
-    .title("XenSnip Settings")
+    .title(concat!("XenSnip Settings v", env!("CARGO_PKG_VERSION")))
     .inner_size(400.0, 680.0)
     .resizable(false)
     .decorations(false)

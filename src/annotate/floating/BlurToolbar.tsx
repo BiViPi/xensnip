@@ -4,6 +4,7 @@ import { useAnnotationStore } from '../state/store';
 import { BlurObject } from '../state/types';
 import { ChevronRight, ChevronLeft, Ghost } from 'lucide-react';
 import { SliderToggle } from './SliderToggle';
+import { ToolbarActions } from './ToolbarActions';
 
 interface Props {
   anchor: { left: number; top: number; width: number; height: number };
@@ -21,7 +22,7 @@ export function BlurToolbar({ anchor, obj }: Props) {
   const top = anchor.top - 40;
 
   return createPortal(
-    <div 
+    <div
       className={`xs-floating-toolbar ${toolbarCollapsed ? 'collapsed' : ''}`}
       style={{
         position: 'absolute',
@@ -31,7 +32,7 @@ export function BlurToolbar({ anchor, obj }: Props) {
         pointerEvents: 'auto'
       }}
     >
-      <button 
+      <button
         className="xs-toolbar-btn xs-toolbar-toggle"
         onClick={() => setToolbarCollapsed(!toolbarCollapsed)}
       >
@@ -41,7 +42,7 @@ export function BlurToolbar({ anchor, obj }: Props) {
       {!toolbarCollapsed && (
         <div className="xs-toolbar-section">
           <div className="xs-toolbar-divider" />
-          
+
           <SliderToggle
             value={obj.blurRadius}
             onChange={(val) => updateObject(obj.id, { blurRadius: val })}
@@ -53,6 +54,8 @@ export function BlurToolbar({ anchor, obj }: Props) {
             icon={<Ghost size={14} />}
             title="Blur Intensity"
           />
+
+          <ToolbarActions obj={obj} />
         </div>
       )}
     </div>,

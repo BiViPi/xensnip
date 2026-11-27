@@ -6,6 +6,7 @@ import { RadiusToggle } from './RadiusToggle';
 import { SliderToggle } from './SliderToggle';
 import { Type, ChevronRight, ChevronLeft } from 'lucide-react';
 import { useState } from 'react';
+import { ToolbarActions } from './ToolbarActions';
 
 interface Props {
   anchor: { left: number; top: number; width: number; height: number };
@@ -21,7 +22,7 @@ export function SpeechBubbleToolbar({ anchor, obj }: Props) {
     updateObject(obj.id, patch);
     patchToolDefaults('speech_bubble', patch);
   };
-  
+
   const toggle = (id: string) => (open: boolean) => {
     setActivePopover(open ? id : null);
   };
@@ -92,6 +93,7 @@ export function SpeechBubbleToolbar({ anchor, obj }: Props) {
               isOpen={activePopover === 'radius'}
               onToggle={toggle('radius')}
             />
+            <ToolbarActions obj={obj} />
           </div>
         </>
       )}

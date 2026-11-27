@@ -7,29 +7,51 @@ export function useObjectAnchor(stageScale: number, stageRef: React.RefObject<Ko
   const [anchor, setAnchor] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
 
   useEffect(() => {
-    if (selectedIds.length !== 1) {
+    if (selectedIds.length === 0) {
       setAnchor(null);
       return;
     }
-    const selectedId = selectedIds[0];
 
     const updateAnchor = () => {
       const stage = stageRef.current;
       if (!stage) return;
 
-      const node = stage.findOne((n: Konva.Node) => n.id() === selectedId);
-      if (node) {
-        const box = node.getClientRect();
-        setAnchor({
-          left: box.x,
-          top: box.y,
-          width: box.width,
-          height: box.height
-        });
+      let minX = Infinity;
+      let minY = Infinity;
+      let maxX = -Infinity;
+      let maxY = -Infinity;
+      let found = false;
+
+      for (const selectedId of selectedIds) {
+        const node = stage.findOne((n: Konva.Node) => n.id() === selectedId);
+        if (!node) continue;
+        const box = node.getClientRect({ skipShadow: true });
+        minX = Math.min(minX, box.x);
+        minY = Math.min(minY, box.y);
+        maxX = Math.max(maxX, box.x + box.width);
+        maxY = Math.max(maxY, box.y + box.height);
+        found = true;
+      }
+
+      if (found) {
+        const width = maxX - minX;
+        const height = maxY - minY;
+        setAnchor((prev) =>
+          prev &&
+          prev.left === minX &&
+          prev.top === minY &&
+          prev.width === width &&
+          prev.height === height
+            ? prev
+            : { left: minX, top: minY, width, height }
+        );
+      } else {
+        setAnchor(null);
       }
     };
 
-    const interval = setInterval(updateAnchor, 16); // Follow movement
+    updateAnchor();
+    const interval = setInterval(updateAnchor, 16);
     return () => clearInterval(interval);
   }, [selectedIds, objects, stageScale, stageRef]);
 

@@ -1,11 +1,13 @@
 import { getCurrentWindow, type Window } from "@tauri-apps/api/window";
 import { useEffect, useState } from "react";
 import logo from "../assets/logo.png";
+import { APP_VERSION_LABEL } from "../version";
 import { Tooltip } from "./Tooltip";
 import "./TitleBar.css";
 
 interface Props {
   title?: string;
+  version?: string | null;
   onClose?: () => void;
   showMinimize?: boolean;
   showMaximize?: boolean;
@@ -14,6 +16,7 @@ interface Props {
 
 export function TitleBar({
   title = "Xensnip",
+  version = APP_VERSION_LABEL,
   onClose,
   showMinimize = true,
   showMaximize = true,
@@ -55,6 +58,7 @@ export function TitleBar({
   };
 
   const handleMaximize = async () => {
+    if (!showMaximize) return;
     if (!appWindow) return;
     // Explicitly check current state from OS before acting
     const currentlyMaximized = await appWindow.isMaximized();
@@ -89,6 +93,11 @@ export function TitleBar({
       <div className="xs-titlebar-left">
         <img src={logo} alt="Xensnip" className="xs-titlebar-logo" />
         <span className="xs-titlebar-text">{title}</span>
+        {version && (
+          <span className="xs-titlebar-version" data-testid="titlebar-version">
+            {version}
+          </span>
+        )}
       </div>
 
       {/* Drag Area - Middle space */}

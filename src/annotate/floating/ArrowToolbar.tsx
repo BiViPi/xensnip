@@ -6,6 +6,7 @@ import { ChevronRight, ChevronLeft } from 'lucide-react';
 import { DashedLineIcon, PaletteIcon, SolidLineIcon } from './ToolbarIcons';
 import { SliderToggle } from './SliderToggle';
 import { Tooltip } from '../../editor/Tooltip';
+import { ToolbarActions } from './ToolbarActions';
 
 interface Props {
   anchor: { left: number; top: number; width: number; height: number };
@@ -113,6 +114,8 @@ export function ArrowToolbar({ anchor, obj }: Props) {
               </div>
             )}
           </div>
+
+          <ToolbarActions obj={obj} />
         </div>
       )}
     </div>,

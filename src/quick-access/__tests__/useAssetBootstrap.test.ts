@@ -1,6 +1,7 @@
 import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { useAssetBootstrap } from '../useAssetBootstrap';
+import { hasAnyUnsavedSessionChanges } from '../unsavedChanges';
 import { createScreenshotDocument } from '../../test/builders/screenshotDocument';
 
 // Mock Image global since JSDOM might not trigger onload correctly
@@ -147,5 +148,126 @@ describe('useAssetBootstrap Redo support', () => {
       }),
     );
     expect(deps.setActiveDocumentId).toHaveBeenCalledWith(expect.any(String));
+  });
+
+  it('rejects and cleans up asset ref if cropped window inset image fails to load', async () => {
+    const deps = createMockDeps();
+    const { assetRelease } = await import('../../ipc/index');
+    const OrigImage = (global as any).Image;
+    const origCreateElement = document.createElement.bind(document);
+    const revokeSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:raw-window');
+
+    let imageCount = 0;
+    class CropErrorImage {
+      naturalWidth = 100;
+      naturalHeight = 100;
+      width = 100;
+      height = 100;
+      src = '';
+      onload: () => void = () => {};
+      onerror: (e?: unknown) => void = () => {};
+      constructor() {
+        const idx = ++imageCount;
+        setTimeout(() => {
+          if (idx === 1) this.onload();
+          else this.onerror(new Error('decode failed'));
+        }, 0);
+      }
+    }
+
+    const createElementSpy = vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+      if (tag === 'canvas') {
+        return {
+          width: 0,
+          height: 0,
+          getContext: () => ({ drawImage: vi.fn() }),
+          toDataURL: () => 'data:image/png;base64,AA==',
+        } as any;
+      }
+      return origCreateElement(tag);
+    });
+    (global as any).Image = CropErrorImage;
+
+    try {
+      const { result } = renderHook(() => useAssetBootstrap(deps as any));
+      await expect(
+        act(async () => {
+          await result.current.bootstrapAsset('asset-crop-err', { captureKind: 'window' });
+        }),
+      ).rejects.toThrow();
+
+      expect(assetRelease).toHaveBeenCalledWith('asset-crop-err', 'quick_access_ui');
+      expect(revokeSpy).toHaveBeenCalledWith('blob:raw-window');
+    } finally {
+      (global as any).Image = OrigImage;
+      createElementSpy.mockRestore();
+      revokeSpy.mockRestore();
+    }
+  });
+
+  it('does not overwrite active shell preset when async settingsLoad resolves after switching documents', async () => {
+    const deps = createMockDeps();
+    const { settingsLoad } = await import('../../ipc/index');
+    let resolveSettings!: (val: any) => void;
+    vi.mocked(settingsLoad).mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveSettings = resolve;
+      }),
+    );
+
+    const { result } = renderHook(() => useAssetBootstrap(deps as any));
+    let pendingPromise!: Promise<void>;
+    await act(async () => {
+      pendingPromise = result.current.bootstrapAsset('asset-stale');
+      await new Promise((r) => setTimeout(r, 15));
+    });
+
+    const newDoc = deps.addDocument.mock.calls[0][0];
+    deps.activeIdRef.current = 'another-doc-id';
+    deps.setPreset.mockClear();
+
+    await act(async () => {
+      resolveSettings({
+        default_presentation_mode: 'studio',
+        saved_presets: [],
+        last_preset: null,
+        default_preset_id: null,
+      });
+      await pendingPromise;
+    });
+
+    expect(deps.patchDocument).toHaveBeenCalledWith(
+      newDoc.id,
+      expect.objectContaining({ preset: expect.objectContaining({ presentation_mode: 'studio' }) }),
+    );
+    expect(deps.setPreset).not.toHaveBeenCalled();
+  });
+});
+
+describe('hasAnyUnsavedSessionChanges', () => {
+  it('returns true when a background document has annotations even if the active shell is clean', () => {
+    const doc1 = createScreenshotDocument('doc-1');
+    doc1.annotation.objects = [{ id: 'a1' } as any];
+    const doc2 = createScreenshotDocument('doc-2');
+
+    expect(
+      hasAnyUnsavedSessionChanges(
+        { objectsLength: 0, cropBounds: null, undoLength: 0, redoLength: 0 },
+        [doc1, doc2],
+      ),
+    ).toBe(true);
+  });
+
+  it('returns false when active shell and all documents are clean', () => {
+    const doc1 = createScreenshotDocument('doc-1');
+    const doc2 = createScreenshotDocument('doc-2');
+
+    expect(
+      hasAnyUnsavedSessionChanges(
+        { objectsLength: 0, cropBounds: null, undoLength: 0, redoLength: 0 },
+        [doc1, doc2],
+      ),
+    ).toBe(false);
   });
 });

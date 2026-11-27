@@ -81,16 +81,39 @@ fn position_delay_window(app_handle: &AppHandle, window: &tauri::WebviewWindow) 
     }
 }
 
+fn compute_delay_window_position_for_monitor(
+    pos_x: i32,
+    pos_y: i32,
+    width: u32,
+    height: u32,
+    scale_factor: f64,
+) -> (f64, f64) {
+    let scale = if scale_factor > 0.0 && scale_factor.is_finite() {
+        scale_factor
+    } else {
+        1.0
+    };
+    let logical_pos_x = pos_x as f64 / scale;
+    let logical_pos_y = pos_y as f64 / scale;
+    let logical_width = width as f64 / scale;
+    let logical_height = height as f64 / scale;
+
+    let x = logical_pos_x + (logical_width - DELAY_WINDOW_WIDTH - DELAY_WINDOW_MARGIN).max(0.0);
+    let y = logical_pos_y + (logical_height - DELAY_WINDOW_HEIGHT - DELAY_WINDOW_MARGIN).max(0.0);
+    (x, y)
+}
+
 fn compute_delay_window_position(app_handle: &AppHandle) -> Option<(f64, f64)> {
     let monitor = app_handle.primary_monitor().ok().flatten()?;
     let position = monitor.position();
     let size = monitor.size();
-
-    let x =
-        position.x as f64 + (size.width as f64 - DELAY_WINDOW_WIDTH - DELAY_WINDOW_MARGIN).max(0.0);
-    let y = position.y as f64
-        + (size.height as f64 - DELAY_WINDOW_HEIGHT - DELAY_WINDOW_MARGIN).max(0.0);
-    Some((x, y))
+    Some(compute_delay_window_position_for_monitor(
+        position.x,
+        position.y,
+        size.width,
+        size.height,
+        monitor.scale_factor(),
+    ))
 }
 
 #[tauri::command]
@@ -221,4 +244,28 @@ pub fn capture_cancel(app_handle: AppHandle) -> Result<(), String> {
     hide_delay_window(&app_handle);
     let _ = app_handle.emit("capture://delay-cancelled", ());
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn delay_window_position_accounts_for_dpi_scale_and_origin() {
+        // 100% DPI (1920x1080 at 0,0) -> (1920 - 360 - 20, 1080 - 140 - 20)
+        assert_eq!(
+            compute_delay_window_position_for_monitor(0, 0, 1920, 1080, 1.0),
+            (1540.0, 920.0)
+        );
+        // 150% DPI (2880x1620 physical = 1920x1080 logical)
+        assert_eq!(
+            compute_delay_window_position_for_monitor(0, 0, 2880, 1620, 1.5),
+            (1540.0, 920.0)
+        );
+        // 200% DPI with non-zero physical origin (3840x2160 physical at -3840, 0 -> logical -1920, 0)
+        assert_eq!(
+            compute_delay_window_position_for_monitor(-3840, 0, 3840, 2160, 2.0),
+            (-380.0, 920.0)
+        );
+    }
 }

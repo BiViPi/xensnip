@@ -124,7 +124,12 @@ export function drawComposition(
     }
     const stops = bg_colors.length > 0 ? bg_colors : ["#3b82f6", "#1d4ed8"];
     stops.forEach((color, i) => {
-      gradient.addColorStop(i / (stops.length - 1), color);
+      if (stops.length === 1) {
+        gradient.addColorStop(0, color);
+        gradient.addColorStop(1, color);
+      } else {
+        gradient.addColorStop(i / (stops.length - 1), color);
+      }
     });
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvasW, canvasH);

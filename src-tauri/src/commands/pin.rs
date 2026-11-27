@@ -6,9 +6,96 @@ use std::sync::Mutex;
 use tauri::{webview::PageLoadEvent, AppHandle, Manager, WebviewWindowBuilder};
 use uuid::Uuid;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PinEntryState {
+    Pending { asset_id: String },
+    Active { asset_id: String },
+    Closing { asset_id: String },
+}
+
+impl PinEntryState {
+    pub fn asset_id(&self) -> &str {
+        match self {
+            PinEntryState::Pending { asset_id }
+            | PinEntryState::Active { asset_id }
+            | PinEntryState::Closing { asset_id } => asset_id,
+        }
+    }
+}
+
 #[derive(Default)]
 pub struct PinRegistry {
-    pub map: Mutex<HashMap<String, String>>, // pin_id -> asset_id
+    pub map: Mutex<HashMap<String, PinEntryState>>, // pin_id -> PinEntryState
+}
+
+impl PinRegistry {
+    pub fn insert_pending(&self, pin_id: String, asset_id: String) {
+        self.map
+            .lock()
+            .unwrap()
+            .insert(pin_id, PinEntryState::Pending { asset_id });
+    }
+
+    /// Returns `Some(asset_id)` when the pin was already cancelled/closing or missing before window creation.
+    pub fn abort_if_closing_before_build(&self, pin_id: &str) -> Option<String> {
+        let mut map = self.map.lock().unwrap();
+        match map.get(pin_id) {
+            Some(PinEntryState::Pending { .. }) => None,
+            Some(PinEntryState::Closing { .. }) => {
+                map.remove(pin_id).map(|e| e.asset_id().to_string())
+            }
+            Some(PinEntryState::Active { .. }) => None,
+            None => None,
+        }
+    }
+
+    pub fn is_pending(&self, pin_id: &str) -> bool {
+        matches!(
+            self.map.lock().unwrap().get(pin_id),
+            Some(PinEntryState::Pending { .. })
+        )
+    }
+
+    /// Transitions `Pending` -> `Active`. Returns `false` if pin transitioned to `Closing` during build.
+    pub fn mark_active_after_build(&self, pin_id: &str) -> bool {
+        let mut map = self.map.lock().unwrap();
+        match map.get(pin_id).cloned() {
+            Some(PinEntryState::Pending { asset_id }) => {
+                map.insert(pin_id.to_string(), PinEntryState::Active { asset_id });
+                true
+            }
+            Some(PinEntryState::Closing { .. }) => false,
+            Some(PinEntryState::Active { .. }) => true,
+            None => false,
+        }
+    }
+
+    /// Requests cancellation if the pin window has not been built yet.
+    pub fn request_close_while_pending(&self, pin_id: &str) -> bool {
+        let mut map = self.map.lock().unwrap();
+        if let Some(PinEntryState::Pending { asset_id }) = map.get(pin_id).cloned() {
+            map.insert(pin_id.to_string(), PinEntryState::Closing { asset_id });
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn remove_asset_id(&self, pin_id: &str) -> Option<String> {
+        self.map
+            .lock()
+            .unwrap()
+            .remove(pin_id)
+            .map(|entry| entry.asset_id().to_string())
+    }
+
+    pub fn get_asset_id(&self, pin_id: &str) -> Option<String> {
+        self.map
+            .lock()
+            .unwrap()
+            .get(pin_id)
+            .map(|entry| entry.asset_id().to_string())
+    }
 }
 
 #[derive(Serialize)]
@@ -28,6 +115,18 @@ pub fn pin_create(app: AppHandle, png_bytes: Vec<u8>) -> Result<PinCreateResult,
     let pin_id = format!("pin-{}", Uuid::new_v4());
     let asset_id = format!("pin-asset-{}", Uuid::new_v4());
     let (width, height) = decode_png_dimensions(&png_bytes)?;
+
+    // Resolve monitor before mutating registries so missing-monitor errors leave zero orphaned entries.
+    let monitor = match app.primary_monitor().map_err(|e| e.to_string())? {
+        Some(primary) => primary,
+        None => app
+            .available_monitors()
+            .map_err(|e| e.to_string())?
+            .into_iter()
+            .next()
+            .ok_or_else(|| "No active monitor available for pin window.".to_string())?,
+    };
+
     log::info!(
         target: "pin",
         "pin_create start pin_id={} asset_id={} png_bytes={} decoded={}x{}",
@@ -48,28 +147,11 @@ pub fn pin_create(app: AppHandle, png_bytes: Vec<u8>) -> Result<PinCreateResult,
     );
     registry.insert_with_consumer(asset, &pin_id);
 
-    // 2. Track in PinRegistry
+    // 2. Track Pending state in PinRegistry
     let pin_registry = app.state::<PinRegistry>();
-    pin_registry
-        .map
-        .lock()
-        .unwrap()
-        .insert(pin_id.clone(), asset_id.clone());
+    pin_registry.insert_pending(pin_id.clone(), asset_id.clone());
 
     // 3. Compute clamped size
-    let monitor = app
-        .primary_monitor()
-        .map_err(|e| e.to_string())?
-        .unwrap_or_else(|| {
-            // Fallback if no primary monitor found
-            // Just provide a dummy, though shouldn't happen
-            app.available_monitors()
-                .unwrap_or_default()
-                .into_iter()
-                .next()
-                .unwrap()
-        });
-
     let scale_factor = monitor.scale_factor();
     let monitor_size = monitor.size();
     let max_w = (monitor_size.width as f64 / scale_factor * 0.6) as u32;
@@ -147,6 +229,27 @@ pub fn pin_create(app: AppHandle, png_bytes: Vec<u8>) -> Result<PinCreateResult,
         let pin_id_for_closure_error = pin_id_for_log.clone();
         let asset_id_for_closure_error = asset_id_for_log.clone();
         let result = app_for_window.run_on_main_thread(move || {
+            let pin_registry = app_for_closure.state::<PinRegistry>();
+            if let Some(aborted_asset_id) =
+                pin_registry.abort_if_closing_before_build(&pin_id_for_closure_error)
+            {
+                let asset_registry = app_for_closure.state::<AssetRegistry>();
+                let _ = asset_registry.release(&aborted_asset_id, &pin_id_for_closure_error);
+                log::info!(
+                    target: "pin",
+                    "pin_create aborted before build due to early close label={}",
+                    pin_id_for_closure_error
+                );
+                return;
+            }
+            if !pin_registry.is_pending(&pin_id_for_closure_error) {
+                let _ = pin_registry.remove_asset_id(&pin_id_for_closure_error);
+                let asset_registry = app_for_closure.state::<AssetRegistry>();
+                let _ =
+                    asset_registry.release(&asset_id_for_closure_error, &pin_id_for_closure_error);
+                return;
+            }
+
             log::info!(target: "pin", "pin_create building window on main thread label={}", pin_id_for_window);
             let builder = WebviewWindowBuilder::new(
                 &app_for_closure,
@@ -181,6 +284,15 @@ pub fn pin_create(app: AppHandle, png_bytes: Vec<u8>) -> Result<PinCreateResult,
             log::info!(target: "pin", "pin_create calling builder.build label={}", pin_id_for_window);
             match builder.build() {
                 Ok(window) => {
+                    if !pin_registry.mark_active_after_build(&pin_id_for_closure_error) {
+                        log::info!(
+                            target: "pin",
+                            "pin_create closing immediately due to pending close race label={}",
+                            window.label()
+                        );
+                        let _ = window.close();
+                        return;
+                    }
                     let _ = crate::apply_window_native_style(&window);
                     log::info!(target: "pin", "pin_create window build complete label={}", window.label());
                 }
@@ -192,12 +304,7 @@ pub fn pin_create(app: AppHandle, png_bytes: Vec<u8>) -> Result<PinCreateResult,
                         asset_id_for_closure_error,
                         err
                     );
-                    let pin_registry = app_for_closure.state::<PinRegistry>();
-                    pin_registry
-                        .map
-                        .lock()
-                        .unwrap()
-                        .remove(&pin_id_for_closure_error);
+                    pin_registry.remove_asset_id(&pin_id_for_closure_error);
                     let asset_registry = app_for_closure.state::<AssetRegistry>();
                     let _ = asset_registry.release(
                         &asset_id_for_closure_error,
@@ -216,7 +323,7 @@ pub fn pin_create(app: AppHandle, png_bytes: Vec<u8>) -> Result<PinCreateResult,
                 err
             );
             let pin_registry = app_for_window.state::<PinRegistry>();
-            pin_registry.map.lock().unwrap().remove(&pin_id_for_async);
+            pin_registry.remove_asset_id(&pin_id_for_async);
             let asset_registry = app_for_window.state::<AssetRegistry>();
             let _ = asset_registry.release(&asset_id_for_async, &pin_id_for_async);
         }
@@ -238,17 +345,24 @@ pub fn pin_create(app: AppHandle, png_bytes: Vec<u8>) -> Result<PinCreateResult,
 pub fn pin_close(app: AppHandle, pin_id: String) -> Result<(), String> {
     if let Some(window) = app.get_webview_window(&pin_id) {
         let _ = window.close();
+        return Ok(());
     }
-    // Cleanup will be handled by the window event listener
+
+    let pin_registry = app.state::<PinRegistry>();
+    let _marked_closing = pin_registry.request_close_while_pending(&pin_id);
+
+    // Handle race where the main thread finished building the window just before Closing took effect.
+    if let Some(window) = app.get_webview_window(&pin_id) {
+        let _ = window.close();
+    }
     Ok(())
 }
 
 #[tauri::command]
 pub fn pin_get_asset_id(app: AppHandle, pin_id: String) -> Result<String, String> {
     let pin_registry = app.state::<PinRegistry>();
-    let map = pin_registry.map.lock().unwrap();
-    map.get(&pin_id)
-        .cloned()
+    pin_registry
+        .get_asset_id(&pin_id)
         .ok_or_else(|| format!("Pin not found for ID: {}", pin_id))
 }
 
@@ -263,18 +377,34 @@ mod tests {
     #[test]
     fn test_pin_registry_insert_remove() {
         let registry = PinRegistry::default();
-        registry
-            .map
-            .lock()
-            .unwrap()
-            .insert("pin-1".into(), "asset-1".into());
-        assert_eq!(
-            registry.map.lock().unwrap().get("pin-1").unwrap(),
-            "asset-1"
-        );
-        let removed = registry.map.lock().unwrap().remove("pin-1");
-        assert_eq!(removed.unwrap(), "asset-1");
+        registry.insert_pending("pin-1".into(), "asset-1".into());
+        assert_eq!(registry.get_asset_id("pin-1").as_deref(), Some("asset-1"));
+        assert!(registry.mark_active_after_build("pin-1"));
+        let removed = registry.remove_asset_id("pin-1");
+        assert_eq!(removed.as_deref(), Some("asset-1"));
         assert!(registry.map.lock().unwrap().is_empty());
+    }
+
+    #[test]
+    fn test_pin_registry_pending_close_aborts_build_and_releases_asset() {
+        let asset_registry = AssetRegistry::new();
+        let pin_registry = PinRegistry::default();
+
+        asset_registry.insert_with_consumer(
+            Asset::new("asset-race".into(), Arc::new(vec![1, 2, 3]), 10, 10),
+            "pin-race",
+        );
+        pin_registry.insert_pending("pin-race".into(), "asset-race".into());
+
+        assert!(pin_registry.request_close_while_pending("pin-race"));
+        let aborted_asset = pin_registry.abort_if_closing_before_build("pin-race");
+        assert_eq!(aborted_asset.as_deref(), Some("asset-race"));
+        asset_registry
+            .release(aborted_asset.as_deref().unwrap(), "pin-race")
+            .unwrap();
+
+        assert!(pin_registry.map.lock().unwrap().is_empty());
+        assert!(asset_registry.get_data("asset-race").is_none());
     }
 
     #[test]
@@ -286,29 +416,19 @@ mod tests {
         let data = registry.get_data("a1");
         assert!(data.is_some());
 
-        // Assert that we can release it with pin-1 and it gets dropped
         let release_result = registry.release("a1", "pin-1");
         assert!(release_result.is_ok());
 
-        // Should be dropped
         assert!(registry.get_data("a1").is_none());
     }
 
     #[test]
     fn test_pin_get_asset_id_logic() {
         let registry = PinRegistry::default();
-        registry
-            .map
-            .lock()
-            .unwrap()
-            .insert("p1".into(), "a1".into());
+        registry.insert_pending("p1".into(), "a1".into());
 
-        let map = registry.map.lock().unwrap();
-        let asset = map.get("p1").cloned().unwrap();
-        assert_eq!(asset, "a1");
-
-        let not_found = map.get("p2");
-        assert!(not_found.is_none());
+        assert_eq!(registry.get_asset_id("p1").as_deref(), Some("a1"));
+        assert!(registry.get_asset_id("p2").is_none());
     }
 
     #[test]

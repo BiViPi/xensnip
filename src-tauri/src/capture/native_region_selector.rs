@@ -31,8 +31,8 @@ use windows::Win32::UI::WindowsAndMessaging::{
     SetForegroundWindow, ShowWindow, TranslateMessage, CREATESTRUCTW, CS_DBLCLKS, GWLP_USERDATA,
     IDC_CROSS, MA_ACTIVATE, MSG, SM_CXVIRTUALSCREEN, SM_CYVIRTUALSCREEN, SM_XVIRTUALSCREEN,
     SM_YVIRTUALSCREEN, SW_SHOW, WM_DESTROY, WM_ERASEBKGND, WM_KEYDOWN, WM_LBUTTONDBLCLK,
-    WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MOUSEACTIVATE, WM_MOUSEMOVE, WM_NCCREATE, WM_SETCURSOR,
-    WNDCLASSW, WS_EX_LAYERED, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_POPUP,
+    WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MOUSEACTIVATE, WM_MOUSEMOVE, WM_NCCREATE, WM_NCDESTROY,
+    WM_SETCURSOR, WNDCLASSW, WS_EX_LAYERED, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_POPUP,
 };
 use xcap::Monitor;
 
@@ -164,7 +164,9 @@ fn run_native_selector(app: AppHandle) -> Result<SelectionOutcome, String> {
     });
 
     let module = unsafe { GetModuleHandleW(None).map_err(|e| e.to_string())? };
-    let hwnd = unsafe {
+    STATE_CLAIMED.with(|claimed| claimed.set(false));
+    let state_ptr = Box::into_raw(state);
+    let hwnd = match unsafe {
         CreateWindowExW(
             WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TOOLWINDOW,
             WINDOW_CLASS,
@@ -177,10 +179,19 @@ fn run_native_selector(app: AppHandle) -> Result<SelectionOutcome, String> {
             None,
             None,
             Some(HINSTANCE(module.0)),
-            Some(Box::into_raw(state) as *const _),
+            Some(state_ptr as *const _),
         )
-    }
-    .map_err(|e| e.to_string())?;
+    } {
+        Ok(hwnd) => hwnd,
+        Err(e) => {
+            if !STATE_CLAIMED.with(|claimed| claimed.get()) {
+                unsafe {
+                    drop(Box::from_raw(state_ptr));
+                }
+            }
+            return Err(e.to_string());
+        }
+    };
 
     {
         let mut guard = active_window_slot().lock().unwrap();
@@ -211,7 +222,14 @@ fn run_native_selector(app: AppHandle) -> Result<SelectionOutcome, String> {
     }
 
     let mut msg = MSG::default();
-    while unsafe { GetMessageW(&mut msg, None, 0, 0) }.into() {
+    loop {
+        let ret = unsafe { GetMessageW(&mut msg, None, 0, 0) };
+        if ret.0 <= 0 {
+            if ret.0 < 0 {
+                log::error!(target: "capture::selector", "GetMessageW failed with -1");
+            }
+            break;
+        }
         unsafe {
             let _ = TranslateMessage(&msg);
             DispatchMessageW(&msg);
@@ -228,6 +246,7 @@ fn run_native_selector(app: AppHandle) -> Result<SelectionOutcome, String> {
 
 thread_local! {
     static LAST_OUTCOME: Mutex<Option<SelectionOutcome>> = const { Mutex::new(None) };
+    static STATE_CLAIMED: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
 }
 
 // ── Window state accessor ─────────────────────────────────────────────────────
@@ -363,8 +382,10 @@ unsafe extern "system" fn window_proc(
             let ptr =
                 windows::Win32::UI::WindowsAndMessaging::GetWindowLongPtrW(hwnd, GWLP_USERDATA)
                     as *mut SelectorWindowState;
+            windows::Win32::UI::WindowsAndMessaging::SetWindowLongPtrW(hwnd, GWLP_USERDATA, 0);
 
             if !ptr.is_null() {
+                STATE_CLAIMED.with(|claimed| claimed.set(true));
                 let state = Box::from_raw(ptr);
                 let app = state.app.clone();
                 let outcome = on_destroy(state);
@@ -381,6 +402,18 @@ unsafe extern "system" fn window_proc(
 
             PostQuitMessage(0);
             LRESULT(0)
+        }
+
+        WM_NCDESTROY => {
+            let ptr =
+                windows::Win32::UI::WindowsAndMessaging::GetWindowLongPtrW(hwnd, GWLP_USERDATA)
+                    as *mut SelectorWindowState;
+            windows::Win32::UI::WindowsAndMessaging::SetWindowLongPtrW(hwnd, GWLP_USERDATA, 0);
+            if !ptr.is_null() {
+                STATE_CLAIMED.with(|claimed| claimed.set(true));
+                drop(Box::from_raw(ptr));
+            }
+            DefWindowProcW(hwnd, msg, wparam, lparam)
         }
 
         _ => DefWindowProcW(hwnd, msg, wparam, lparam),

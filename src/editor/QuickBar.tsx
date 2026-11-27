@@ -8,6 +8,7 @@ import {
 import { composeCanvasDocumentToBlob, composeToBlob, composeDocumentToBytes } from "../compose/compose";
 import { ScreenshotDocument } from "./useScreenshotDocuments";
 import { composeWithAnnotations } from "../compose/composeWithAnnotations";
+import { flushEditingText } from "../annotate/TextInlineEditor";
 import { useAnnotationStore, useHasAnnotations } from "../annotate/state/store";
 import { normalizeFilenameStem } from "./normalizeFilenameStem";
 import copySound from "../assets/sounds/copy.ogg";
@@ -48,6 +49,7 @@ interface Props {
   studioDisabled?: boolean;
   onPresentationModeChange: (m: PresentationMode) => void;
   studioExportHandle: StudioExportHandle | null;
+  isStudioBaking?: boolean;
 }
 
 const QUICK_ACCESS_SESSION_BUSY_TOKEN = "quick_access_session";
@@ -56,7 +58,7 @@ export function QuickBar({
   preset, setPreset, image, isActionInFlight, setIsActionInFlight, showToast,
   activePop, onActivePopChange, settings, onRefreshSettings, onOpenPresetManager,
   documents, activeDocument, onClearAllSession, onFlush,
-  presentationMode, studioDisabled = false, onPresentationModeChange, studioExportHandle,
+  presentationMode, studioDisabled = false, onPresentationModeChange, studioExportHandle, isStudioBaking = false,
 }: Props) {
   const dockRef = React.useRef<HTMLDivElement>(null);
   const hasAnnotations = useHasAnnotations();
@@ -103,6 +105,10 @@ export function QuickBar({
   const toggle = (n: string) => onActivePopChange(activePop === n ? null : n);
 
   const objects = useAnnotationStore(s => s.objects);
+  const getLatestObjects = (): AnnotateObject[] =>
+    typeof useAnnotationStore.getState === "function"
+      ? useAnnotationStore.getState().objects
+      : objects;
   const setQuickAccessBusy = React.useCallback(async (busy: boolean) => {
     try {
       await quickAccessSetBusy(QUICK_ACCESS_SESSION_BUSY_TOKEN, busy);
@@ -125,6 +131,12 @@ export function QuickBar({
 
   const handleCopy = async () => {
     if (isActionInFlight) return;
+    flushEditingText();
+    const latestObjects = getLatestObjects();
+    if (presentationMode === "studio" && isStudioBaking) {
+      showToast("Studio is still preparing annotations...", "error");
+      return;
+    }
     const readyStudioHandle = presentationMode === "studio" ? studioExportHandle : null;
     if (presentationMode === "studio") {
       if (!readyStudioHandle?.isReady) {
@@ -144,8 +156,8 @@ export function QuickBar({
           activeDocument?.canvas.images.length
             ? activeDocument.canvas.images.length > 1 || activeDocument.canvas.images.some((item) => item.sourceCrop !== null)
             : false;
-        bytes = objects.length > 0
-          ? await composeWithAnnotations(image, preset, objects, "image/png", 1.0, requiresCanvasRenderer ? activeDocument?.canvas : undefined)
+        bytes = latestObjects.length > 0
+          ? await composeWithAnnotations(image, preset, latestObjects, "image/png", 1.0, requiresCanvasRenderer ? activeDocument?.canvas : undefined)
           : requiresCanvasRenderer && activeDocument
             ? await composeCanvasDocumentToBlob(activeDocument.canvas, preset)
             : await composeToBlob(image, preset);
@@ -155,6 +167,9 @@ export function QuickBar({
         new Audio(copySound).play().catch(() => {});
       }
       showToast("Copied", "success");
+    } catch (err) {
+      showToast("Failed to copy image", "error");
+      console.error(err);
     } finally {
       setIsActionInFlight(false);
       await setQuickAccessBusy(false);
@@ -163,8 +178,15 @@ export function QuickBar({
 
   const handleExport = async () => {
     if (isActionInFlight) return;
+    let savedAny = true;
     if (!settings?.export_folder) {
       showToast("Please select a save folder in Settings first", "error");
+      return;
+    }
+    flushEditingText();
+    const latestObjects = getLatestObjects();
+    if (presentationMode === "studio" && isStudioBaking) {
+      showToast("Studio is still preparing annotations...", "error");
       return;
     }
     const readyStudioHandle = presentationMode === "studio" ? studioExportHandle : null;
@@ -202,8 +224,8 @@ export function QuickBar({
           const requiresCanvasRenderer =
             activeDocument.canvas.images.length > 1 ||
             activeDocument.canvas.images.some((item) => item.sourceCrop !== null);
-          const bytes = objects.length > 0
-            ? await composeWithAnnotations(image, preset, objects, format, 1.0, requiresCanvasRenderer ? activeDocument.canvas : undefined)
+          const bytes = latestObjects.length > 0
+            ? await composeWithAnnotations(image, preset, latestObjects, format, 1.0, requiresCanvasRenderer ? activeDocument.canvas : undefined)
             : requiresCanvasRenderer
               ? await composeCanvasDocumentToBlob(activeDocument.canvas, preset, format, 1.0)
               : await composeToBlob(image, preset, format, 1.0);
@@ -224,8 +246,8 @@ export function QuickBar({
                 const requiresCanvasRenderer =
                   doc.canvas.images.length > 1 ||
                   doc.canvas.images.some((item) => item.sourceCrop !== null);
-                bytes = objects.length > 0
-                  ? await composeWithAnnotations(image, preset, objects, format, 1.0, requiresCanvasRenderer ? doc.canvas : undefined)
+                bytes = latestObjects.length > 0
+                  ? await composeWithAnnotations(image, preset, latestObjects, format, 1.0, requiresCanvasRenderer ? doc.canvas : undefined)
                   : requiresCanvasRenderer
                     ? await composeCanvasDocumentToBlob(doc.canvas, preset, format, 1.0)
                     : await composeToBlob(image, preset, format, 1.0);
@@ -243,11 +265,16 @@ export function QuickBar({
               console.error(`Failed to export ${doc.id}`, e);
             }
           }
-          showToast(`Exported ${successCount} items`, "success");
+          if (successCount === 0) {
+            savedAny = false;
+            showToast("Failed to save images", "error");
+          } else {
+            showToast(`Exported ${successCount} items`, "success");
+          }
         }
       }
 
-      if (settings.play_save_sound) {
+      if (savedAny && settings.play_save_sound) {
         new Audio(exportSound).play().catch(() => {});
       }
     } catch (err) {
@@ -279,8 +306,9 @@ export function QuickBar({
   };
 
   const handleModeToggle = () => {
+    flushEditingText();
     if (studioDisabled) {
-      showToast("Studio mode is unavailable for multi-image layouts in v0.5.0.", "error");
+      showToast("Studio mode is unavailable for multi-image layouts.", "error");
       return;
     }
     onPresentationModeChange(presentationMode === 'flat' ? 'studio' : 'flat');
@@ -288,6 +316,12 @@ export function QuickBar({
 
   const handlePin = async () => {
     if (isActionInFlight) return;
+    flushEditingText();
+    const latestObjects = getLatestObjects();
+    if (presentationMode === "studio" && isStudioBaking) {
+      showToast("Studio is still preparing annotations...", "error");
+      return;
+    }
     const readyStudioHandle = presentationMode === "studio" ? studioExportHandle : null;
     if (presentationMode === "studio") {
       if (!readyStudioHandle?.isReady) {
@@ -308,8 +342,8 @@ export function QuickBar({
           activeDocument?.canvas.images.length
             ? activeDocument.canvas.images.length > 1 || activeDocument.canvas.images.some((item) => item.sourceCrop !== null)
             : false;
-        bytes = objects.length > 0
-          ? await composeWithAnnotations(image, preset, objects, "image/png", 1.0, requiresCanvasRenderer ? activeDocument?.canvas : undefined)
+        bytes = latestObjects.length > 0
+          ? await composeWithAnnotations(image, preset, latestObjects, "image/png", 1.0, requiresCanvasRenderer ? activeDocument?.canvas : undefined)
           : requiresCanvasRenderer && activeDocument
             ? await composeCanvasDocumentToBlob(activeDocument.canvas, preset)
             : await composeToBlob(image, preset);
@@ -317,7 +351,7 @@ export function QuickBar({
       
       const { invoke } = await import("@tauri-apps/api/core");
       await invoke("pin_create", {
-        pngBytes: Array.from(bytes),
+        pngBytes: bytes,
       });
       
       showToast("Pinned to screen", "success");

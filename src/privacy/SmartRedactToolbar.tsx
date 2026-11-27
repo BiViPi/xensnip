@@ -6,7 +6,7 @@ import { useMeasureStore } from '../measure/store';
 import { Check, X, Sparkles, Loader2 } from 'lucide-react';
 import { OpaqueRedactObject } from '../annotate/state/types';
 import type { EditorPreset } from '../compose/preset';
-import { resolveSmartRedactRegion } from './smartRedactRegion';
+import { resolveSmartRedactRegion, unscaleSmartRedactCandidates } from './smartRedactRegion';
 
 interface Props {
   compositionCanvasRef: React.RefObject<HTMLCanvasElement | null>;
@@ -41,7 +41,15 @@ export function SmartRedactToolbar({ compositionCanvasRef, image, preset }: Prop
         preset,
       });
 
-      const results = await detectTextRedactCandidates(canvas, region);
+      const rawResults = await detectTextRedactCandidates(canvas, region);
+      const results = unscaleSmartRedactCandidates(
+        rawResults,
+        canvas.width,
+        canvas.height,
+        image,
+        preset
+      );
+      setCandidates(results);
       setCandidates(results);
       setStatus('ready');
     } catch (err: unknown) {

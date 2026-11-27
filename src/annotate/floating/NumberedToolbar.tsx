@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useAnnotationStore } from '../state/store';
 import { NumberedObject } from '../state/types';
-import { ChevronRight, ChevronLeft } from 'lucide-react';
+import { ChevronRight, ChevronLeft, CircleDot, ListOrdered } from 'lucide-react';
 import { PaletteIcon } from './ToolbarIcons';
 import { Tooltip } from '../../editor/Tooltip';
+import { SliderToggle } from './SliderToggle';
+import { ToolbarActions } from './ToolbarActions';
 
 interface Props {
   anchor: { left: number; top: number; width: number; height: number };
@@ -14,11 +16,13 @@ interface Props {
 const COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#a855f7', '#ffffff', '#000000'];
 
 export function NumberedToolbar({ anchor, obj }: Props) {
-  const { updateObject, patchToolDefaults, toolbarCollapsed, setToolbarCollapsed } = useAnnotationStore();
+  const { updateObject, patchToolDefaults, renumberSteps, toolbarCollapsed, setToolbarCollapsed } = useAnnotationStore();
   const [showColors, setShowColors] = useState(false);
-  const applyNumberedStyle = (fill: string) => {
-    updateObject(obj.id, { fill });
-    patchToolDefaults('numbered', { fill });
+  const [showSize, setShowSize] = useState(false);
+
+  const applyNumberedStyle = (patch: Partial<Pick<NumberedObject, 'fill' | 'radius'>>) => {
+    updateObject(obj.id, patch);
+    patchToolDefaults('numbered', patch);
   };
 
   const overlay = document.getElementById('annotation-ui-overlay');
@@ -28,7 +32,7 @@ export function NumberedToolbar({ anchor, obj }: Props) {
   const top = anchor.top - 40;
 
   return createPortal(
-    <div 
+    <div
       className={`xs-floating-toolbar ${toolbarCollapsed ? 'collapsed' : ''}`}
       style={{
         position: 'absolute',
@@ -39,7 +43,7 @@ export function NumberedToolbar({ anchor, obj }: Props) {
       }}
     >
       <Tooltip text={toolbarCollapsed ? "Expand Toolbar" : "Collapse Toolbar"} position="top">
-        <button 
+        <button
           className="xs-toolbar-btn xs-toolbar-toggle"
           onClick={() => setToolbarCollapsed(!toolbarCollapsed)}
         >
@@ -54,7 +58,11 @@ export function NumberedToolbar({ anchor, obj }: Props) {
             <Tooltip text="Marker Color" position="top">
               <button
                 className={`xs-toolbar-btn ${showColors ? 'active' : ''}`}
-                onClick={() => setShowColors(!showColors)}
+                aria-label="Marker Color"
+                onClick={() => {
+                  setShowColors(!showColors);
+                  setShowSize(false);
+                }}
               >
                 <PaletteIcon />
               </button>
@@ -67,13 +75,44 @@ export function NumberedToolbar({ anchor, obj }: Props) {
                       key={c}
                       className={`xs-color-chip ${obj.fill === c ? 'active' : ''}`}
                       style={{ background: c }}
-                      onClick={() => applyNumberedStyle(c)}
+                      onClick={() => applyNumberedStyle({ fill: c })}
                     />
                   </Tooltip>
                 ))}
               </div>
             )}
           </div>
+
+          <div className="xs-toolbar-divider" />
+
+          <SliderToggle
+            value={obj.radius}
+            onChange={(radius) => applyNumberedStyle({ radius })}
+            min={8}
+            max={48}
+            step={1}
+            isOpen={showSize}
+            onToggle={(open) => {
+              setShowSize(open);
+              if (open) setShowColors(false);
+            }}
+            icon={<CircleDot size={14} />}
+            title="Badge Size"
+          />
+
+          <div className="xs-toolbar-divider" />
+
+          <Tooltip text="Renumber 1..N" position="top">
+            <button
+              className="xs-toolbar-btn"
+              aria-label="Renumber 1..N"
+              onClick={renumberSteps}
+            >
+              <ListOrdered size={14} />
+            </button>
+          </Tooltip>
+
+          <ToolbarActions obj={obj} />
         </div>
       )}
     </div>,

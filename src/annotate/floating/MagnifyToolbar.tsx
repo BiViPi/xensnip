@@ -3,8 +3,10 @@ import { createPortal } from 'react-dom';
 import { ChevronRight, ChevronLeft, ZoomIn, SquareSquare } from 'lucide-react';
 import { useAnnotationStore } from '../state/store';
 import { MagnifyObject } from '../state/types';
+import { syncMagnifyForZoom } from '../renderers/MagnifyRenderer';
 import { RadiusToggle } from './RadiusToggle';
 import { SliderToggle } from './SliderToggle';
+import { ToolbarActions } from './ToolbarActions';
 
 interface Props {
   anchor: { left: number; top: number; width: number; height: number };
@@ -47,7 +49,7 @@ export function MagnifyToolbar({ anchor, obj }: Props) {
 
           <SliderToggle
             value={Math.round(obj.zoom * 100)}
-            onChange={(val) => updateObject(obj.id, { zoom: val / 100 })}
+            onChange={(val) => updateObject(obj.id, syncMagnifyForZoom(obj, val / 100))}
             min={100}
             max={400}
             step={10}
@@ -100,6 +102,8 @@ export function MagnifyToolbar({ anchor, obj }: Props) {
             icon={<SquareSquare size={14} />}
             title="Border Opacity"
           />
+
+          <ToolbarActions obj={obj} />
         </div>
       )}
     </div>,

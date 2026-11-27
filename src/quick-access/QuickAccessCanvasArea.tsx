@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useLayoutEffect, useState } from "react";
 import Konva from "konva";
 import { composeCanvasDocumentToCanvas } from "../compose/compose";
 import { EditorPreset } from "../compose/preset";
@@ -76,11 +76,14 @@ export function QuickAccessCanvasArea({
   onCommitCrop,
   onCancelCrop,
 }: QuickAccessCanvasAreaProps) {
-  // Redraw the composition whenever image, preset, layout, or wallpaper changes.
+  const [canvasRevision, setCanvasRevision] = useState(0);
+
+  // Redraw the composition synchronously before annotation nodes sample the backing canvas.
   // wallpaperFlip is a counter bumped by the shell when a wallpaper finishes loading.
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!canvasRef.current) return;
     composeCanvasDocumentToCanvas(canvasRef.current, canvasDocument, preset, previewRenderScale);
+    setCanvasRevision((rev) => rev + 1);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [image, canvasDocument, preset, wallpaperFlip, dims, previewRenderScale]);
 
@@ -122,6 +125,7 @@ export function QuickAccessCanvasArea({
           width={previewW}
           height={previewH}
           scale={previewScale}
+          canvasRevision={canvasRevision}
           compositionCanvasRef={canvasRef}
           stageRef={stageRef}
           image={image}

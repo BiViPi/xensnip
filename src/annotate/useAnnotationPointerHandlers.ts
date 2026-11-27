@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import Konva from 'konva';
 import { useAnnotationStore } from './state/store';
-import { getCompositionCoordinates } from '../measure/coordinates';
+import { getCanvasRenderScale, getCompositionCoordinates } from '../measure/coordinates';
 import { DrawingObject } from './state/drawingTypes';
 import { TOOL_TO_DRAW_TYPE } from './drawingTypeMap';
 import {
@@ -14,8 +14,10 @@ import { getPointerCoords } from './pointer/pointerCoordinates';
 import {
   computeFreehandPathLength,
   shouldAddFreehandPoint,
+  stabilizeFreehandTail,
   FREEHAND_MIN_PATH_LENGTH,
 } from './pointer/freehandArrowPointer';
+import { getNextNumberedStep } from './renderers/NumberedRenderer';
 import { createDragAnnotationObject } from './pointer/dragObjectFactory';
 import {
   beginOcrSelection,
@@ -25,7 +27,16 @@ import {
   beginSmartRedactSelection,
   completeSmartRedactSelection,
 } from './pointer/smartRedactSelectionHandlers';
+import {
+  findDraggableAnnotationTarget,
+  isTransformerNode,
+} from './pointer/targetPredicates';
+import type { ColorSample } from '../measure/store';
 import { AnnotateObject, FreehandArrowObject, ToolId } from './state/types';
+
+function toHex(r: number, g: number, b: number): string {
+  return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
+}
 
 const REPEATABLE_TOOLS = new Set<ToolId>([
   'arrow',
@@ -44,10 +55,13 @@ const REPEATABLE_TOOLS = new Set<ToolId>([
 
 interface UseAnnotationPointerHandlersDeps {
   scale: number;
+  stageWidth?: number;
+  stageHeight?: number;
   stageRef: React.RefObject<Konva.Stage | null>;
   compositionCanvasRef: React.RefObject<HTMLCanvasElement | null>;
   // measure store setters
-  setCurrentSample: (sample: { x: number; y: number; rgb: [number, number, number]; hex: string } | null) => void;
+  setCurrentSample: (sample: ColorSample | null) => void;
+  currentSample?: ColorSample | null;
   colorPickerFrozen: boolean;
   setColorPickerFrozen: (frozen: boolean) => void;
   setOcrRegion: (region: { x: number; y: number; width: number; height: number } | null) => void;
@@ -73,9 +87,12 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
 } {
   const {
     scale,
+    stageWidth,
+    stageHeight,
     stageRef,
     compositionCanvasRef,
     setCurrentSample,
+    currentSample,
     colorPickerFrozen,
     setColorPickerFrozen,
     setOcrRegion,
@@ -91,8 +108,18 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
     activeUtility,
   } = deps;
 
-  const { activeTool, select, selectMultiple, selectAdditive, addObject, setActiveTool, objects, setEditingTextId, annotationDefaults } =
-    useAnnotationStore();
+  const {
+    activeTool,
+    selectedIds,
+    select,
+    selectMultiple,
+    selectAdditive,
+    addObject,
+    setActiveTool,
+    objects,
+    setEditingTextId,
+    annotationDefaults,
+  } = useAnnotationStore();
 
   const { drawingObject, setDrawingObject } = usePointerHandlersState();
 
@@ -169,7 +196,11 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
 
       // 1. Utility logic
       if (activeUtility === 'color_picker') {
-        setColorPickerFrozen(!colorPickerFrozen);
+        const nextFrozen = !colorPickerFrozen;
+        setColorPickerFrozen(nextFrozen);
+        if (nextFrozen && currentSample?.hex) {
+          Promise.resolve(navigator.clipboard?.writeText?.(currentSample.hex)).catch(() => {});
+        }
         return;
       }
 
@@ -196,6 +227,24 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
         return;
       }
 
+      // Never start drawing a new annotation while interacting with resize anchors or dragging an existing annotation
+      if (isTransformerNode(e.target)) {
+        return;
+      }
+
+      const knownObjectIds = new Set(objects.map((o) => o.id));
+      const hitTarget = findDraggableAnnotationTarget(e.target, knownObjectIds);
+      if (hitTarget.isDraggable) {
+        if (
+          hitTarget.objectId &&
+          !selectedIds.includes(hitTarget.objectId) &&
+          !(e.evt?.ctrlKey || e.evt?.metaKey)
+        ) {
+          select(hitTarget.objectId);
+        }
+        return;
+      }
+
       // 2. Immediate object creation
       if (activeTool === 'text') {
         const text = createImmediateText(stageX, stageY, annotationDefaults.text);
@@ -207,8 +256,8 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
       }
 
       if (activeTool === 'numbered') {
-        const count = objects.filter((o) => o.type === 'numbered').length;
-        const numbered = createImmediateNumbered(stageX, stageY, count, annotationDefaults.numbered);
+        const nextStepBase = getNextNumberedStep(objects) - 1;
+        const numbered = createImmediateNumbered(stageX, stageY, nextStepBase, annotationDefaults.numbered);
         addObject(numbered);
         select(numbered.id);
         if (!REPEATABLE_TOOLS.has(activeTool)) setActiveTool('select');
@@ -259,7 +308,7 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
       }
     },
     [
-      scale, activeUtility, activeTool, objects, colorPickerFrozen, setColorPickerFrozen,
+      scale, activeUtility, activeTool, objects, selectedIds, currentSample, colorPickerFrozen, setColorPickerFrozen,
       setOcrRegion, setOcrText, setOcrError, setOcrStatus, setOcrProgress, resetPrivacy, setPrivacyStatus,
       addObject, select, setEditingTextId, setActiveTool, setDrawingObject, annotationDefaults,
     ]
@@ -274,12 +323,33 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
       if (activeUtility === 'color_picker' && !colorPickerFrozen) {
         const canvas = compositionCanvasRef.current;
         if (canvas) {
-          const { x, y } = getCompositionCoordinates(stageX, stageY, canvas.width, canvas.height);
+          const { scaleX, scaleY } = getCanvasRenderScale(canvas, stageWidth, stageHeight);
+          const { x, y } = getCompositionCoordinates(stageX * scaleX, stageY * scaleY, canvas.width, canvas.height);
           const ctx = canvas.getContext('2d', { willReadFrequently: true });
           if (ctx) {
-            const pixel = ctx.getImageData(x, y, 1, 1).data;
-            const hex = '#' + ((1 << 24) + (pixel[0] << 16) + (pixel[1] << 8) + pixel[2]).toString(16).slice(1).toUpperCase();
-            setCurrentSample({ x: stageX, y: stageY, rgb: [pixel[0], pixel[1], pixel[2]], hex });
+            const x0 = Math.max(0, x - 3);
+            const y0 = Math.max(0, y - 3);
+            const x1 = Math.min(canvas.width - 1, x + 3);
+            const y1 = Math.min(canvas.height - 1, y + 3);
+            const pw = x1 - x0 + 1;
+            const ph = y1 - y0 + 1;
+            const regionData = ctx.getImageData(x0, y0, pw, ph).data;
+            const patch: string[][] = [];
+            for (let dy = -3; dy <= 3; dy++) {
+              const row: string[] = [];
+              const cy = Math.max(y0, Math.min(y1, y + dy)) - y0;
+              for (let dx = -3; dx <= 3; dx++) {
+                const cx = Math.max(x0, Math.min(x1, x + dx)) - x0;
+                const pIdx = (cy * pw + cx) * 4;
+                row.push(toHex(regionData[pIdx], regionData[pIdx + 1], regionData[pIdx + 2]));
+              }
+              patch.push(row);
+            }
+            const centerIdx = ((y - y0) * pw + (x - x0)) * 4;
+            const r = regionData[centerIdx];
+            const g = regionData[centerIdx + 1];
+            const b = regionData[centerIdx + 2];
+            setCurrentSample({ x: stageX, y: stageY, rgb: [r, g, b], hex: toHex(r, g, b), patch });
           }
         }
       }
@@ -307,7 +377,7 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
 
       setDrawingObject({ ...drawingObject, end: { x: endX, y: endY } });
     },
-    [scale, activeUtility, colorPickerFrozen, compositionCanvasRef, setCurrentSample, drawingObject, setDrawingObject]
+    [scale, stageWidth, stageHeight, activeUtility, colorPickerFrozen, compositionCanvasRef, setCurrentSample, drawingObject, setDrawingObject]
   );
 
   const handleMouseUp = useCallback((e: Konva.KonvaEventObject<MouseEvent>) => {
@@ -321,7 +391,7 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
           id: newId,
           type: 'freehand_arrow',
           x: drawingObject.start.x, y: drawingObject.start.y, rotation: 0,
-          points: drawingObject.points,
+          points: stabilizeFreehandTail(drawingObject.points),
           stroke: annotationDefaults.freehand_arrow?.stroke ?? '#ef4444',
           strokeWidth: annotationDefaults.freehand_arrow?.strokeWidth ?? 4,
           smoothing: 0.5, pointerLength: 12, pointerWidth: 12, draggable: true,
@@ -373,6 +443,8 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
     if (drawingObject.type === 'ocr_selection') {
       completeOcrSelection(drawingObject, {
         compositionCanvas: compositionCanvasRef.current,
+        stageWidth,
+        stageHeight,
         setOcrRegion,
         setOcrStatus,
         setOcrProgress,
@@ -411,9 +483,10 @@ export function useAnnotationPointerHandlers(deps: UseAnnotationPointerHandlersD
 
     setDrawingObject(null);
   }, [
-    drawingObject, setDrawingObject, compositionCanvasRef, addObject, select, selectMultiple, selectAdditive, setActiveTool, setEditingTextId,
-    setOcrRegion, setOcrStatus, setOcrProgress, setOcrText, setOcrError, ocrRequestIdRef, setScope, setSelectionRect, setPrivacyStatus,
-    activeTool, objects, getObjectBounds, annotationDefaults
+    drawingObject, setDrawingObject, compositionCanvasRef, stageWidth, stageHeight,
+    addObject, select, selectMultiple, selectAdditive, setActiveTool, setEditingTextId,
+    setOcrRegion, setOcrStatus, setOcrProgress, setOcrText, setOcrError, ocrRequestIdRef,
+    setScope, setSelectionRect, setPrivacyStatus, activeTool, objects, getObjectBounds, annotationDefaults
   ]);
 
   return { handleMouseDown, handleMouseMove, handleMouseUp, drawingObject };
