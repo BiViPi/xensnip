@@ -17,6 +17,7 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
+    testTimeout: 15000,
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
     server: {
       deps: {
