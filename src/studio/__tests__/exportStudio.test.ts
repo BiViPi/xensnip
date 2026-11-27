@@ -1,7 +1,13 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, it, expect, vi } from 'vitest';
 import { exportStudioPng } from '@studio-impl/export/exportStudio';
 import { StudioRenderer } from '@studio-impl/renderer/StudioRenderer';
 import type { StudioExportHandle } from '../types';
+
+const hasPrivateStudio = fs.existsSync(
+  path.resolve(__dirname, '../private/renderer/useStudioRenderer.ts'),
+);
 
 function makeHandle(overrides: Partial<StudioExportHandle> = {}): StudioExportHandle {
   return {
@@ -72,48 +78,61 @@ describe('StudioRenderer edge guards', () => {
     expect(fakeRenderer.camera.aspect).toBe(1.5);
   });
 
-  it('exportPng restores renderer pixelRatio, size, and camera aspect even if toDataURL throws', async () => {
-    const setPixelRatio = vi.fn();
-    const setSize = vi.fn();
-    const render = vi.fn();
-    const updateProjectionMatrix = vi.fn();
-    const markDirty = vi.fn();
-    const fakeRenderer = {
-      threeRenderer: {
-        getSize: (v: { set?: (x: number, y: number) => void; x?: number; y?: number }) => {
-          v.x = 800;
-          v.y = 600;
-          return v;
-        },
-        getPixelRatio: () => 2,
-        setPixelRatio,
-        setSize,
-        render,
-        domElement: {
-          toDataURL: () => {
-            throw new Error('toDataURL failed');
+  it.runIf(hasPrivateStudio)(
+    'exportPng restores renderer pixelRatio, size, and camera aspect even if toDataURL throws',
+    async () => {
+      const setPixelRatio = vi.fn();
+      const setSize = vi.fn();
+      const render = vi.fn();
+      const updateProjectionMatrix = vi.fn();
+      const markDirty = vi.fn();
+      const fakeRenderer = {
+        threeRenderer: {
+          getSize: (v: { set?: (x: number, y: number) => void; x?: number; y?: number }) => {
+            v.x = 800;
+            v.y = 600;
+            return v;
+          },
+          getPixelRatio: () => 2,
+          setPixelRatio,
+          setSize,
+          render,
+          domElement: {
+            toDataURL: () => {
+              throw new Error('toDataURL failed');
+            },
           },
         },
-      },
-      camera: { aspect: 800 / 600, updateProjectionMatrix },
-      scene: {},
-      lastConfig: null,
-      scheduler: { markDirty },
-      applyFrameOffset: vi.fn(),
-      updateBgScale: vi.fn(),
-    };
+        camera: { aspect: 800 / 600, updateProjectionMatrix },
+        scene: {},
+        lastConfig: null,
+        scheduler: { markDirty },
+        applyFrameOffset: vi.fn(),
+        updateBgScale: vi.fn(),
+      };
 
-    await expect(
-      StudioRenderer.prototype.exportPng.call(
-        fakeRenderer as unknown as StudioRenderer,
-        3840,
-        2160,
-      ),
-    ).rejects.toThrow('toDataURL failed');
+      await expect(
+        StudioRenderer.prototype.exportPng.call(
+          fakeRenderer as unknown as StudioRenderer,
+          3840,
+          2160,
+        ),
+      ).rejects.toThrow('toDataURL failed');
 
-    expect(setPixelRatio).toHaveBeenLastCalledWith(2);
-    expect(setSize).toHaveBeenLastCalledWith(800, 600, false);
-    expect(fakeRenderer.camera.aspect).toBeCloseTo(800 / 600, 5);
-    expect(markDirty).toHaveBeenCalled();
-  });
+      expect(setPixelRatio).toHaveBeenLastCalledWith(2);
+      expect(setSize).toHaveBeenLastCalledWith(800, 600, false);
+      expect(fakeRenderer.camera.aspect).toBeCloseTo(800 / 600, 5);
+      expect(markDirty).toHaveBeenCalled();
+    },
+  );
+
+  it.runIf(!hasPrivateStudio)(
+    'stub exportPng rejects cleanly when private submodule is absent',
+    async () => {
+      const stubRenderer = new StudioRenderer(document.createElement('canvas'));
+      await expect(stubRenderer.exportPng(3840, 2160)).rejects.toThrow(
+        'Studio renderer not available',
+      );
+    },
+  );
 });
